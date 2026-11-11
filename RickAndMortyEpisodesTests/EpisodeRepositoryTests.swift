@@ -45,10 +45,8 @@ struct EpisodeRepositoryTests {
         async let first = repository.refreshAll()
         async let second = repository.refreshAll()
 
-        // Wait until the first refresh is blocked on page 1, then give the second call
-        // time to join it before letting the request finish.
-        while await api.requestedPages.isEmpty { await Task.yield() }
-        for _ in 0..<50 { await Task.yield() }
+        // Both clients must actually be registered before the shared request finishes.
+        while await repository.refreshWaiterCount != 2 { await Task.yield() }
         await gate.open()
 
         let (a, b) = try await (first, second)
