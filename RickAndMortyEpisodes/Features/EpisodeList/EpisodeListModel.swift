@@ -171,6 +171,8 @@ final class EpisodeListModel {
 
     private func persistCompleteList() async {
         let generation = listGeneration
+        // Age belongs to the successfully downloaded list, even if disk is full.
+        lastRefreshed = now()
         // The list is already on screen, so a failed save only means it won't be
         // available offline; there's no need to bother the user with it.
         guard let snapshot = try? await repository.saveCompleteList(episodes),
