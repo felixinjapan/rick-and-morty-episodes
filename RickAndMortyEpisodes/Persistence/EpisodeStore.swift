@@ -28,7 +28,9 @@ actor FileEpisodeStore: EpisodeStore {
     }
 
     func load() throws -> EpisodeSnapshot? {
-        guard FileManager.default.fileExists(atPath: fileURL.path()) else { return nil }
+        // `path(percentEncoded: false)`: the default `path()` percent-encodes, so
+        // "Application Support" would become "Application%20Support" and never be found.
+        guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return nil }
         let data = try Data(contentsOf: fileURL)
         return try JSONDecoder().decode(EpisodeSnapshot.self, from: data)
     }

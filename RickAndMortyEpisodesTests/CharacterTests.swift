@@ -39,7 +39,7 @@ struct CharacterExporterTests {
         _ = try exporter.export(.rick)
 
         #expect(try String(contentsOf: url, encoding: .utf8) == CharacterExporter.text(for: .rick))
-        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path()).count == 1)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path(percentEncoded: false)).count == 1)
     }
 }
 
@@ -60,7 +60,7 @@ struct CharacterDetailModelTests {
 
         model.export()
         let file = try #require(model.exportedFile)
-        #expect(FileManager.default.fileExists(atPath: file.url.path()))
+        #expect(FileManager.default.fileExists(atPath: file.url.path(percentEncoded: false)))
     }
 
     @Test("A failed load shows an error and export stays unavailable")

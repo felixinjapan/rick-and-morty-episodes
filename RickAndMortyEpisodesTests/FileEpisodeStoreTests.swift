@@ -26,6 +26,18 @@ struct FileEpisodeStoreTests {
         #expect(try await store.load() == snapshot)
     }
 
+    @Test("Works in folders whose names contain spaces, like Application Support")
+    func pathWithSpaces() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "Application Support \(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = FileEpisodeStore(fileURL: directory.appending(path: "cache.json"))
+        let snapshot = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
+
+        try await store.save(snapshot)
+
+        #expect(try await store.load() == snapshot)
+    }
+
     @Test("A corrupt file throws instead of returning bad data")
     func corruptFile() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
