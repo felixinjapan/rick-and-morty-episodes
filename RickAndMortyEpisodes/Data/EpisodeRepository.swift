@@ -108,6 +108,7 @@ actor EpisodeRepository {
 
     private func finishRefresh(id: UUID, result: Result<EpisodeSnapshot, Error>) {
         guard let refresh = inFlightRefresh, refresh.id == id else { return }
+        if case .success(let snapshot) = result { latestFullRefresh = snapshot }
         inFlightRefresh = nil
         for waiter in refresh.waiters.values {
             waiter.resume(with: result)
@@ -138,7 +139,6 @@ actor EpisodeRepository {
         let episodes = pages.keys.sorted().flatMap { pages[$0] ?? [] }
         let snapshot = EpisodeSnapshot(episodes: episodes, refreshedAt: now())
         try await saveSnapshot(snapshot)
-        latestFullRefresh = snapshot
         return snapshot
     }
 

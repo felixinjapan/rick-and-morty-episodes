@@ -171,6 +171,27 @@ struct EpisodeRepositoryTests {
         #expect(await store.saveCount == 1)
     }
 
+    @Test("A cancelled commit cannot supersede a replacement refresh")
+    func cancelledCommitCannotPublishOverNewRefresh() async throws {
+        let api = StubAPI(pages: [1: .success(.make(ids: 1...1, pageCount: 1, hasNextPage: false))])
+        let store = GatedSaveStore()
+        let repository = EpisodeRepository(api: api, store: store)
+        let first = Task { try await repository.refreshAll() }
+        await store.firstSaveStarted.wait()
+        first.cancel()
+        await #expect(throws: CancellationError.self) { try await first.value }
+
+        await api.setPage(1, .success(.make(ids: 2...2, pageCount: 1, hasNextPage: false)))
+        let replacement = Task { try await repository.refreshAll() }
+        while await repository.pendingSnapshotSaveCount != 2 { await Task.yield() }
+        await store.releaseFirstSave.open()
+        let latest = try await replacement.value
+        let latePaging = try await repository.saveCompleteList([.make(id: 999)])
+        #expect(latest.episodes.map(\.id) == [2])
+        #expect(latePaging == latest)
+        #expect(await store.snapshot == latest)
+    }
+
     @Test("Bootstrap persistence adopts an overlapping refresh")
     func pagingSaveJoinsRefresh() async throws {
         let api = threePageAPI()
