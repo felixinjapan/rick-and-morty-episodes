@@ -8,14 +8,14 @@ import os
 /// the main actor and from the background task at the same time.
 actor EpisodeRepository {
     private let api: any RickAndMortyAPI
-    private let store: any EpisodeStore
+    private let store: FileEpisodeStore
     private let now: @Sendable () -> Date
     private let logger = Logger(subsystem: "RickAndMortyEpisodes", category: "EpisodeRepository")
     private var characterCache: [Int: CharacterDetails] = [:]
 
     init(
         api: any RickAndMortyAPI,
-        store: any EpisodeStore,
+        store: FileEpisodeStore,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.api = api

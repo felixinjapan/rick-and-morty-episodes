@@ -63,16 +63,10 @@ final class EpisodeListModel {
         guard !hasStarted else { return }
         hasStarted = true
 
-        let generation = listGeneration
-        let snapshot = await repository.cachedSnapshot()
-        // A manual refresh can finish while the initial disk read is suspended.
-        // Its accepted list also supersedes a cache miss captured before that refresh.
-        if generation == listGeneration {
-            if let snapshot {
-                apply(snapshot)
-            } else {
-                nextPage = 1
-            }
+        if let snapshot = await repository.cachedSnapshot() {
+            apply(snapshot)
+        } else {
+            nextPage = 1
         }
         hasCheckedCache = true
 

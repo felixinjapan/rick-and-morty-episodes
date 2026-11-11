@@ -66,14 +66,8 @@ struct RecordedRickAndMortyAPI: RickAndMortyAPI {
     }
 }
 
-actor InMemoryEpisodeStore: EpisodeStore {
-    private var snapshot: EpisodeSnapshot?
-
-    init(snapshot: EpisodeSnapshot? = nil) {
-        self.snapshot = snapshot
-    }
-
-    func load() -> EpisodeSnapshot? { snapshot }
-    func save(_ snapshot: EpisodeSnapshot) { self.snapshot = snapshot }
+extension FileEpisodeStore {
+    /// A throwaway cache for previews.
+    static let preview = FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "Previews/episodes-cache.json"))
 }
 #endif

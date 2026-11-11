@@ -1,19 +1,15 @@
 import Foundation
 
-/// Persists the episode list. A protocol so the repository can be tested with an
-/// in-memory store and the file format can change without touching callers.
-protocol EpisodeStore: Sendable {
-    func load() async throws -> EpisodeSnapshot?
-    func save(_ snapshot: EpisodeSnapshot) async throws
-}
-
-/// Saves the whole snapshot as one JSON file.
+/// Persists the episode list as one JSON file.
 ///
 /// The data is ~50 records that are always read and written as a whole, with no queries
 /// or relationships, so a database (SwiftData/Core Data) would add complexity without benefit.
 /// The actor serialises access so concurrent saves (pull-to-refresh and background refresh)
 /// can't interleave, and `.atomic` writes mean a crash never leaves a half-written file.
-actor FileEpisodeStore: EpisodeStore {
+///
+/// There is no protocol in front of it: tests point it at a temporary folder, so they
+/// exercise real encoding and file I/O instead of a fake.
+actor FileEpisodeStore {
     private let fileURL: URL
 
     init(fileURL: URL) {
