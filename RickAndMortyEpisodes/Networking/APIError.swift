@@ -26,13 +26,13 @@ extension APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .offline:
-            "You appear to be offline."
+            "You appear to be offline. Check your connection, then try again."
         case .timedOut:
-            "The server took too long to respond."
+            "The server took too long to respond. Try again in a moment."
         case .transport:
-            "A network error occurred."
+            "A network error occurred. Try again in a moment."
         case .invalidResponse:
-            "The server sent an unexpected response."
+            "The server sent an unexpected response. Try again later."
         case .http(404):
             "This item could not be found."
         case .http(429):
@@ -40,9 +40,9 @@ extension APIError: LocalizedError {
         case .http(let statusCode) where statusCode >= 500:
             "The server is having problems. Please try again later."
         case .http:
-            "The request failed."
+            "The request failed. Try again later."
         case .decoding:
-            "The server's data could not be read."
+            "The server's data could not be read. Try again later."
         }
     }
 }

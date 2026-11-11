@@ -1,13 +1,21 @@
 import SwiftUI
 
 struct EpisodeRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let episode: Episode
+
+    /// At accessibility text sizes the code and date stack vertically instead of crowding one line.
+    private var detailLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout())
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(episode.name)
                 .font(.headline)
-            HStack {
+            detailLayout {
                 Text(episode.code)
                     .font(.caption.monospaced().weight(.semibold))
                     .padding(.horizontal, 6)
