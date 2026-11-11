@@ -138,6 +138,6 @@ private struct LastUpdatedLabel: View {
 
 #if DEBUG
 #Preview {
-    EpisodeListView(repository: EpisodeRepository(api: RecordedRickAndMortyAPI(), store: InMemoryEpisodeStore()))
+    EpisodeListView(repository: EpisodeRepository(api: RecordedRickAndMortyAPI(), store: .preview))
 }
 #endif

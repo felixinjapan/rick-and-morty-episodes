@@ -150,7 +150,7 @@ private struct ExportConfirmationView: View {
     NavigationStack {
         CharacterDetailView(
             characterID: 1,
-            repository: EpisodeRepository(api: RecordedRickAndMortyAPI(), store: InMemoryEpisodeStore())
+            repository: EpisodeRepository(api: RecordedRickAndMortyAPI(), store: .preview)
         )
     }
 }

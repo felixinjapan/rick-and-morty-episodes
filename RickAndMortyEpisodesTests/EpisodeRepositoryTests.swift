@@ -7,15 +7,14 @@ struct EpisodeRepositoryTests {
     @Test("Refresh fetches every page, keeps API order, and saves one snapshot")
     func refreshFetchesAllPages() async throws {
         let api = threePageAPI()
-        let store = RecordingStore()
+        let store = FileEpisodeStore.temporary()
         let repository = EpisodeRepository(api: api, store: store, now: { fixedDate })
 
         let snapshot = try await repository.refreshAll()
 
         #expect(snapshot.episodes.map(\.id) == Array(1...45))
         #expect(snapshot.refreshedAt == fixedDate)
-        #expect(await store.snapshot == snapshot)
-        #expect(await store.saveCount == 1)
+        #expect(try await store.load() == snapshot)
         #expect(await api.requestedPages.sorted() == [1, 2, 3])
     }
 
@@ -23,15 +22,14 @@ struct EpisodeRepositoryTests {
     func failedRefreshKeepsCache() async throws {
         let api = threePageAPI()
         await api.setPage(2, .failure(APIError.http(statusCode: 500)))
-        let previous = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: .distantPast)
-        let store = RecordingStore(snapshot: previous)
+        let previous = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
+        let store = try await FileEpisodeStore.temporary(containing: previous)
         let repository = EpisodeRepository(api: api, store: store)
 
         await #expect(throws: APIError.http(statusCode: 500)) {
             try await repository.refreshAll()
         }
-        #expect(await store.snapshot == previous)
-        #expect(await store.saveCount == 0)
+        #expect(try await store.load() == previous)
     }
 
     @Test("A cancelled refresh saves nothing")
@@ -39,7 +37,7 @@ struct EpisodeRepositoryTests {
         let api = threePageAPI()
         let gate = Gate()
         await api.holdPage(1, until: gate)
-        let store = RecordingStore()
+        let store = FileEpisodeStore.temporary()
         let repository = EpisodeRepository(api: api, store: store)
 
         let refresh = Task { try await repository.refreshAll() }
@@ -48,19 +46,21 @@ struct EpisodeRepositoryTests {
         await gate.open()
 
         await #expect(throws: CancellationError.self) { try await refresh.value }
-        #expect(await store.saveCount == 0)
+        #expect(try await store.load() == nil)
     }
 
     @Test("An unreadable cache is treated as no cache")
-    func corruptCache() async {
-        let repository = EpisodeRepository(api: StubAPI(), store: RecordingStore(failsOnLoad: true))
+    func corruptCache() async throws {
+        let fileURL = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).json")
+        try Data("not json".utf8).write(to: fileURL)
+        let repository = EpisodeRepository(api: StubAPI(), store: FileEpisodeStore(fileURL: fileURL))
         #expect(await repository.cachedSnapshot() == nil)
     }
 
     @Test("Character details are cached in memory")
     func characterCaching() async throws {
         let api = StubAPI(characters: [1: .success(.rick)])
-        let repository = EpisodeRepository(api: api, store: RecordingStore())
+        let repository = EpisodeRepository(api: api, store: .temporary())
 
         _ = try await repository.character(id: 1)
         let second = try await repository.character(id: 1)

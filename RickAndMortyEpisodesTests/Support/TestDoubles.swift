@@ -60,25 +60,23 @@ actor Gate {
     }
 }
 
-/// Store fake whose saves can be made to fail.
-actor RecordingStore: EpisodeStore {
-    private(set) var snapshot: EpisodeSnapshot?
-    private(set) var saveCount = 0
-    private let failsOnLoad: Bool
-
-    init(snapshot: EpisodeSnapshot? = nil, failsOnLoad: Bool = false) {
-        self.snapshot = snapshot
-        self.failsOnLoad = failsOnLoad
+extension FileEpisodeStore {
+    /// A real store in its own temporary folder, so tests don't share state.
+    static func temporary() -> FileEpisodeStore {
+        FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "\(UUID().uuidString)/episodes-cache.json"))
     }
 
-    func load() throws -> EpisodeSnapshot? {
-        if failsOnLoad { throw CocoaError(.fileReadCorruptFile) }
-        return snapshot
+    static func temporary(containing snapshot: EpisodeSnapshot) async throws -> FileEpisodeStore {
+        let store = temporary()
+        try await store.save(snapshot)
+        return store
     }
 
-    func save(_ snapshot: EpisodeSnapshot) {
-        saveCount += 1
-        self.snapshot = snapshot
+    /// A store whose saves fail, because a file sits where its folder should be.
+    static func unwritable() throws -> FileEpisodeStore {
+        let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data().write(to: blocker)
+        return FileEpisodeStore(fileURL: blocker.appending(path: "episodes-cache.json"))
     }
 }
 
