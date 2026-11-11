@@ -20,7 +20,7 @@ final class EpisodeListModel {
 
     private(set) var episodes: [Episode] = []
     private(set) var lastRefreshed: Date?
-    private(set) var isRefreshing = false
+    var isRefreshing: Bool { activeRefreshCount > 0 }
     /// Shown as a banner when a refresh fails but older content is still on screen.
     private(set) var refreshError: String?
 
@@ -29,6 +29,7 @@ final class EpisodeListModel {
     private var isLoadingPage = false
     private var hasStarted = false
     private var hasCheckedCache = false
+    private var activeRefreshCount = 0
     /// Incremented whenever the whole list is replaced, so a page request that was
     /// started before a refresh can't append stale results to the new list.
     private var listGeneration = 0
@@ -133,8 +134,8 @@ final class EpisodeListModel {
 
     /// Re-fetches the full list. Used by pull-to-refresh and when cached data is stale.
     func refresh() async {
-        isRefreshing = true
-        defer { isRefreshing = false }
+        activeRefreshCount += 1
+        defer { activeRefreshCount -= 1 }
 
         do {
             let snapshot = try await repository.refreshAll()
