@@ -142,4 +142,23 @@ struct EpisodeListModelTests {
         #expect(model.episodes.count == 2)
         #expect(model.lastRefreshed == newer.refreshedAt)
     }
+
+    @Test("A fresh background snapshot clears an earlier refresh error")
+    func foregroundSnapshotClearsRefreshError() async {
+        let api = StubAPI(pages: [1: .failure(APIError.offline)])
+        let store = RecordingStore(snapshot: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate))
+        let model = makeModel(api: api, store: store)
+        await model.start()
+        await model.refresh()
+        #expect(model.refreshError != nil)
+
+        let newer = EpisodeSnapshot(episodes: [.make(id: 2)], refreshedAt: fixedDate.addingTimeInterval(60))
+        await store.save(newer)
+        await model.appDidBecomeActive()
+
+        #expect(model.episodes == newer.episodes)
+        #expect(model.lastRefreshed == newer.refreshedAt)
+        #expect(model.refreshError == nil)
+        #expect(await api.requestedPages == [1])
+    }
 }
