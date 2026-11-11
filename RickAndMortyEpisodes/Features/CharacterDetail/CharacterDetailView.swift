@@ -110,7 +110,7 @@ private struct ExportConfirmationView: View {
                     Text("Saved")
                         .font(.title2.bold())
                         .accessibilityIdentifier("export.confirmation")
-                    Text("**\(fileURL.lastPathComponent)** was saved to Files › On My iPhone › Episodes › Exports.")
+                    Text("**\(fileURL.lastPathComponent)** was saved. Find it in Files, in the Episodes folder under Exports.")
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
