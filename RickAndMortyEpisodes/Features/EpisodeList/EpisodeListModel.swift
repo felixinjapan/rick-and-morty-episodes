@@ -20,7 +20,7 @@ final class EpisodeListModel {
 
     private(set) var episodes: [Episode] = []
     private(set) var lastRefreshed: Date?
-    private(set) var isRefreshing = false
+    var isRefreshing: Bool { activeRefreshCount > 0 }
     /// Shown as a banner when a refresh fails but older content is still on screen.
     private(set) var refreshError: String?
 
@@ -29,6 +29,7 @@ final class EpisodeListModel {
     private var isLoadingPage = false
     private var hasStarted = false
     private var hasCheckedCache = false
+    private var activeRefreshCount = 0
     /// Incremented whenever the whole list is replaced, so a page request that was
     /// started before a refresh can't append stale results to the new list.
     private var listGeneration = 0
@@ -62,10 +63,16 @@ final class EpisodeListModel {
         guard !hasStarted else { return }
         hasStarted = true
 
-        if let snapshot = await repository.cachedSnapshot() {
-            apply(snapshot)
-        } else {
-            nextPage = 1
+        let generation = listGeneration
+        let snapshot = await repository.cachedSnapshot()
+        // A manual refresh can finish while the initial disk read is suspended.
+        // Its accepted list also supersedes a cache miss captured before that refresh.
+        if generation == listGeneration {
+            if let snapshot {
+                apply(snapshot)
+            } else {
+                nextPage = 1
+            }
         }
         hasCheckedCache = true
 
@@ -109,7 +116,9 @@ final class EpisodeListModel {
             episodes += loaded.episodes
             nextPage = loaded.hasNextPage ? page + 1 : nil
             if nextPage == nil {
-                await persistCompleteList()
+                // Like the page request, this commit belongs to the model. The
+                // footer's task may already be cancelled after scrolling away.
+                await Task { await self.persistCompleteList() }.value
             }
         case .failure(let error):
             pageError = error.userMessage
@@ -125,8 +134,8 @@ final class EpisodeListModel {
 
     /// Re-fetches the full list. Used by pull-to-refresh and when cached data is stale.
     func refresh() async {
-        isRefreshing = true
-        defer { isRefreshing = false }
+        activeRefreshCount += 1
+        defer { activeRefreshCount -= 1 }
 
         do {
             let snapshot = try await repository.refreshAll()
@@ -156,15 +165,18 @@ final class EpisodeListModel {
         lastRefreshed = snapshot.refreshedAt
         nextPage = nil
         pageError = nil
+        refreshError = nil
         isLoadingPage = false
     }
 
     private func persistCompleteList() async {
         let generation = listGeneration
+        // Age belongs to the successfully downloaded list, even if disk is full.
+        lastRefreshed = now()
         // The list is already on screen, so a failed save only means it won't be
         // available offline; there's no need to bother the user with it.
         guard let snapshot = try? await repository.saveCompleteList(episodes),
               generation == listGeneration else { return }
-        lastRefreshed = snapshot.refreshedAt
+        apply(snapshot)
     }
 }

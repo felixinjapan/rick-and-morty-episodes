@@ -3,10 +3,11 @@ import XCTest
 /// End-to-end user journeys. The app runs with `-uiTesting`, which serves real API
 /// responses recorded in the app (51 episodes over 3 pages) so the tests never touch the network,
 /// and `-resetCache`, so every test starts without cached episodes.
+@MainActor
 final class EpisodeFlowUITests: XCTestCase {
     private var app: XCUIApplication!
 
-    override func setUp() {
+    override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments = ["-uiTesting", "-resetCache"]
@@ -61,6 +62,8 @@ final class EpisodeFlowUITests: XCTestCase {
 
         XCTAssertTrue(element(containing: "Rick Sanchez").waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Earth (C-137)").exists)
+        XCTAssertTrue(app.images["characterDetail.portraitUnavailable"].exists)
+        XCTAssertFalse(app.progressIndicators["characterDetail.portraitLoading"].exists)
 
         // The episode count row can be below the image on small screens, and List only
         // creates cells that are on screen.
@@ -79,5 +82,35 @@ final class EpisodeFlowUITests: XCTestCase {
         app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@", text))
             .firstMatch
+    }
+
+    func testExportRemainsReachableAtLargestAccessibilityTextSize() {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
+        app.staticTexts["Pilot"].tap()
+        let character = app.buttons["Character #1"]
+        XCTAssertTrue(character.waitForExistence(timeout: 5))
+        character.tap()
+        let export = app.buttons["characterDetail.export"]
+        XCTAssertTrue(export.waitForExistence(timeout: 5))
+        export.tap()
+        XCTAssertTrue(app.staticTexts["export.confirmation"].waitForExistence(timeout: 5))
+
+        let share = app.buttons["export.share"]
+        let content = app.scrollViews["export.content"]
+        for _ in 0..<8 {
+            if share.isHittable && content.frame.contains(share.frame) { break }
+            content.swipeUp()
+        }
+        XCTAssertTrue(share.isHittable)
+        XCTAssertTrue(content.frame.contains(share.frame))
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Export at largest accessibility text size"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        share.tap()
+        XCTAssertTrue(app.collectionViews["activityCollectionView"].waitForExistence(timeout: 5))
     }
 }
