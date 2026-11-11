@@ -61,6 +61,8 @@ final class EpisodeFlowUITests: XCTestCase {
 
         XCTAssertTrue(element(containing: "Rick Sanchez").waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Earth (C-137)").exists)
+        XCTAssertTrue(app.images["characterDetail.portraitUnavailable"].exists)
+        XCTAssertFalse(app.progressIndicators["characterDetail.portraitLoading"].exists)
 
         // The episode count row can be below the image on small screens, and List only
         // creates cells that are on screen.

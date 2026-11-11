@@ -64,23 +64,8 @@ private struct CharacterDetailContent: View {
     var body: some View {
         List {
             Section {
-                AsyncImage(url: character.imageURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .failure:
-                        Image(systemName: "person.crop.square")
-                            .font(.system(size: 64))
-                            .foregroundStyle(.secondary)
-                    default:
-                        ProgressView()
-                    }
-                }
-                .frame(width: 200, height: 200)
-                .clipShape(.rect(cornerRadius: 16))
-                .frame(maxWidth: .infinity)
-                .accessibilityLabel("Image of \(character.name)")
-                .listRowBackground(Color.clear)
+                CharacterPortrait(character: character)
+                    .listRowBackground(Color.clear)
             }
 
             Section("Details") {
