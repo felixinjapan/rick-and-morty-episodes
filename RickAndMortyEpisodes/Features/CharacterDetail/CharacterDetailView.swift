@@ -66,28 +66,8 @@ private struct CharacterDetailContent: View {
     var body: some View {
         List {
             Section {
-                Group {
-                    if let imageURL = character.imageURL {
-                        AsyncImage(url: imageURL) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image.resizable().scaledToFill()
-                            case .failure:
-                                placeholderImage
-                            default:
-                                ProgressView()
-                            }
-                        }
-                    } else {
-                        // No URL (e.g. offline mode): AsyncImage would show its loading state forever.
-                        placeholderImage
-                    }
-                }
-                .frame(width: 200, height: 200)
-                .clipShape(.rect(cornerRadius: 16))
-                .frame(maxWidth: .infinity)
-                .accessibilityLabel("Image of \(character.name)")
-                .listRowBackground(Color.clear)
+                CharacterPortrait(character: character)
+                    .listRowBackground(Color.clear)
             }
 
             Section("Details") {
@@ -108,12 +88,6 @@ private struct CharacterDetailContent: View {
         }
     }
 
-    private var placeholderImage: some View {
-        Image(systemName: "person.crop.square")
-            .font(.largeTitle)
-            .imageScale(.large)
-            .foregroundStyle(.secondary)
-    }
 
     private var statusColor: Color {
         switch character.status.lowercased() {
@@ -126,6 +100,7 @@ private struct CharacterDetailContent: View {
 
 private struct ExportConfirmationView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let fileURL: URL
 
     var body: some View {
@@ -141,9 +116,10 @@ private struct ExportConfirmationView: View {
                     Text("Saved")
                         .font(.title2.bold())
                         .accessibilityIdentifier("export.confirmation")
-                    Text("**\(fileURL.lastPathComponent)** was saved to Files › On My iPhone › Episodes › Exports.")
+                    Text("**\(fileURL.lastPathComponent)** was saved. Find it in Files, in the Episodes folder under Exports.")
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     ShareLink(item: fileURL) {
                         Label("Share", systemImage: "square.and.arrow.up")
                             .foregroundStyle(Color.onAccent)
@@ -151,9 +127,12 @@ private struct ExportConfirmationView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    .accessibilityIdentifier("export.share")
                 }
                 .padding(24)
+                .frame(maxWidth: .infinity)
             }
+            .accessibilityIdentifier("export.content")
             .toolbar {
                 // The sheet only confirms a finished action, so it is dismissed with Close, not Done.
                 ToolbarItem(placement: .cancellationAction) {
@@ -161,7 +140,7 @@ private struct ExportConfirmationView: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
     }
 }

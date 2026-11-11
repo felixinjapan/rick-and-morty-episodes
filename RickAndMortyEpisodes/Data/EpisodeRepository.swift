@@ -12,8 +12,22 @@ actor EpisodeRepository {
     private let now: @Sendable () -> Date
     private let logger = Logger(subsystem: "RickAndMortyEpisodes", category: "EpisodeRepository")
 
-    private var inFlightRefresh: Task<EpisodeSnapshot, Error>?
+    private struct Refresh {
+        let id: UUID
+        let task: Task<Void, Never>
+        var waiters: [UUID: CheckedContinuation<EpisodeSnapshot, Error>]
+    }
+
+    private var inFlightRefresh: Refresh?
+    private var latestFullRefresh: EpisodeSnapshot?
+    private var pendingSave: (id: UUID, task: Task<Void, Error>)?
     private var characterCache: [Int: CharacterDetails] = [:]
+
+    #if DEBUG
+    /// Lets concurrency tests observe admission rather than guess scheduler timing.
+    var refreshWaiterCount: Int { inFlightRefresh?.waiters.count ?? 0 }
+    private(set) var pendingSnapshotSaveCount = 0
+    #endif
 
     init(
         api: any RickAndMortyAPI,
@@ -45,8 +59,12 @@ actor EpisodeRepository {
 
     /// Persists a list that was fully loaded page by page.
     func saveCompleteList(_ episodes: [Episode]) async throws -> EpisodeSnapshot {
+        // Incremental loading is only the bootstrap path. A full refresh supersedes
+        // that list even if its UI continuation has not applied the refresh yet.
+        if inFlightRefresh != nil { return try await refreshAll() }
+        if let latestFullRefresh { return latestFullRefresh }
         let snapshot = EpisodeSnapshot(episodes: episodes, refreshedAt: now())
-        try await store.save(snapshot)
+        try await saveSnapshot(snapshot)
         return snapshot
     }
 
@@ -55,20 +73,45 @@ actor EpisodeRepository {
     /// Concurrent callers (pull-to-refresh and the background task) share the same request
     /// instead of fetching twice and racing to write the cache.
     func refreshAll() async throws -> EpisodeSnapshot {
-        if let inFlightRefresh {
-            return try await inFlightRefresh.value
-        }
-
-        let task = Task { try await self.fetchAllAndSave() }
-        inFlightRefresh = task
-        defer { inFlightRefresh = nil }
-
-        // The work runs in its own Task so callers can share it, so cancellation
-        // (e.g. background time expiring) has to be forwarded explicitly.
-        return try await withTaskCancellationHandler {
-            try await task.value
+        let waiterID = UUID()
+        let snapshot = try await withTaskCancellationHandler {
+            try Task.checkCancellation()
+            return try await withCheckedThrowingContinuation { continuation in
+                if inFlightRefresh != nil {
+                    inFlightRefresh?.waiters[waiterID] = continuation
+                } else {
+                    let refreshID = UUID()
+                    let task = Task {
+                        let result: Result<EpisodeSnapshot, Error>
+                        do { result = .success(try await self.fetchAllAndSave()) }
+                        catch { result = .failure(error) }
+                        self.finishRefresh(id: refreshID, result: result)
+                    }
+                    inFlightRefresh = Refresh(id: refreshID, task: task, waiters: [waiterID: continuation])
+                }
+            }
         } onCancel: {
-            task.cancel()
+            Task { await self.cancelRefreshWaiter(id: waiterID) }
+        }
+        try Task.checkCancellation()
+        return snapshot
+    }
+
+    private func cancelRefreshWaiter(id: UUID) {
+        guard let waiter = inFlightRefresh?.waiters.removeValue(forKey: id) else { return }
+        waiter.resume(throwing: CancellationError())
+        if inFlightRefresh?.waiters.isEmpty == true {
+            inFlightRefresh?.task.cancel()
+            inFlightRefresh = nil
+        }
+    }
+
+    private func finishRefresh(id: UUID, result: Result<EpisodeSnapshot, Error>) {
+        guard let refresh = inFlightRefresh, refresh.id == id else { return }
+        if case .success(let snapshot) = result { latestFullRefresh = snapshot }
+        inFlightRefresh = nil
+        for waiter in refresh.waiters.values {
+            waiter.resume(with: result)
         }
     }
 
@@ -95,8 +138,36 @@ actor EpisodeRepository {
 
         let episodes = pages.keys.sorted().flatMap { pages[$0] ?? [] }
         let snapshot = EpisodeSnapshot(episodes: episodes, refreshedAt: now())
-        try await store.save(snapshot)
+        try await saveSnapshot(snapshot)
         return snapshot
+    }
+
+    /// Preserve repository commit order even when an injected store suspends inside save.
+    /// In particular, a bootstrap save already underway must finish before a full refresh.
+    private func saveSnapshot(_ snapshot: EpisodeSnapshot) async throws {
+        let previous = pendingSave?.task
+        let store = self.store
+        let id = UUID()
+        let task = Task {
+            if let previous { _ = await previous.result }
+            try Task.checkCancellation()
+            try await store.save(snapshot)
+        }
+        pendingSave = (id, task)
+        #if DEBUG
+        pendingSnapshotSaveCount += 1
+        #endif
+        defer {
+            if pendingSave?.id == id { pendingSave = nil }
+            #if DEBUG
+            pendingSnapshotSaveCount -= 1
+            #endif
+        }
+        try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
+        }
     }
 
     // MARK: - Characters

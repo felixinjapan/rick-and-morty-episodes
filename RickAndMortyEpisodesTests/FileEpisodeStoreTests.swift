@@ -50,4 +50,22 @@ struct FileEpisodeStoreTests {
             try await FileEpisodeStore(fileURL: fileURL).load()
         }
     }
+
+    @Test("A cancelled save leaves the previous snapshot intact")
+    func cancelledSaveKeepsPreviousSnapshot() async throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let previous = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
+        try await store.save(previous)
+        let gate = Gate()
+        let save = Task {
+            await gate.wait()
+            try await store.save(EpisodeSnapshot(episodes: [.make(id: 2)], refreshedAt: .now))
+        }
+        save.cancel()
+        await gate.open()
+
+        await #expect(throws: CancellationError.self) { try await save.value }
+        #expect(try await store.load() == previous)
+    }
 }

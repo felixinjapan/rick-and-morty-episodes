@@ -45,10 +45,8 @@ struct EpisodeRepositoryTests {
         async let first = repository.refreshAll()
         async let second = repository.refreshAll()
 
-        // Wait until the first refresh is blocked on page 1, then give the second call
-        // time to join it before letting the request finish.
-        while await api.requestedPages.isEmpty { await Task.yield() }
-        for _ in 0..<50 { await Task.yield() }
+        // Both clients must actually be registered before the shared request finishes.
+        while await repository.refreshWaiterCount != 2 { await Task.yield() }
         await gate.open()
 
         let (a, b) = try await (first, second)
@@ -68,16 +66,146 @@ struct EpisodeRepositoryTests {
         let refresh = Task { try await repository.refreshAll() }
         while await api.requestedPages.isEmpty { await Task.yield() }
         refresh.cancel()
+        // The subscriber must observe cancellation before the network response is released.
+        await #expect(throws: CancellationError.self) { try await refresh.value }
         await gate.open()
 
-        await #expect(throws: CancellationError.self) { try await refresh.value }
         #expect(await store.saveCount == 0)
+    }
+
+    @Test("Cancelling either subscriber exits promptly and preserves the other", arguments: [true, false])
+    func cancellingOneRefreshWaiter(cancelFirst: Bool) async throws {
+        let api = threePageAPI()
+        let gate = Gate()
+        await api.holdPage(1, until: gate)
+        let store = RecordingStore()
+        let repository = EpisodeRepository(api: api, store: store)
+        let first = Task { try await repository.refreshAll() }
+        while await repository.refreshWaiterCount != 1 { await Task.yield() }
+        let second = Task { try await repository.refreshAll() }
+        while await repository.refreshWaiterCount != 2 { await Task.yield() }
+
+        let cancelled = cancelFirst ? first : second
+        let remaining = cancelFirst ? second : first
+        cancelled.cancel()
+        // Must complete while the request is still blocked.
+        await #expect(throws: CancellationError.self) { try await cancelled.value }
+        #expect(await repository.refreshWaiterCount == 1)
+        #expect(await store.saveCount == 0)
+
+        await gate.open()
+        #expect(try await remaining.value.episodes.count == 45)
+        #expect(await api.requestedPages.sorted() == [1, 2, 3])
+        #expect(await store.saveCount == 1)
+    }
+
+    @Test("Cancelling all subscribers cancels work and permits a new refresh")
+    func cancellingAllRefreshWaiters() async throws {
+        let api = threePageAPI()
+        let gate = Gate()
+        await api.holdPage(1, until: gate)
+        let store = RecordingStore()
+        let repository = EpisodeRepository(api: api, store: store)
+        let first = Task { try await repository.refreshAll() }
+        let second = Task { try await repository.refreshAll() }
+        while await repository.refreshWaiterCount != 2 { await Task.yield() }
+        first.cancel()
+        second.cancel()
+        await #expect(throws: CancellationError.self) { try await first.value }
+        await #expect(throws: CancellationError.self) { try await second.value }
+        #expect(await repository.refreshWaiterCount == 0)
+
+        let retry = Task { try await repository.refreshAll() }
+        while await repository.refreshWaiterCount != 1 { await Task.yield() }
+        await gate.open()
+        #expect(try await retry.value.episodes.count == 45)
+        #expect(await store.saveCount == 1)
+    }
+
+    @Test("An already-cancelled caller never starts a refresh")
+    func alreadyCancelledRefresh() async {
+        let api = threePageAPI()
+        let repository = EpisodeRepository(api: api, store: RecordingStore())
+        let gate = Gate()
+        let caller = Task {
+            await gate.wait()
+            return try await repository.refreshAll()
+        }
+        caller.cancel()
+        await gate.open()
+        await #expect(throws: CancellationError.self) { try await caller.value }
+        #expect(await api.requestedPages.isEmpty)
     }
 
     @Test("An unreadable cache is treated as no cache")
     func corruptCache() async {
         let repository = EpisodeRepository(api: StubAPI(), store: RecordingStore(failsOnLoad: true))
         #expect(await repository.cachedSnapshot() == nil)
+    }
+
+    @Test("A full refresh commits after an older bootstrap save that is already underway")
+    func refreshWinsOverSuspendedPagingSave() async throws {
+        let store = GatedSaveStore()
+        let repository = EpisodeRepository(api: threePageAPI(), store: store)
+        let paging = Task { try await repository.saveCompleteList([.make(id: 999)]) }
+        await store.firstSaveStarted.wait()
+        let refresh = Task { try await repository.refreshAll() }
+        while await repository.pendingSnapshotSaveCount != 2 { await Task.yield() }
+        #expect(await store.saveCount == 1)
+
+        await store.releaseFirstSave.open()
+        _ = try await paging.value
+        let latest = try await refresh.value
+        #expect(await store.snapshot == latest)
+        #expect(latest.episodes.map(\.id) == Array(1...45))
+    }
+
+    @Test("A late bootstrap save returns the full refresh instead of replacing it")
+    func refreshSupersedesLatePagingSave() async throws {
+        let store = RecordingStore()
+        let repository = EpisodeRepository(api: threePageAPI(), store: store)
+        let latest = try await repository.refreshAll()
+        let paging = try await repository.saveCompleteList([.make(id: 999)])
+        #expect(paging == latest)
+        #expect(await store.snapshot == latest)
+        #expect(await store.saveCount == 1)
+    }
+
+    @Test("A cancelled commit cannot supersede a replacement refresh")
+    func cancelledCommitCannotPublishOverNewRefresh() async throws {
+        let api = StubAPI(pages: [1: .success(.make(ids: 1...1, pageCount: 1, hasNextPage: false))])
+        let store = GatedSaveStore()
+        let repository = EpisodeRepository(api: api, store: store)
+        let first = Task { try await repository.refreshAll() }
+        await store.firstSaveStarted.wait()
+        first.cancel()
+        await #expect(throws: CancellationError.self) { try await first.value }
+
+        await api.setPage(1, .success(.make(ids: 2...2, pageCount: 1, hasNextPage: false)))
+        let replacement = Task { try await repository.refreshAll() }
+        while await repository.pendingSnapshotSaveCount != 2 { await Task.yield() }
+        await store.releaseFirstSave.open()
+        let latest = try await replacement.value
+        let latePaging = try await repository.saveCompleteList([.make(id: 999)])
+        #expect(latest.episodes.map(\.id) == [2])
+        #expect(latePaging == latest)
+        #expect(await store.snapshot == latest)
+    }
+
+    @Test("Bootstrap persistence adopts an overlapping refresh")
+    func pagingSaveJoinsRefresh() async throws {
+        let api = threePageAPI()
+        let gate = Gate()
+        await api.holdPage(1, until: gate)
+        let store = RecordingStore()
+        let repository = EpisodeRepository(api: api, store: store)
+        let refresh = Task { try await repository.refreshAll() }
+        while await repository.refreshWaiterCount != 1 { await Task.yield() }
+        let paging = Task { try await repository.saveCompleteList([.make(id: 999)]) }
+        while await repository.refreshWaiterCount != 2 { await Task.yield() }
+        await gate.open()
+        #expect(try await paging.value == refresh.value)
+        #expect(await store.saveCount == 1)
     }
 
     @Test("Character details are cached in memory")
