@@ -75,7 +75,7 @@ private struct EpisodeListFooter: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                     Button("Retry") {
-                        Task { await model.retryLoadingPage() }
+                        Task { await model.loadNextPage() }
                     }
                     .buttonStyle(.bordered)
                 }

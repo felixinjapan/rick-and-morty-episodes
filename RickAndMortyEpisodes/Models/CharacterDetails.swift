@@ -1,6 +1,6 @@
 import Foundation
 
-struct CharacterDetails: Identifiable, Hashable, Codable, Sendable {
+struct CharacterDetails: Identifiable, Hashable, Sendable {
     let id: Int
     let name: String
     let status: String

@@ -2,10 +2,8 @@ import Foundation
 
 /// Composition root: the one place where concrete implementations are chosen.
 /// Everything below it receives its dependencies through initialisers.
-struct AppDependencies {
-    let repository: EpisodeRepository
-
-    static func make(arguments: [String] = ProcessInfo.processInfo.arguments) -> AppDependencies {
+enum AppDependencies {
+    static func makeRepository(arguments: [String] = ProcessInfo.processInfo.arguments) -> EpisodeRepository {
         #if DEBUG
         // UI tests launch with `-uiTesting`: recorded API responses, so they're deterministic and
         // never touch the network. The real file store is used (in a separate folder whose name
@@ -16,24 +14,18 @@ struct AppDependencies {
             if arguments.contains("-resetCache") {
                 try? FileManager.default.removeItem(at: cacheURL)
             }
-            return AppDependencies(
-                repository: EpisodeRepository(api: RecordedRickAndMortyAPI(), store: FileEpisodeStore(fileURL: cacheURL))
-            )
+            return EpisodeRepository(api: RecordedRickAndMortyAPI(), store: FileEpisodeStore(fileURL: cacheURL))
         }
 
         // `-offline`: the normal app on recorded responses, e.g. for a demo without Wi-Fi.
         if arguments.contains("-offline") {
-            return AppDependencies(
-                repository: EpisodeRepository(api: RecordedRickAndMortyAPI(), store: FileEpisodeStore.makeDefault())
-            )
+            return EpisodeRepository(api: RecordedRickAndMortyAPI(), store: FileEpisodeStore.makeDefault())
         }
         #endif
 
-        return AppDependencies(
-            repository: EpisodeRepository(
-                api: LiveRickAndMortyAPI(transport: .urlSession(.api)),
-                store: FileEpisodeStore.makeDefault()
-            )
+        return EpisodeRepository(
+            api: LiveRickAndMortyAPI(transport: .urlSession(.api)),
+            store: FileEpisodeStore.makeDefault()
         )
     }
 }
