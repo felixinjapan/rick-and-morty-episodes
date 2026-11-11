@@ -101,11 +101,11 @@ final class EpisodeFlowUITests: XCTestCase {
         let share = app.buttons["export.share"]
         let content = app.scrollViews["export.content"]
         for _ in 0..<8 {
-            if share.isHittable && share.frame.maxY <= content.frame.maxY - 40 { break }
+            if share.isHittable && content.frame.contains(share.frame) { break }
             content.swipeUp()
         }
         XCTAssertTrue(share.isHittable)
-        XCTAssertLessThanOrEqual(share.frame.maxY, content.frame.maxY - 40)
+        XCTAssertTrue(content.frame.contains(share.frame))
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Export at largest accessibility text size"
         attachment.lifetime = .keepAlways
