@@ -1,14 +1,15 @@
 import XCTest
 
 /// End-to-end user journeys. The app runs with `-uiTesting`, which swaps in local
-/// fixture data (25 episodes over 2 pages) so the tests never touch the network.
+/// fixture data (25 episodes over 2 pages) so the tests never touch the network,
+/// and `-resetCache`, so every test starts without cached episodes.
 final class EpisodeFlowUITests: XCTestCase {
     private var app: XCUIApplication!
 
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-uiTesting"]
+        app.launchArguments = ["-uiTesting", "-resetCache"]
         app.launch()
     }
 
@@ -29,6 +30,24 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
         XCTAssertEqual(endOfList.label, "You've reached the end · 25 episodes")
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].exists)
+    }
+
+    func testRelaunchShowsCachedListImmediately() {
+        XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
+        let endOfList = app.staticTexts["episodeList.endOfList"]
+        for _ in 0..<10 where !endOfList.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
+
+        // Relaunch without resetting the cache. Without a cache, "Last updated" only appears
+        // after scrolling through every page, so seeing it right away proves the list came from disk.
+        app.terminate()
+        app.launchArguments = ["-uiTesting"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].waitForExistence(timeout: 2))
     }
 
     func testEpisodeToCharacterDetailToExport() {
