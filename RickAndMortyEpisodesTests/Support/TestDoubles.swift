@@ -118,17 +118,3 @@ func threePageAPI() -> StubAPI {
         3: .success(.make(ids: 41...45, pageCount: 3, hasNextPage: false)),
     ])
 }
-
-// MARK: - Fixtures
-
-private final class BundleToken {}
-
-enum Fixture {
-    static func data(_ name: String) throws -> Data {
-        let bundle = Bundle(for: BundleToken.self)
-        guard let url = bundle.url(forResource: name, withExtension: "json") else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-        return try Data(contentsOf: url)
-    }
-}

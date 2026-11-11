@@ -1,7 +1,7 @@
 import XCTest
 
-/// End-to-end user journeys. The app runs with `-uiTesting`, which swaps in local
-/// fixture data (25 episodes over 2 pages) so the tests never touch the network,
+/// End-to-end user journeys. The app runs with `-uiTesting`, which serves real API
+/// responses recorded in the app (51 episodes over 3 pages) so the tests never touch the network,
 /// and `-resetCache`, so every test starts without cached episodes.
 final class EpisodeFlowUITests: XCTestCase {
     private var app: XCUIApplication!
@@ -23,19 +23,19 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
 
         let endOfList = app.staticTexts["episodeList.endOfList"]
-        for _ in 0..<10 where !endOfList.exists {
+        for _ in 0..<20 where !endOfList.exists {
             app.swipeUp()
         }
 
         XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
-        XCTAssertEqual(endOfList.label, "You've reached the end · 25 episodes")
+        XCTAssertEqual(endOfList.label, "You've reached the end · 51 episodes")
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].exists)
     }
 
     func testRelaunchShowsCachedListImmediately() {
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
         let endOfList = app.staticTexts["episodeList.endOfList"]
-        for _ in 0..<10 where !endOfList.exists {
+        for _ in 0..<20 where !endOfList.exists {
             app.swipeUp()
         }
         XCTAssertTrue(endOfList.waitForExistence(timeout: 5))

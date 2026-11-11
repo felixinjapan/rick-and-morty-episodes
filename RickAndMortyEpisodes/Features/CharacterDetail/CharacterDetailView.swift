@@ -149,7 +149,7 @@ private struct ExportConfirmationView: View {
     NavigationStack {
         CharacterDetailView(
             characterID: 1,
-            repository: EpisodeRepository(api: FixtureRickAndMortyAPI(), store: InMemoryEpisodeStore())
+            repository: EpisodeRepository(api: RecordedRickAndMortyAPI(), store: InMemoryEpisodeStore())
         )
     }
 }
