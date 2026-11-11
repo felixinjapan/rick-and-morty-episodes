@@ -117,11 +117,6 @@ final class EpisodeListModel {
         }
     }
 
-    func retryLoadingPage() async {
-        pageError = nil
-        await loadNextPage()
-    }
-
     // MARK: - Refresh
 
     /// Re-fetches the full list. Used by pull-to-refresh and when cached data is stale.
@@ -132,7 +127,6 @@ final class EpisodeListModel {
         do {
             let snapshot = try await repository.refreshAll()
             apply(snapshot)
-            refreshError = nil
         } catch is CancellationError {
             // The pull-to-refresh gesture or view went away; nothing to report.
         } catch {

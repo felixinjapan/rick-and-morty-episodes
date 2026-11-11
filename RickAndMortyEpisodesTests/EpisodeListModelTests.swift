@@ -72,7 +72,7 @@ struct EpisodeListModelTests {
         #expect(model.episodes.count == 20)
 
         await api.setPage(2, .success(.make(ids: 21...40, pageCount: 3, hasNextPage: true)))
-        await model.retryLoadingPage()
+        await model.loadNextPage()
         #expect(model.episodes.count == 40)
         #expect(model.footer == .loading(page: 3))
     }
