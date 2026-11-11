@@ -66,9 +66,10 @@ struct EpisodeRepositoryTests {
         let refresh = Task { try await repository.refreshAll() }
         while await api.requestedPages.isEmpty { await Task.yield() }
         refresh.cancel()
+        // The subscriber must observe cancellation before the network response is released.
+        await #expect(throws: CancellationError.self) { try await refresh.value }
         await gate.open()
 
-        await #expect(throws: CancellationError.self) { try await refresh.value }
         #expect(await store.saveCount == 0)
     }
 
