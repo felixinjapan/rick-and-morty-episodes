@@ -2,8 +2,8 @@ import Foundation
 import Testing
 @testable import RickAndMortyEpisodes
 
-/// Tests decoding against real API responses and HTTP error mapping, using a
-/// closure transport instead of the network.
+/// Tests decoding against real recorded API responses and HTTP error mapping,
+/// using closure transports instead of the network.
 @Suite("Live API client")
 struct LiveAPITests {
     private func api(
@@ -22,9 +22,11 @@ struct LiveAPITests {
         LiveRickAndMortyAPI(transport: HTTPTransport { _ in throw URLError(error) })
     }
 
+    private let recorded = LiveRickAndMortyAPI(transport: .recorded)
+
     @Test("Decodes a real episode page")
     func decodesEpisodePage() async throws {
-        let page = try await api(body: Fixture.data("episodes-page1")).episodes(page: 1)
+        let page = try await recorded.episodes(page: 1)
 
         #expect(page.episodes.count == 20)
         #expect(page.pageCount == 3)
@@ -39,14 +41,14 @@ struct LiveAPITests {
 
     @Test("The last page reports no next page")
     func lastPage() async throws {
-        let page = try await api(body: Fixture.data("episodes-page3")).episodes(page: 3)
+        let page = try await recorded.episodes(page: 3)
         #expect(!page.hasNextPage)
         #expect(page.episodes.last?.id == 51)
     }
 
     @Test("Decodes a real character, counting episodes")
     func decodesCharacter() async throws {
-        let character = try await api(body: Fixture.data("character-1")).character(id: 1)
+        let character = try await recorded.character(id: 1)
         #expect(character.name == "Rick Sanchez")
         #expect(character.status == "Alive")
         #expect(character.species == "Human")
@@ -57,16 +59,27 @@ struct LiveAPITests {
 
     @Test("Decodes a character whose origin is unknown")
     func decodesUnknownOrigin() async throws {
-        let character = try await api(body: Fixture.data("character-unknown-origin")).character(id: 19)
+        let character = try await recorded.character(id: 19)
         #expect(character.originName == "unknown")
+    }
+
+    @Test("All 51 recorded episodes decode across the three pages")
+    func allRecordedEpisodes() async throws {
+        var episodes: [Episode] = []
+        for page in 1...3 {
+            episodes += try await recorded.episodes(page: page).episodes
+        }
+        #expect(episodes.map(\.id) == Array(1...51))
+        #expect(episodes.allSatisfy { !$0.characterIDs.isEmpty })
+        #expect(episodes.allSatisfy { $0.formattedAirDate.wholeMatch(of: /\d{2}\/\d{2}\/\d{4}/) != nil })
     }
 
     @Test("Builds the expected request URLs")
     func requestURLs() async throws {
-        let recorded = RecordedURLs()
-        let api = api(body: try Fixture.data("episodes-page1")) { recorded.append($0.url) }
+        let recordedURLs = RecordedURLs()
+        let api = api(body: try RecordedResponses.data(named: "episodes-page-1")) { recordedURLs.append($0.url) }
         _ = try await api.episodes(page: 2)
-        #expect(recorded.urls.first??.absoluteString == "https://rickandmortyapi.com/api/episode?page=2")
+        #expect(recordedURLs.urls.first??.absoluteString == "https://rickandmortyapi.com/api/episode?page=2")
     }
 
     @Test("Non-2xx responses become HTTP errors", arguments: [404, 429, 500])
