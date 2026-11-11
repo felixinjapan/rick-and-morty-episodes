@@ -97,35 +97,42 @@ private struct CharacterDetailContent: View {
 
 private struct ExportConfirmationView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let fileURL: URL
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(.green)
-                Text("Saved")
-                    .font(.title2.bold())
-                    .accessibilityIdentifier("export.confirmation")
-                Text("**\(fileURL.lastPathComponent)** was saved to Files › On My iPhone › Episodes › Exports.")
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-                ShareLink(item: fileURL) {
-                    Label("Open in…", systemImage: "square.and.arrow.up")
-                        .frame(maxWidth: .infinity)
+            ScrollView {
+                VStack(spacing: 20) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 56))
+                        .foregroundStyle(.green)
+                    Text("Saved")
+                        .font(.title2.bold())
+                        .accessibilityIdentifier("export.confirmation")
+                    Text("**\(fileURL.lastPathComponent)** was saved to Files › On My iPhone › Episodes › Exports.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ShareLink(item: fileURL) {
+                        Label("Open in…", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .accessibilityIdentifier("export.share")
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .padding(24)
+                .frame(maxWidth: .infinity)
             }
-            .padding(24)
+            .accessibilityIdentifier("export.content")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
     }
 }
 
