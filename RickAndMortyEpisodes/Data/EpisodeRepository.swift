@@ -19,11 +19,14 @@ actor EpisodeRepository {
     }
 
     private var inFlightRefresh: Refresh?
+    private var latestFullRefresh: EpisodeSnapshot?
+    private var pendingSave: (id: UUID, task: Task<Void, Error>)?
     private var characterCache: [Int: CharacterDetails] = [:]
 
     #if DEBUG
     /// Lets concurrency tests observe admission rather than guess scheduler timing.
     var refreshWaiterCount: Int { inFlightRefresh?.waiters.count ?? 0 }
+    private(set) var pendingSnapshotSaveCount = 0
     #endif
 
     init(
@@ -56,8 +59,12 @@ actor EpisodeRepository {
 
     /// Persists a list that was fully loaded page by page.
     func saveCompleteList(_ episodes: [Episode]) async throws -> EpisodeSnapshot {
+        // Incremental loading is only the bootstrap path. A full refresh supersedes
+        // that list even if its UI continuation has not applied the refresh yet.
+        if inFlightRefresh != nil { return try await refreshAll() }
+        if let latestFullRefresh { return latestFullRefresh }
         let snapshot = EpisodeSnapshot(episodes: episodes, refreshedAt: now())
-        try await store.save(snapshot)
+        try await saveSnapshot(snapshot)
         return snapshot
     }
 
@@ -130,8 +137,37 @@ actor EpisodeRepository {
 
         let episodes = pages.keys.sorted().flatMap { pages[$0] ?? [] }
         let snapshot = EpisodeSnapshot(episodes: episodes, refreshedAt: now())
-        try await store.save(snapshot)
+        try await saveSnapshot(snapshot)
+        latestFullRefresh = snapshot
         return snapshot
+    }
+
+    /// Preserve repository commit order even when an injected store suspends inside save.
+    /// In particular, a bootstrap save already underway must finish before a full refresh.
+    private func saveSnapshot(_ snapshot: EpisodeSnapshot) async throws {
+        let previous = pendingSave?.task
+        let store = self.store
+        let id = UUID()
+        let task = Task {
+            if let previous { _ = await previous.result }
+            try Task.checkCancellation()
+            try await store.save(snapshot)
+        }
+        pendingSave = (id, task)
+        #if DEBUG
+        pendingSnapshotSaveCount += 1
+        #endif
+        defer {
+            if pendingSave?.id == id { pendingSave = nil }
+            #if DEBUG
+            pendingSnapshotSaveCount -= 1
+            #endif
+        }
+        try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
+        }
     }
 
     // MARK: - Characters

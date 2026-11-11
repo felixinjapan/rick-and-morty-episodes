@@ -142,6 +142,50 @@ struct EpisodeRepositoryTests {
         #expect(await repository.cachedSnapshot() == nil)
     }
 
+    @Test("A full refresh commits after an older bootstrap save that is already underway")
+    func refreshWinsOverSuspendedPagingSave() async throws {
+        let store = GatedSaveStore()
+        let repository = EpisodeRepository(api: threePageAPI(), store: store)
+        let paging = Task { try await repository.saveCompleteList([.make(id: 999)]) }
+        await store.firstSaveStarted.wait()
+        let refresh = Task { try await repository.refreshAll() }
+        while await repository.pendingSnapshotSaveCount != 2 { await Task.yield() }
+        #expect(await store.saveCount == 1)
+
+        await store.releaseFirstSave.open()
+        _ = try await paging.value
+        let latest = try await refresh.value
+        #expect(await store.snapshot == latest)
+        #expect(latest.episodes.map(\.id) == Array(1...45))
+    }
+
+    @Test("A late bootstrap save returns the full refresh instead of replacing it")
+    func refreshSupersedesLatePagingSave() async throws {
+        let store = RecordingStore()
+        let repository = EpisodeRepository(api: threePageAPI(), store: store)
+        let latest = try await repository.refreshAll()
+        let paging = try await repository.saveCompleteList([.make(id: 999)])
+        #expect(paging == latest)
+        #expect(await store.snapshot == latest)
+        #expect(await store.saveCount == 1)
+    }
+
+    @Test("Bootstrap persistence adopts an overlapping refresh")
+    func pagingSaveJoinsRefresh() async throws {
+        let api = threePageAPI()
+        let gate = Gate()
+        await api.holdPage(1, until: gate)
+        let store = RecordingStore()
+        let repository = EpisodeRepository(api: api, store: store)
+        let refresh = Task { try await repository.refreshAll() }
+        while await repository.refreshWaiterCount != 1 { await Task.yield() }
+        let paging = Task { try await repository.saveCompleteList([.make(id: 999)]) }
+        while await repository.refreshWaiterCount != 2 { await Task.yield() }
+        await gate.open()
+        #expect(try await paging.value == refresh.value)
+        #expect(await store.saveCount == 1)
+    }
+
     @Test("Character details are cached in memory")
     func characterCaching() async throws {
         let api = StubAPI(characters: [1: .success(.rick)])
