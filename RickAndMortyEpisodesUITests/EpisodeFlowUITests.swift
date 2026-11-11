@@ -3,10 +3,11 @@ import XCTest
 /// End-to-end user journeys. The app runs with `-uiTesting`, which serves real API
 /// responses recorded in the app (51 episodes over 3 pages) so the tests never touch the network,
 /// and `-resetCache`, so every test starts without cached episodes.
+@MainActor
 final class EpisodeFlowUITests: XCTestCase {
     private var app: XCUIApplication!
 
-    override func setUp() {
+    override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments = ["-uiTesting", "-resetCache"]
