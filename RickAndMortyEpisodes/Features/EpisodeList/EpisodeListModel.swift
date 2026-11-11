@@ -156,6 +156,7 @@ final class EpisodeListModel {
         lastRefreshed = snapshot.refreshedAt
         nextPage = nil
         pageError = nil
+        refreshError = nil
         isLoadingPage = false
     }
 
