@@ -9,7 +9,10 @@ enum AirDateFormatter {
     private static let parseStrategy = Date.ParseStrategy(
         format: "\(month: .wide) \(day: .defaultDigits), \(year: .defaultDigits)",
         locale: Locale(identifier: "en_US_POSIX"),
-        timeZone: .gmt
+        timeZone: .gmt,
+        // Lenient parsing (the default) would also accept input that isn't in the API's format,
+        // e.g. "2013-12-02", and show a wrong date instead of the raw value.
+        isLenient: false
     )
 
     private static let displayStyle = Date.VerbatimFormatStyle(
