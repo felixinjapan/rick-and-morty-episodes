@@ -36,11 +36,15 @@ actor FileEpisodeStore: EpisodeStore {
     }
 
     func save(_ snapshot: EpisodeSnapshot) throws {
+        try Task.checkCancellation()
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
         let data = try JSONEncoder().encode(snapshot)
+        // Cancellation can arrive while this call is queued on the store actor.
+        // Once the synchronous atomic write begins it cannot be rolled back.
+        try Task.checkCancellation()
         // `.completeFileProtectionUntilFirstUserAuthentication`: background refresh must be able
         // to write while the device is locked, which `.completeFileProtection` would prevent.
         try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
