@@ -70,7 +70,7 @@ final class EpisodeFlowUITests: XCTestCase {
 
         app.buttons["characterDetail.export"].tap()
         XCTAssertTrue(app.staticTexts["export.confirmation"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Open in…"].exists)
+        XCTAssertTrue(app.buttons["Share"].exists)
     }
 
     /// `LabeledContent` may expose its label and value as one accessibility element

@@ -32,8 +32,14 @@ struct EpisodeListView: View {
             .navigationDestination(for: CharacterRoute.self) { route in
                 CharacterDetailView(characterID: route.id, repository: repository)
             }
-            .safeAreaInset(edge: .bottom) {
-                LastUpdatedLabel(date: model.lastRefreshed, isRefreshing: model.isRefreshing)
+            .toolbar {
+                // A status item in the bottom toolbar (as in Mail) instead of a floating label,
+                // so the system bar keeps it legible and it never covers list rows.
+                if model.lastRefreshed != nil || model.isRefreshing {
+                    ToolbarItem(placement: .status) {
+                        LastUpdatedLabel(date: model.lastRefreshed, isRefreshing: model.isRefreshing)
+                    }
+                }
             }
             .refreshable { await model.refresh() }
             .task { await model.start() }
@@ -94,7 +100,7 @@ private struct RefreshErrorBanner: View {
     var body: some View {
         Label {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Couldn't refresh")
+                Text("Couldn't refresh. Showing saved episodes.")
                     .font(.subheadline.weight(.semibold))
                 Text(message)
                     .font(.footnote)
@@ -114,23 +120,19 @@ private struct LastUpdatedLabel: View {
     let isRefreshing: Bool
 
     var body: some View {
-        if date != nil || isRefreshing {
-            HStack(spacing: 6) {
-                if isRefreshing {
-                    ProgressView().controlSize(.mini)
-                    Text("Updating…")
-                } else if let date {
-                    Text("Last updated \(date.formatted(date: .abbreviated, time: .shortened))")
-                }
+        HStack(spacing: 6) {
+            if isRefreshing {
+                ProgressView().controlSize(.mini)
+                Text("Updating…")
+            } else if let date {
+                Text("Last updated \(date.formatted(date: .abbreviated, time: .shortened))")
+                    .accessibilityIdentifier("episodeList.lastUpdated")
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(.regularMaterial, in: .capsule)
-            .padding(.bottom, 4)
-            .accessibilityIdentifier("episodeList.lastUpdated")
         }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        // Size to the text so the toolbar doesn't truncate it to "Las…".
+        .fixedSize()
     }
 }
 

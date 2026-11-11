@@ -8,6 +8,9 @@ struct RickAndMortyEpisodesApp: App {
     var body: some Scene {
         WindowGroup {
             EpisodeListView(repository: dependencies.repository)
+                // Explicit tint from the asset (light, dark and high-contrast variants), so the
+                // accent never falls back to system blue if the Info.plist accent isn't applied.
+                .tint(Color("AccentColor"))
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {

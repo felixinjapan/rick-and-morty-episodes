@@ -13,7 +13,7 @@ struct CharacterDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Export", systemImage: "square.and.arrow.down") {
+                    Button("Export", systemImage: "square.and.arrow.up") {
                         model.export()
                     }
                     .disabled(model.character == nil)
@@ -49,8 +49,10 @@ struct CharacterDetailView: View {
             } description: {
                 Text(message)
             } actions: {
-                Button("Retry") { Task { await model.load() } }
-                    .buttonStyle(.borderedProminent)
+                Button { Task { await model.load() } } label: {
+                    Text("Retry").foregroundStyle(Color.onAccent)
+                }
+                .buttonStyle(.borderedProminent)
             }
         case .loaded(let character):
             CharacterDetailContent(character: character)
@@ -64,16 +66,21 @@ private struct CharacterDetailContent: View {
     var body: some View {
         List {
             Section {
-                AsyncImage(url: character.imageURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .failure:
-                        Image(systemName: "person.crop.square")
-                            .font(.system(size: 64))
-                            .foregroundStyle(.secondary)
-                    default:
-                        ProgressView()
+                Group {
+                    if let imageURL = character.imageURL {
+                        AsyncImage(url: imageURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            case .failure:
+                                placeholderImage
+                            default:
+                                ProgressView()
+                            }
+                        }
+                    } else {
+                        // No URL (e.g. offline mode): AsyncImage would show its loading state forever.
+                        placeholderImage
                     }
                 }
                 .frame(width: 200, height: 200)
@@ -101,6 +108,13 @@ private struct CharacterDetailContent: View {
         }
     }
 
+    private var placeholderImage: some View {
+        Image(systemName: "person.crop.square")
+            .font(.largeTitle)
+            .imageScale(.large)
+            .foregroundStyle(.secondary)
+    }
+
     private var statusColor: Color {
         switch character.status.lowercased() {
         case "alive": .green
@@ -116,31 +130,39 @@ private struct ExportConfirmationView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(.green)
-                Text("Saved")
-                    .font(.title2.bold())
-                    .accessibilityIdentifier("export.confirmation")
-                Text("**\(fileURL.lastPathComponent)** was saved to Files › On My iPhone › Episodes › Exports.")
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-                ShareLink(item: fileURL) {
-                    Label("Open in…", systemImage: "square.and.arrow.up")
-                        .frame(maxWidth: .infinity)
+            // Scrolls so the content stays readable at the largest accessibility text sizes.
+            ScrollView {
+                VStack(spacing: 20) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.largeTitle)
+                        .imageScale(.large)
+                        .foregroundStyle(.green)
+                        .accessibilityHidden(true)
+                    Text("Saved")
+                        .font(.title2.bold())
+                        .accessibilityIdentifier("export.confirmation")
+                    Text("**\(fileURL.lastPathComponent)** was saved to Files › On My iPhone › Episodes › Exports.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                    ShareLink(item: fileURL) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                            .foregroundStyle(Color.onAccent)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .padding(24)
             }
-            .padding(24)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                // The sheet only confirms a finished action, so it is dismissed with Close, not Done.
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close", systemImage: "xmark") { dismiss() }
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }
 
