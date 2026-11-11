@@ -115,7 +115,9 @@ final class EpisodeListModel {
             episodes += loaded.episodes
             nextPage = loaded.hasNextPage ? page + 1 : nil
             if nextPage == nil {
-                await persistCompleteList()
+                // Like the page request, this commit belongs to the model. The
+                // footer's task may already be cancelled after scrolling away.
+                await Task { await self.persistCompleteList() }.value
             }
         case .failure(let error):
             pageError = error.userMessage
