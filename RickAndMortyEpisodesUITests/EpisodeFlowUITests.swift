@@ -83,4 +83,34 @@ final class EpisodeFlowUITests: XCTestCase {
             .matching(NSPredicate(format: "label CONTAINS %@", text))
             .firstMatch
     }
+
+    func testExportRemainsReachableAtLargestAccessibilityTextSize() {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
+        app.staticTexts["Pilot"].tap()
+        let character = app.buttons["Character #1"]
+        XCTAssertTrue(character.waitForExistence(timeout: 5))
+        character.tap()
+        let export = app.buttons["characterDetail.export"]
+        XCTAssertTrue(export.waitForExistence(timeout: 5))
+        export.tap()
+        XCTAssertTrue(app.staticTexts["export.confirmation"].waitForExistence(timeout: 5))
+
+        let share = app.buttons["export.share"]
+        let content = app.scrollViews["export.content"]
+        for _ in 0..<8 {
+            if share.isHittable && share.frame.maxY <= content.frame.maxY - 40 { break }
+            content.swipeUp()
+        }
+        XCTAssertTrue(share.isHittable)
+        XCTAssertLessThanOrEqual(share.frame.maxY, content.frame.maxY - 40)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Export at largest accessibility text size"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        share.tap()
+        XCTAssertTrue(app.collectionViews["activityCollectionView"].waitForExistence(timeout: 5))
+    }
 }
