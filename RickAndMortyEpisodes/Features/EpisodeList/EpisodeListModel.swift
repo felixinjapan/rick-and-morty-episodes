@@ -166,6 +166,6 @@ final class EpisodeListModel {
         // available offline; there's no need to bother the user with it.
         guard let snapshot = try? await repository.saveCompleteList(episodes),
               generation == listGeneration else { return }
-        lastRefreshed = snapshot.refreshedAt
+        apply(snapshot)
     }
 }
