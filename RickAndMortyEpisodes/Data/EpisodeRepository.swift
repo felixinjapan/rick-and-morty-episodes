@@ -12,8 +12,19 @@ actor EpisodeRepository {
     private let now: @Sendable () -> Date
     private let logger = Logger(subsystem: "RickAndMortyEpisodes", category: "EpisodeRepository")
 
-    private var inFlightRefresh: Task<EpisodeSnapshot, Error>?
+    private struct Refresh {
+        let id: UUID
+        let task: Task<Void, Never>
+        var waiters: [UUID: CheckedContinuation<EpisodeSnapshot, Error>]
+    }
+
+    private var inFlightRefresh: Refresh?
     private var characterCache: [Int: CharacterDetails] = [:]
+
+    #if DEBUG
+    /// Lets concurrency tests observe admission rather than guess scheduler timing.
+    var refreshWaiterCount: Int { inFlightRefresh?.waiters.count ?? 0 }
+    #endif
 
     init(
         api: any RickAndMortyAPI,
@@ -55,20 +66,44 @@ actor EpisodeRepository {
     /// Concurrent callers (pull-to-refresh and the background task) share the same request
     /// instead of fetching twice and racing to write the cache.
     func refreshAll() async throws -> EpisodeSnapshot {
-        if let inFlightRefresh {
-            return try await inFlightRefresh.value
-        }
-
-        let task = Task { try await self.fetchAllAndSave() }
-        inFlightRefresh = task
-        defer { inFlightRefresh = nil }
-
-        // The work runs in its own Task so callers can share it, so cancellation
-        // (e.g. background time expiring) has to be forwarded explicitly.
-        return try await withTaskCancellationHandler {
-            try await task.value
+        let waiterID = UUID()
+        let snapshot = try await withTaskCancellationHandler {
+            try Task.checkCancellation()
+            return try await withCheckedThrowingContinuation { continuation in
+                if inFlightRefresh != nil {
+                    inFlightRefresh?.waiters[waiterID] = continuation
+                } else {
+                    let refreshID = UUID()
+                    let task = Task {
+                        let result: Result<EpisodeSnapshot, Error>
+                        do { result = .success(try await self.fetchAllAndSave()) }
+                        catch { result = .failure(error) }
+                        self.finishRefresh(id: refreshID, result: result)
+                    }
+                    inFlightRefresh = Refresh(id: refreshID, task: task, waiters: [waiterID: continuation])
+                }
+            }
         } onCancel: {
-            task.cancel()
+            Task { await self.cancelRefreshWaiter(id: waiterID) }
+        }
+        try Task.checkCancellation()
+        return snapshot
+    }
+
+    private func cancelRefreshWaiter(id: UUID) {
+        guard let waiter = inFlightRefresh?.waiters.removeValue(forKey: id) else { return }
+        waiter.resume(throwing: CancellationError())
+        if inFlightRefresh?.waiters.isEmpty == true {
+            inFlightRefresh?.task.cancel()
+            inFlightRefresh = nil
+        }
+    }
+
+    private func finishRefresh(id: UUID, result: Result<EpisodeSnapshot, Error>) {
+        guard let refresh = inFlightRefresh, refresh.id == id else { return }
+        inFlightRefresh = nil
+        for waiter in refresh.waiters.values {
+            waiter.resume(with: result)
         }
     }
 
