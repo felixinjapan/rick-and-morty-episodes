@@ -50,8 +50,8 @@ SwiftUI views ──▶ @MainActor @Observable models (EpisodeListModel, Charact
                  EpisodeRepository (actor)  ◀── BackgroundRefresh (BGAppRefreshTask)
                     │                │
                     ▼                ▼
-        RickAndMortyAPI (protocol)   EpisodeStore (protocol)
-        └ LiveRickAndMortyAPI        └ FileEpisodeStore (actor, JSON file)
+        RickAndMortyAPI (protocol)   FileEpisodeStore (actor, JSON file)
+        └ LiveRickAndMortyAPI
           (URLSession via HTTPTransport)
 ```
 
@@ -59,11 +59,15 @@ SwiftUI views ──▶ @MainActor @Observable models (EpisodeListModel, Charact
   logic to test: paging and refreshing on the list, and loading and exporting on the detail
   screen. The character ID screen has no model, because its data is already in `Episode`.
 - **`EpisodeRepository`** is the single source of truth, shared by the UI and the background
-  task. It is an actor because both reach it at once. Concurrent refreshes share one
-  in-flight request, and the cache is only ever replaced as a whole.
+  task. It is an actor because both reach it at once. A refresh fetches every page and
+  saves only if all of them arrived, so the cache is only ever replaced as a whole.
+  Overlapping refreshes are not merged: each saves a complete list, and the store writes
+  one at a time.
 - **Networking** maps JSON DTOs to app models, so API changes stay in one layer. Errors
   are typed (`APIError`). Cancellation is kept separate so it is never shown as an error.
 - **Dependency injection** goes through initialisers, wired in one place (`AppDependencies`).
+  The network sits behind a protocol so tests control it; the file store doesn't, because
+  tests point it at a temporary folder and exercise real file I/O.
   UI tests launch with `-uiTesting`, which uses recorded API responses.
 
 ## Key decisions
