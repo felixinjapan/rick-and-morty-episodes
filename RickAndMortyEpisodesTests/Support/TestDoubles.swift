@@ -84,24 +84,6 @@ actor RecordingStore: EpisodeStore {
 
 // MARK: - Builders
 
-/// Holds the first commit to exercise a store that suspends while saving.
-actor GatedSaveStore: EpisodeStore {
-    let firstSaveStarted = Gate()
-    let releaseFirstSave = Gate()
-    private(set) var snapshot: EpisodeSnapshot?
-    private(set) var saveCount = 0
-
-    func load() -> EpisodeSnapshot? { snapshot }
-
-    func save(_ snapshot: EpisodeSnapshot) async {
-        saveCount += 1
-        if saveCount == 1 {
-            await firstSaveStarted.open()
-            await releaseFirstSave.wait()
-        }
-        self.snapshot = snapshot
-    }
-}
 
 extension Episode {
     static func make(id: Int) -> Episode {
