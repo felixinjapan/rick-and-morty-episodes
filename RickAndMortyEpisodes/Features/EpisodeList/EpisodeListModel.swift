@@ -10,7 +10,7 @@ import Observation
 @Observable
 final class EpisodeListModel {
     enum Footer: Equatable {
-        /// The cache hasn't been checked yet.
+        /// The cache hasn't been checked yet, or the error is shown full screen.
         case none
         /// More pages exist; the footer triggers loading this page when it appears.
         case loading(page: Int)
@@ -48,8 +48,14 @@ final class EpisodeListModel {
         self.now = now
     }
 
+    /// A loading error while no episodes are on screen. The view shows it full screen
+    /// instead of in the footer row.
+    var emptyListError: String? {
+        episodes.isEmpty ? pageError : nil
+    }
+
     var footer: Footer {
-        guard hasCheckedCache else { return .none }
+        guard hasCheckedCache, emptyListError == nil else { return .none }
         if let pageError { return .failed(message: pageError) }
         if let nextPage { return .loading(page: nextPage) }
         return .endReached(count: episodes.count)
