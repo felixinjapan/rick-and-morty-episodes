@@ -70,11 +70,30 @@ struct EpisodeListModelTests {
 
         #expect(model.footer == .failed(message: APIError.offline.userMessage))
         #expect(model.episodes.count == 20)
+        #expect(model.emptyListError == nil)
 
         await api.setPage(2, .success(.make(ids: 21...40, pageCount: 3, hasNextPage: true)))
         await model.loadNextPage()
         #expect(model.episodes.count == 40)
         #expect(model.footer == .loading(page: 3))
+    }
+
+    @Test("A failed first page is shown full screen instead of in the footer, and can be retried")
+    func firstPageFailureAndRetry() async {
+        let api = threePageAPI()
+        await api.setPage(1, .failure(APIError.offline))
+        let model = makeModel(api: api)
+        await model.start()
+        await model.loadNextPage()
+
+        #expect(model.emptyListError == APIError.offline.userMessage)
+        #expect(model.footer == .none)
+
+        await api.setPage(1, .success(.make(ids: 1...20, pageCount: 3, hasNextPage: true)))
+        await model.loadNextPage()
+        #expect(model.emptyListError == nil)
+        #expect(model.episodes.count == 20)
+        #expect(model.footer == .loading(page: 2))
     }
 
     @Test("Fresh cached content is shown at once, without network requests")

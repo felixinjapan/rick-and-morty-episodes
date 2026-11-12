@@ -25,6 +25,21 @@ struct EpisodeListView: View {
                 EpisodeListFooter(footer: model.footer, model: model)
             }
             .listStyle(.plain)
+            .overlay {
+                if let message = model.emptyListError {
+                    ContentUnavailableView {
+                        Label("Couldn't Load Episodes", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(message)
+                    } actions: {
+                        Button { Task { await model.loadNextPage() } } label: {
+                            Text("Retry").foregroundStyle(Color.onAccent)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .accessibilityIdentifier("episodeList.loadError")
+                }
+            }
             .navigationTitle("Episodes")
             .navigationDestination(for: Episode.self) { episode in
                 EpisodeCharactersView(episode: episode)
