@@ -74,10 +74,13 @@ private struct CharacterDetailContent: View {
                 LabeledContent("Name", value: character.name)
                     .accessibilityIdentifier("characterDetail.name")
                 LabeledContent("Status") {
+                    // An SF Symbol, not a fixed-size shape, so the dot scales with Dynamic Type.
                     HStack(spacing: 6) {
-                        Circle()
-                            .fill(statusColor)
-                            .frame(width: 8, height: 8)
+                        Image(systemName: "circle.fill")
+                            .font(.caption2)
+                            .imageScale(.small)
+                            .foregroundStyle(statusColor)
+                            .accessibilityHidden(true)
                         Text(character.status)
                     }
                 }
