@@ -34,12 +34,12 @@ final class EpisodeListViewModel {
     /// started before a refresh can't append stale results to the new list.
     private var listGeneration = 0
 
-    private let repository: EpisodeRepository
+    private let repository: any EpisodeRepository
     private let staleInterval: TimeInterval
     private let now: () -> Date
 
     init(
-        repository: EpisodeRepository,
+        repository: any EpisodeRepository,
         staleInterval: TimeInterval = 60 * 60,
         now: @escaping () -> Date = { .now }
     ) {

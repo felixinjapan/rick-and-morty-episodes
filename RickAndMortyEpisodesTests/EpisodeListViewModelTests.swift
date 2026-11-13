@@ -10,7 +10,7 @@ struct EpisodeListViewModelTests {
         store: FileEpisodeStore = .temporary(),
         now: Date = fixedDate
     ) -> EpisodeListViewModel {
-        let repository = EpisodeRepository(api: api, store: store, now: { fixedDate })
+        let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
         return EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { now })
     }
 
@@ -184,7 +184,7 @@ struct EpisodeListViewModelTests {
     @Test("A cache write failure does not disable future foreground refreshes")
     func failedBootstrapSaveStillTracksFreshness() async throws {
         let api = threePageAPI()
-        let repository = EpisodeRepository(api: api, store: try .unwritable(), now: { fixedDate })
+        let repository = DefaultEpisodeRepository(api: api, store: try .unwritable(), now: { fixedDate })
         var currentDate = fixedDate
         let viewModel = EpisodeListViewModel(repository: repository, now: { currentDate })
         await viewModel.start()
@@ -203,7 +203,7 @@ struct EpisodeListViewModelTests {
         let gate = Gate()
         await api.holdPage(3, until: gate)
         let store = FileEpisodeStore.temporary()
-        let repository = EpisodeRepository(api: api, store: store, now: { fixedDate })
+        let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
         let viewModel = EpisodeListViewModel(repository: repository, now: { fixedDate })
         await viewModel.start()
         await viewModel.loadNextPage()
@@ -224,7 +224,7 @@ struct EpisodeListViewModelTests {
         let api = threePageAPI()
         let slowGate = Gate()
         await api.holdPage(1, until: slowGate)
-        let repository = EpisodeRepository(api: api, store: .temporary())
+        let repository = DefaultEpisodeRepository(api: api, store: .temporary())
         let viewModel = EpisodeListViewModel(repository: repository)
 
         let slow = Task { await viewModel.refresh() }
