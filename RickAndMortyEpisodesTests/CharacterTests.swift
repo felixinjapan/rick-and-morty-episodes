@@ -50,7 +50,7 @@ struct CharacterDetailModelTests {
     func loadAndExport() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let repository = EpisodeRepository(api: StubAPI(characters: [1: .success(.rick)]), store: .temporary())
+        let repository = DefaultEpisodeRepository(api: StubAPI(characters: [1: .success(.rick)]), store: .temporary())
         let viewModel = CharacterDetailViewModel(
             characterID: 1, repository: repository, exporter: CharacterExporter(directory: directory)
         )
@@ -65,7 +65,7 @@ struct CharacterDetailModelTests {
 
     @Test("A failed load shows an error and export stays unavailable")
     func loadFailure() async {
-        let repository = EpisodeRepository(api: StubAPI(), store: .temporary())
+        let repository = DefaultEpisodeRepository(api: StubAPI(), store: .temporary())
         let viewModel = CharacterDetailViewModel(characterID: 99999, repository: repository)
 
         await viewModel.load()

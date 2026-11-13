@@ -1,16 +1,17 @@
 import Foundation
 import os
 
-/// Single source of truth for episode and character data. Decides what comes from the
-/// network and what comes from the cache, and is shared by the UI and background refresh.
+/// The app's `EpisodeRepository`: the single source of truth for episode and character data.
+/// Decides what comes from the network and what comes from the cache, and is shared by the
+/// UI and background refresh.
 ///
 /// An actor because it holds mutable state (the character cache) that is reached from
 /// the main actor and from the background task at the same time.
-actor EpisodeRepository {
+actor DefaultEpisodeRepository: EpisodeRepository {
     private let api: any RickAndMortyAPI
     private let store: FileEpisodeStore
     private let now: @Sendable () -> Date
-    private let logger = Logger(subsystem: "RickAndMortyEpisodes", category: "EpisodeRepository")
+    private let logger = Logger(subsystem: "RickAndMortyEpisodes", category: "DefaultEpisodeRepository")
     private var characterCache: [Int: CharacterDetails] = [:]
 
     init(

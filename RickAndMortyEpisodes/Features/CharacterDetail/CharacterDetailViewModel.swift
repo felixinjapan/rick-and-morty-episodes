@@ -21,10 +21,10 @@ final class CharacterDetailViewModel {
     var exportError: String?
 
     let characterID: Int
-    private let repository: EpisodeRepository
+    private let repository: any EpisodeRepository
     private let exporter: CharacterExporter
 
-    init(characterID: Int, repository: EpisodeRepository, exporter: CharacterExporter = .default) {
+    init(characterID: Int, repository: any EpisodeRepository, exporter: CharacterExporter = .default) {
         self.characterID = characterID
         self.repository = repository
         self.exporter = exporter

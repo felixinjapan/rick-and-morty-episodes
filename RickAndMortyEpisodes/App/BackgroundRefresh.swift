@@ -29,7 +29,7 @@ enum BackgroundRefresh {
     /// Runs when iOS launches the task. SwiftUI's `.backgroundTask` modifier cancels this
     /// async function when the system's time runs out. Its refresh subscription ends;
     /// shared work continues only while another caller still needs it.
-    static func perform(using repository: EpisodeRepository) async {
+    static func perform(using repository: any EpisodeRepository) async {
         // Schedule the next run first, so one failure doesn't stop future refreshes.
         schedule()
         do {

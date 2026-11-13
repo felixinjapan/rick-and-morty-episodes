@@ -2,9 +2,9 @@ import SwiftUI
 
 struct EpisodeListView: View {
     @State private var viewModel: EpisodeListViewModel
-    private let repository: EpisodeRepository
+    private let repository: any EpisodeRepository
 
-    init(repository: EpisodeRepository) {
+    init(repository: any EpisodeRepository) {
         self.repository = repository
         _viewModel = State(initialValue: EpisodeListViewModel(repository: repository))
     }
@@ -153,6 +153,6 @@ private struct LastUpdatedLabel: View {
 
 #if DEBUG
 #Preview {
-    EpisodeListView(repository: EpisodeRepository(api: RecordedRickAndMortyAPI(), store: .preview))
+    EpisodeListView(repository: DefaultEpisodeRepository(api: RecordedRickAndMortyAPI(), store: .preview))
 }
 #endif
