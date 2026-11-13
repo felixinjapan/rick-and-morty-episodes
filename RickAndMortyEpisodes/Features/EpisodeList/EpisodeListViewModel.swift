@@ -81,9 +81,10 @@ final class EpisodeListViewModel {
         }
     }
 
-    /// Called when the app returns to the foreground. Picks up data saved by a background
-    /// refresh while the app was suspended, and refreshes if the data is still stale.
-    func appDidBecomeActive() async {
+    /// Brings the list up to date: shows a newer snapshot saved by a background refresh,
+    /// then refreshes from the network if the data is still stale. The app calls this
+    /// when it returns to the foreground.
+    func refreshIfNeeded() async {
         guard hasCheckedCache else { return }
         if let snapshot = await repository.cachedSnapshot(),
            snapshot.refreshedAt > (lastRefreshed ?? .distantPast) {

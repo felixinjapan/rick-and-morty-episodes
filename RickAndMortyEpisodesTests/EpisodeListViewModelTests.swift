@@ -156,7 +156,7 @@ struct EpisodeListViewModelTests {
 
         let newer = EpisodeSnapshot(episodes: [.make(id: 1), .make(id: 2)], refreshedAt: fixedDate.addingTimeInterval(60))
         try await store.save(newer)
-        await viewModel.appDidBecomeActive()
+        await viewModel.refreshIfNeeded()
 
         #expect(viewModel.episodes.count == 2)
         #expect(viewModel.lastRefreshed == newer.refreshedAt)
@@ -173,7 +173,7 @@ struct EpisodeListViewModelTests {
 
         let newer = EpisodeSnapshot(episodes: [.make(id: 2)], refreshedAt: fixedDate.addingTimeInterval(60))
         try await store.save(newer)
-        await viewModel.appDidBecomeActive()
+        await viewModel.refreshIfNeeded()
 
         #expect(viewModel.episodes == newer.episodes)
         #expect(viewModel.lastRefreshed == newer.refreshedAt)
@@ -193,7 +193,7 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.lastRefreshed == fixedDate)
 
         currentDate = fixedDate.addingTimeInterval(7200)
-        await viewModel.appDidBecomeActive()
+        await viewModel.refreshIfNeeded()
         #expect(await api.requestedPages.filter { $0 == 1 }.count == 2)
     }
 

@@ -25,7 +25,7 @@ struct RickAndMortyEpisodesApp: App {
             switch newPhase {
             case .active:
                 // Picks up data a background refresh saved, and refreshes if it's stale.
-                Task { await episodeList.appDidBecomeActive() }
+                Task { await episodeList.refreshIfNeeded() }
             case .background:
                 BackgroundRefresh.schedule()
             default:
