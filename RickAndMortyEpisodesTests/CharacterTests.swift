@@ -71,7 +71,7 @@ struct CharacterDetailModelTests {
         await viewModel.load()
         viewModel.export()
 
-        #expect(viewModel.state == .failed(message: APIError.http(statusCode: 404).userMessage))
+        #expect(viewModel.state == .failed(message: EpisodeError.notFound.userMessage))
         #expect(viewModel.exportedFile == nil)
     }
 }

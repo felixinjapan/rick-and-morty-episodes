@@ -39,12 +39,12 @@ actor DefaultEpisodeRepository: EpisodeRepository {
 
     /// One page for incremental loading while the user scrolls (first launch, no cache yet).
     func episodesPage(_ page: Int) async throws -> EpisodePage {
-        try await api.episodes(page: page)
+        try await translatingErrors { try await api.episodes(page: page) }
     }
 
     /// Persists a list that was fully loaded page by page.
     func save(_ snapshot: EpisodeSnapshot) async throws {
-        try await store.save(snapshot)
+        try await translatingErrors { try await store.save(snapshot) }
     }
 
     /// Fetches every page and replaces the cache as one unit.
@@ -53,6 +53,10 @@ actor DefaultEpisodeRepository: EpisodeRepository {
     /// not merged: each fetches a complete list, and the store writes them one at a time,
     /// so the cache always holds a complete list.
     func refreshAll() async throws -> EpisodeSnapshot {
+        try await translatingErrors { try await fetchAndSaveAllPages() }
+    }
+
+    private func fetchAndSaveAllPages() async throws -> EpisodeSnapshot {
         let api = self.api
         let firstPage = try await api.episodes(page: 1)
         var pages: [Int: [Episode]] = [1: firstPage.episodes]
@@ -87,8 +91,37 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         if let cached = characterCache[id] {
             return cached
         }
-        let character = try await api.character(id: id)
+        let character = try await translatingErrors { try await api.character(id: id) }
         characterCache[id] = character
         return character
+    }
+
+    // MARK: - Errors
+
+    /// Runs `operation` and rethrows its failure as an `EpisodeError`, so nothing above the
+    /// Data layer depends on HTTP or URL-loading errors. Cancellation passes through unchanged.
+    private func translatingErrors<T>(_ operation: () async throws -> T) async throws -> T {
+        do {
+            return try await operation()
+        } catch let cancellation as CancellationError {
+            throw cancellation
+        } catch {
+            logger.error("Request failed: \(String(describing: error), privacy: .public)")
+            throw Self.domainError(for: error)
+        }
+    }
+
+    static func domainError(for error: any Error) -> EpisodeError {
+        guard let apiError = error as? APIError else { return .failed }
+        switch apiError {
+        case .offline: return .offline
+        case .timedOut: return .timedOut
+        case .http(404): return .notFound
+        case .http(429): return .rateLimited
+        case .http(let status) where status >= 500: return .serverUnavailable
+        case .invalidResponse: return .serverUnavailable
+        case .decoding: return .unreadableData
+        case .transport, .http: return .failed
+        }
     }
 }

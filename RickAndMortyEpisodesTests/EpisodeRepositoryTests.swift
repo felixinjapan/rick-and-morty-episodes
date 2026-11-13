@@ -2,6 +2,18 @@ import Foundation
 import Testing
 @testable import RickAndMortyEpisodes
 
+private let apiToDomainErrors: [(APIError, EpisodeError)] = [
+    (.offline, .offline),
+    (.timedOut, .timedOut),
+    (.http(statusCode: 404), .notFound),
+    (.http(statusCode: 429), .rateLimited),
+    (.http(statusCode: 503), .serverUnavailable),
+    (.invalidResponse, .serverUnavailable),
+    (.decoding, .unreadableData),
+    (.http(statusCode: 400), .failed),
+    (.transport(.cannotFindHost), .failed),
+]
+
 @Suite("Episode repository")
 struct EpisodeRepositoryTests {
     @Test("Refresh fetches every page, keeps API order, and saves one snapshot")
@@ -18,6 +30,14 @@ struct EpisodeRepositoryTests {
         #expect(await api.requestedPages.sorted() == [1, 2, 3])
     }
 
+    @Test("Network errors reach callers as domain errors", arguments: apiToDomainErrors)
+    func errorTranslation(apiError: APIError, expected: EpisodeError) async {
+        let repository = DefaultEpisodeRepository(api: StubAPI(characters: [1: .failure(apiError)]), store: .temporary())
+        await #expect(throws: expected) {
+            try await repository.character(id: 1)
+        }
+    }
+
     @Test("A failed page leaves the previous cache untouched")
     func failedRefreshKeepsCache() async throws {
         let api = threePageAPI()
@@ -26,7 +46,7 @@ struct EpisodeRepositoryTests {
         let store = try await FileEpisodeStore.temporary(containing: previous)
         let repository = DefaultEpisodeRepository(api: api, store: store)
 
-        await #expect(throws: APIError.http(statusCode: 500)) {
+        await #expect(throws: EpisodeError.serverUnavailable) {
             try await repository.refreshAll()
         }
         #expect(try await store.load() == previous)
