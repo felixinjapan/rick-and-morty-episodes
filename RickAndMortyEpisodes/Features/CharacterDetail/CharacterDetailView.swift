@@ -1,45 +1,45 @@
 import SwiftUI
 
 struct CharacterDetailView: View {
-    @State private var model: CharacterDetailModel
+    @State private var viewModel: CharacterDetailViewModel
 
     init(characterID: Int, repository: EpisodeRepository) {
-        _model = State(initialValue: CharacterDetailModel(characterID: characterID, repository: repository))
+        _viewModel = State(initialValue: CharacterDetailViewModel(characterID: characterID, repository: repository))
     }
 
     var body: some View {
         content
-            .navigationTitle(model.character?.name ?? "Character #\(model.characterID)")
+            .navigationTitle(viewModel.character?.name ?? "Character #\(viewModel.characterID)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button("Export", systemImage: "square.and.arrow.up") {
-                        model.export()
+                        viewModel.export()
                     }
-                    .disabled(model.character == nil)
+                    .disabled(viewModel.character == nil)
                     .accessibilityIdentifier("characterDetail.export")
                 }
             }
-            .task { await model.load() }
-            .sheet(item: $model.exportedFile) { file in
+            .task { await viewModel.load() }
+            .sheet(item: $viewModel.exportedFile) { file in
                 ExportConfirmationView(fileURL: file.url)
             }
             .alert(
                 "Export Failed",
                 isPresented: Binding(
-                    get: { model.exportError != nil },
-                    set: { if !$0 { model.exportError = nil } }
+                    get: { viewModel.exportError != nil },
+                    set: { if !$0 { viewModel.exportError = nil } }
                 )
             ) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(model.exportError ?? "")
+                Text(viewModel.exportError ?? "")
             }
     }
 
     @ViewBuilder
     private var content: some View {
-        switch model.state {
+        switch viewModel.state {
         case .loading:
             ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -49,7 +49,7 @@ struct CharacterDetailView: View {
             } description: {
                 Text(message)
             } actions: {
-                Button { Task { await model.load() } } label: {
+                Button { Task { await viewModel.load() } } label: {
                     Text("Retry").foregroundStyle(Color.onAccent)
                 }
                 .buttonStyle(.borderedProminent)

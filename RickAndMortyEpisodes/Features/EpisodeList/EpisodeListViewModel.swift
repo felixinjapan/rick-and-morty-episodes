@@ -8,7 +8,7 @@ import Observation
 /// "is a page already loading?" check-and-set atomic, which prevents duplicate page requests.
 @MainActor
 @Observable
-final class EpisodeListModel {
+final class EpisodeListViewModel {
     enum Footer: Equatable {
         /// The cache hasn't been checked yet, or the error is shown full screen.
         case none
@@ -103,7 +103,7 @@ final class EpisodeListModel {
         let generation = listGeneration
         let repository = self.repository
 
-        // The results belong to the model, not to the footer view that triggered the load.
+        // The results belong to the view model, not to the footer view that triggered the load.
         // Running the request in its own task means scrolling the footer off screen
         // (which cancels the view's `.task`) doesn't cancel and restart the request.
         let result = await Task { try await repository.episodesPage(page) }.result

@@ -44,34 +44,34 @@ struct CharacterExporterTests {
 }
 
 @MainActor
-@Suite("Character detail model")
+@Suite("Character detail view model")
 struct CharacterDetailModelTests {
     @Test("Loads the character, then exports it")
     func loadAndExport() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let repository = EpisodeRepository(api: StubAPI(characters: [1: .success(.rick)]), store: .temporary())
-        let model = CharacterDetailModel(
+        let viewModel = CharacterDetailViewModel(
             characterID: 1, repository: repository, exporter: CharacterExporter(directory: directory)
         )
 
-        await model.load()
-        #expect(model.state == .loaded(.rick))
+        await viewModel.load()
+        #expect(viewModel.state == .loaded(.rick))
 
-        model.export()
-        let file = try #require(model.exportedFile)
+        viewModel.export()
+        let file = try #require(viewModel.exportedFile)
         #expect(FileManager.default.fileExists(atPath: file.url.path(percentEncoded: false)))
     }
 
     @Test("A failed load shows an error and export stays unavailable")
     func loadFailure() async {
         let repository = EpisodeRepository(api: StubAPI(), store: .temporary())
-        let model = CharacterDetailModel(characterID: 99999, repository: repository)
+        let viewModel = CharacterDetailViewModel(characterID: 99999, repository: repository)
 
-        await model.load()
-        model.export()
+        await viewModel.load()
+        viewModel.export()
 
-        #expect(model.state == .failed(message: APIError.http(statusCode: 404).userMessage))
-        #expect(model.exportedFile == nil)
+        #expect(viewModel.state == .failed(message: APIError.http(statusCode: 404).userMessage))
+        #expect(viewModel.exportedFile == nil)
     }
 }
