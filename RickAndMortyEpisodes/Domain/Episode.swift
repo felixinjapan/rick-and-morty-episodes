@@ -11,9 +11,6 @@ struct Episode: Identifiable, Hashable, Codable, Sendable {
     /// Episode code, e.g. "S01E01".
     let code: String
     let characterIDs: [Int]
-
-    /// Air date in the `dd/MM/yyyy` format required by the assignment.
-    var formattedAirDate: String { AirDateFormatter.displayString(from: airDate) }
 }
 
 /// One page of the paginated `/episode` endpoint.
