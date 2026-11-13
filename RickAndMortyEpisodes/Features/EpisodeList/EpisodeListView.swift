@@ -1,38 +1,38 @@
 import SwiftUI
 
 struct EpisodeListView: View {
-    @State private var model: EpisodeListModel
+    @State private var viewModel: EpisodeListViewModel
     private let repository: EpisodeRepository
 
     init(repository: EpisodeRepository) {
         self.repository = repository
-        _model = State(initialValue: EpisodeListModel(repository: repository))
+        _viewModel = State(initialValue: EpisodeListViewModel(repository: repository))
     }
 
     var body: some View {
         NavigationStack {
             List {
-                if let refreshError = model.refreshError {
-                    RefreshErrorBanner(message: refreshError, lastRefreshed: model.lastRefreshed)
+                if let refreshError = viewModel.refreshError {
+                    RefreshErrorBanner(message: refreshError, lastRefreshed: viewModel.lastRefreshed)
                 }
 
-                ForEach(model.episodes) { episode in
+                ForEach(viewModel.episodes) { episode in
                     NavigationLink(value: episode) {
                         EpisodeRow(episode: episode)
                     }
                 }
 
-                EpisodeListFooter(footer: model.footer, model: model)
+                EpisodeListFooter(footer: viewModel.footer, viewModel: viewModel)
             }
             .listStyle(.plain)
             .overlay {
-                if let message = model.emptyListError {
+                if let message = viewModel.emptyListError {
                     ContentUnavailableView {
                         Label("Couldn't Load Episodes", systemImage: "exclamationmark.triangle")
                     } description: {
                         Text(message)
                     } actions: {
-                        Button { Task { await model.loadNextPage() } } label: {
+                        Button { Task { await viewModel.loadNextPage() } } label: {
                             Text("Retry").foregroundStyle(Color.onAccent)
                         }
                         .buttonStyle(.borderedProminent)
@@ -50,18 +50,18 @@ struct EpisodeListView: View {
             .toolbar {
                 // A status item in the bottom toolbar (as in Mail) instead of a floating label,
                 // so the system bar keeps it legible and it never covers list rows.
-                if model.lastRefreshed != nil || model.isRefreshing {
+                if viewModel.lastRefreshed != nil || viewModel.isRefreshing {
                     ToolbarItem(placement: .status) {
-                        LastUpdatedLabel(date: model.lastRefreshed, isRefreshing: model.isRefreshing)
+                        LastUpdatedLabel(date: viewModel.lastRefreshed, isRefreshing: viewModel.isRefreshing)
                     }
                 }
             }
-            .refreshable { await model.refresh() }
-            .task { await model.start() }
+            .refreshable { await viewModel.refresh() }
+            .task { await viewModel.start() }
             .onReceive(
                 NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             ) { _ in
-                Task { await model.appDidBecomeActive() }
+                Task { await viewModel.appDidBecomeActive() }
             }
         }
     }
@@ -69,8 +69,8 @@ struct EpisodeListView: View {
 
 /// The last list row: triggers the next page, shows a paging error, or the end-of-list text.
 private struct EpisodeListFooter: View {
-    let footer: EpisodeListModel.Footer
-    let model: EpisodeListModel
+    let footer: EpisodeListViewModel.Footer
+    let viewModel: EpisodeListViewModel
 
     var body: some View {
         Group {
@@ -82,7 +82,7 @@ private struct EpisodeListFooter: View {
                     .frame(maxWidth: .infinity)
                     .accessibilityLabel("Loading more episodes")
                     // Re-runs for each new page while the footer stays visible.
-                    .task(id: page) { await model.loadNextPage() }
+                    .task(id: page) { await viewModel.loadNextPage() }
             case .failed(let message):
                 VStack(spacing: 8) {
                     Text(message)
@@ -90,7 +90,7 @@ private struct EpisodeListFooter: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                     Button("Retry") {
-                        Task { await model.loadNextPage() }
+                        Task { await viewModel.loadNextPage() }
                     }
                     .buttonStyle(.bordered)
                 }

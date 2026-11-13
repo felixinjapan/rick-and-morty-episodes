@@ -41,7 +41,7 @@ struct CharacterDTO: Decodable, Sendable {
     let episode: [String]
 }
 
-// MARK: - Mapping to app models
+// MARK: - Mapping to domain entities
 
 extension EpisodePageDTO {
     func toDomain() -> EpisodePage {

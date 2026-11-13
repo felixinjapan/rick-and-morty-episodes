@@ -3,7 +3,7 @@ import Observation
 
 @MainActor
 @Observable
-final class CharacterDetailModel {
+final class CharacterDetailViewModel {
     enum State: Equatable {
         case loading
         case loaded(CharacterDetails)
