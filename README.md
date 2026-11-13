@@ -15,7 +15,7 @@ complete app: built for its actual requirements, testable, and easy to change.
 | Character ID → detail (image, name, status, species, origin, episode count) | `Features/CharacterDetail` |
 | Export character details to a local file other apps can open | `CharacterExporter` |
 | Background refresh of the list | `App/BackgroundRefresh.swift` |
-| *Extra:* persistence, pull-to-refresh, "last updated" timestamp | `Persistence/`, `EpisodeListModel` |
+| *Extra:* persistence, pull-to-refresh, "last updated" timestamp | `Data/Persistence/`, `EpisodeListViewModel` |
 | *Extra:* unit and UI tests | `RickAndMortyEpisodesTests/`, `RickAndMortyEpisodesUITests/` |
 
 ## Running
@@ -43,31 +43,47 @@ handling and decoding run exactly as in production:
 
 ## Architecture
 
+MVVM with a thin domain layer. Folders are the layers; dependencies point inward.
+
 ```
-SwiftUI views ──▶ @MainActor @Observable models (EpisodeListModel, CharacterDetailModel)
-                          │
-                          ▼
-                 EpisodeRepository (actor)  ◀── BackgroundRefresh (BGAppRefreshTask)
-                    │                │
-                    ▼                ▼
-        RickAndMortyAPI (protocol)   FileEpisodeStore (actor, JSON file)
-        └ LiveRickAndMortyAPI
-          (URLSession via HTTPTransport)
+Features/  SwiftUI views ──▶ @MainActor @Observable view models
+           (EpisodeListViewModel, CharacterDetailViewModel)
+                                   │ depend on
+                                   ▼
+Domain/    Episode, CharacterDetails, EpisodeError,
+           EpisodeRepository (protocol)
+                                   ▲ implemented by
+                                   │
+Data/      DefaultEpisodeRepository (actor)  ◀── App/BackgroundRefresh (BGAppRefreshTask)
+              │                       │
+              ▼                       ▼
+           Networking/             Persistence/
+           RickAndMortyAPI (protocol)  FileEpisodeStore (actor, JSON file)
+           └ LiveRickAndMortyAPI (URLSession via HTTPTransport)
+
+App/       AppDependencies: the composition root that picks the concrete types
 ```
 
-- **Views** only display state. A feature model exists only where there is real
-  logic to test: paging and refreshing on the list, and loading and exporting on the detail
-  screen. The character ID screen has no model, because its data is already in `Episode`.
-- **`EpisodeRepository`** is the single source of truth, shared by the UI and the background
-  task. It is an actor because both reach it at once. A refresh fetches every page and
-  saves only if all of them arrived, so the cache is only ever replaced as a whole.
+- **Views** only display state. A view model exists only where there is real logic to
+  test: paging and refreshing on the list, and loading and exporting on the detail
+  screen. The character ID screen has none, because its data is already in `Episode`.
+- **Domain** holds the entities, the `EpisodeRepository` protocol the view models depend
+  on, and `EpisodeError`. It knows nothing about JSON, HTTP, files or SwiftUI. There are no
+  use-case classes: with three screens they would only forward calls to the repository.
+- **`DefaultEpisodeRepository`** is the single source of truth, shared by the UI and the
+  background task. It is an actor because both reach it at once. A refresh fetches every
+  page and saves only if all of them arrived, so the cache is only ever replaced as a whole.
   Overlapping refreshes are not merged: each saves a complete list, and the store writes
   one at a time.
-- **Networking** maps JSON DTOs to app models, so API changes stay in one layer. Errors
-  are typed (`APIError`). Cancellation is kept separate so it is never shown as an error.
+- **Errors** have one vocabulary per layer. Networking reports `APIError` (offline, HTTP
+  status, decoding). The repository translates it into the domain's `EpisodeError`, and
+  the presentation layer (`Features/Shared/ErrorMessages.swift`) decides the wording.
+  Cancellation passes through unchanged, so it is never shown as an error.
+- **Networking** maps JSON DTOs to domain entities, so API changes stay in one layer.
 - **Dependency injection** goes through initialisers, wired in one place (`AppDependencies`).
-  The network sits behind a protocol so tests control it; the file store doesn't, because
-  tests point it at a temporary folder and exercise real file I/O.
+  Protocols sit at layer boundaries only: the repository (between features and data) and
+  the network (so tests control it). The file store has none, because tests point it at
+  a temporary folder and exercise real file I/O.
   UI tests launch with `-uiTesting`, which uses recorded API responses.
 
 ## Key decisions
