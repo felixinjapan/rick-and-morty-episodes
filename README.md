@@ -101,9 +101,12 @@ App/       AppDependencies: the composition root that picks the concrete types
 
 ## Background refresh
 
-- The app schedules a `BGAppRefreshTask` (no sooner than 1 h) whenever it goes to the
-  background. The task fetches all pages and saves a new snapshot. When the app comes back
-  to the foreground, it picks up that snapshot.
+- All lifecycle handling is in one place: the app's `scenePhase` handler
+  (`RickAndMortyEpisodesApp`). Going to the background schedules a `BGAppRefreshTask`
+  (no sooner than 1 h); becoming active calls the list view model's `appDidBecomeActive()`.
+  The app owns that view model so the handler can reach it.
+- The task fetches all pages and saves a new snapshot. When the app comes back to the
+  foreground, the list picks up that snapshot, and refreshes if the data is still stale.
 - iOS decides when (and whether) to run the task. It is an optimisation; the foreground
   refresh when data is stale is what keeps data fresh.
 - To trigger it manually on a device, pause the app in the debugger after it has been in

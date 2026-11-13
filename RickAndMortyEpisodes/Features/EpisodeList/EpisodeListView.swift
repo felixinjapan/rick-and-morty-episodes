@@ -1,13 +1,9 @@
 import SwiftUI
 
 struct EpisodeListView: View {
-    @State private var viewModel: EpisodeListViewModel
-    private let repository: any EpisodeRepository
-
-    init(repository: any EpisodeRepository) {
-        self.repository = repository
-        _viewModel = State(initialValue: EpisodeListViewModel(repository: repository))
-    }
+    /// Owned by the app, which also forwards foreground events to it (see `RickAndMortyEpisodesApp`).
+    let viewModel: EpisodeListViewModel
+    let repository: any EpisodeRepository
 
     var body: some View {
         NavigationStack {
@@ -58,11 +54,6 @@ struct EpisodeListView: View {
             }
             .refreshable { await viewModel.refresh() }
             .task { await viewModel.start() }
-            .onReceive(
-                NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
-            ) { _ in
-                Task { await viewModel.appDidBecomeActive() }
-            }
         }
     }
 }
@@ -153,6 +144,7 @@ private struct LastUpdatedLabel: View {
 
 #if DEBUG
 #Preview {
-    EpisodeListView(repository: DefaultEpisodeRepository(api: RecordedRickAndMortyAPI(), store: .preview))
+    let repository = DefaultEpisodeRepository(api: RecordedRickAndMortyAPI(), store: .preview)
+    EpisodeListView(viewModel: EpisodeListViewModel(repository: repository), repository: repository)
 }
 #endif
