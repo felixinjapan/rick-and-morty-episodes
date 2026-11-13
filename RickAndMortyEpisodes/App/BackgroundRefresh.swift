@@ -36,7 +36,7 @@ enum BackgroundRefresh {
             let snapshot = try await repository.refreshAll()
             logger.info("Background refresh saved \(snapshot.episodes.count) episodes")
         } catch {
-            logger.error("Background refresh failed: \(error.localizedDescription, privacy: .public)")
+            logger.error("Background refresh failed: \(String(describing: error), privacy: .public)")
         }
     }
 }
