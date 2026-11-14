@@ -71,7 +71,7 @@ final class EpisodeFlowUITests: XCTestCase {
 
         // The episode count row can be below the image on small screens, and List only
         // creates cells that are on screen.
-        let episodeCount = element(containing: "51")
+        let episodeCount = element(containing: "51", identifier: "characterDetail.episodeCount")
         if !episodeCount.exists { app.swipeUp() }
         XCTAssertTrue(episodeCount.waitForExistence(timeout: 5))
 

@@ -83,6 +83,7 @@ private struct CharacterDetailContent: View {
                 LabeledContent(
                     String(localized: .characterDetailEpisodes), value: character.episodeCount, format: .number
                 )
+                .accessibilityIdentifier("characterDetail.episodeCount")
             }
         }
     }
