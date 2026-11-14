@@ -62,7 +62,9 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(character.waitForExistence(timeout: 5))
         character.tap()
 
-        XCTAssertTrue(element(containing: "Rick Sanchez").waitForExistence(timeout: 5))
+        // The name is also the navigation title, so match the Name row by its identifier.
+        let name = element(containing: "Rick Sanchez", identifier: "characterDetail.name")
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Earth (C-137)").exists)
         XCTAssertTrue(app.images["characterDetail.portraitUnavailable"].exists)
         XCTAssertFalse(app.progressIndicators["characterDetail.portraitLoading"].exists)
@@ -80,10 +82,12 @@ final class EpisodeFlowUITests: XCTestCase {
 
     /// `LabeledContent` may expose its label and value as one accessibility element
     /// ("Origin, Earth (C-137)"), so match on containment rather than the exact text.
-    private func element(containing text: String) -> XCUIElement {
-        app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS %@", text))
-            .firstMatch
+    private func element(containing text: String, identifier: String? = nil) -> XCUIElement {
+        var query = app.descendants(matching: .any)
+        if let identifier {
+            query = query.matching(identifier: identifier)
+        }
+        return query.matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
     func testExportRemainsReachableAtLargestAccessibilityTextSize() {
