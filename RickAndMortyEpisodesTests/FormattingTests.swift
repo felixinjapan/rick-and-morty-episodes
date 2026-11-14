@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import RickAndMortyEpisodes
 
@@ -5,10 +6,18 @@ import Testing
 struct FormattingTests {
     @Test("Counts use the string catalog's singular and plural forms")
     func pluralCounts() {
-        #expect(EpisodeCharactersView.characterCountText(1) == "1 character")
-        #expect(EpisodeCharactersView.characterCountText(19) == "19 characters")
-        #expect(EpisodeListView.endOfListText(count: 1) == "You've reached the end · 1 episode")
-        #expect(EpisodeListView.endOfListText(count: 51) == "You've reached the end · 51 episodes")
+        #expect(String(localized: .episodeCharactersCount(1)) == "1 character")
+        #expect(String(localized: .episodeCharactersCount(19)) == "19 characters")
+        #expect(String(localized: .episodeListEndOfList(1)) == "You've reached the end. 1 episode")
+        #expect(String(localized: .episodeListEndOfList(51)) == "You've reached the end. 51 episodes")
+    }
+
+    @Test("The export confirmation shows the file name in bold")
+    func exportMessageMarkup() throws {
+        let message = AttributedString(localized: .exportMessage("Character-1-Rick-Sanchez.txt"))
+        #expect(String(message.characters).hasPrefix("Character-1-Rick-Sanchez.txt was saved."))
+        let bold = try #require(message.runs.first { $0.inlinePresentationIntent == .stronglyEmphasized })
+        #expect(String(message[bold.range].characters) == "Character-1-Rick-Sanchez.txt")
     }
 
     @Test("Air date is shown as dd/MM/yyyy", arguments: [

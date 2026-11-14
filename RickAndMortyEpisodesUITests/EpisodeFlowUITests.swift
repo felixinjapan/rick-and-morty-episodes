@@ -29,7 +29,7 @@ final class EpisodeFlowUITests: XCTestCase {
         }
 
         XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
-        XCTAssertEqual(endOfList.label, "You've reached the end · 51 episodes")
+        XCTAssertEqual(endOfList.label, "You've reached the end. 51 episodes")
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].exists)
     }
 

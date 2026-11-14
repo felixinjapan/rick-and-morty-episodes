@@ -10,10 +10,10 @@ struct CharacterPortrait: View {
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFill()
-                            .accessibilityLabel("Image of \(character.name)")
+                            .accessibilityLabel(.portraitImage(character.name))
                     case .empty:
                         ProgressView()
-                            .accessibilityLabel("Loading portrait")
+                            .accessibilityLabel(.portraitLoading)
                             .accessibilityIdentifier("characterDetail.portraitLoading")
                     case .failure:
                         placeholder
@@ -34,7 +34,7 @@ struct CharacterPortrait: View {
         Image(systemName: "person.crop.square")
             .font(.system(size: 64))
             .foregroundStyle(.secondary)
-            .accessibilityLabel("Portrait unavailable for \(character.name)")
+            .accessibilityLabel(.portraitUnavailable(character.name))
             .accessibilityIdentifier("characterDetail.portraitUnavailable")
     }
 }

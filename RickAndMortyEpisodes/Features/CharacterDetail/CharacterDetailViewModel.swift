@@ -51,10 +51,7 @@ final class CharacterDetailViewModel {
             // A few hundred bytes, so writing synchronously on the main actor is fine.
             exportedFile = ExportedFile(url: try exporter.export(character))
         } catch {
-            exportError = String(
-                localized: "The file couldn't be saved. \(error.localizedDescription)",
-                comment: "Export failure alert; the placeholder is the system's reason"
-            )
+            exportError = String(localized: .characterDetailExportFailedMessage(error.localizedDescription))
         }
     }
 }
