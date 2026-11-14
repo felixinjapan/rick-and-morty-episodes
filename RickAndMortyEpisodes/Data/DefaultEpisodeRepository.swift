@@ -28,8 +28,10 @@ actor DefaultEpisodeRepository: EpisodeRepository {
 
     // MARK: - Episodes
 
-    /// The list to show: the saved one or the one last loaded, whichever is newer. The disk
-    /// can be newer when a background refresh saved while the app was suspended.
+    /// The list to show: the saved one or the one last loaded, whichever is newer. At launch
+    /// this reads the cache from disk. After that the in-memory list is normally current,
+    /// because the background refresh runs through this same instance; reading the small file
+    /// again is a cheap safeguard.
     /// A corrupt cache isn't fatal: the app falls back to loading from the network.
     func currentSnapshot() async -> EpisodeSnapshot? {
         do {
