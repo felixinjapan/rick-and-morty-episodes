@@ -186,7 +186,7 @@ struct EpisodeListViewModelTests {
         let api = threePageAPI()
         let repository = DefaultEpisodeRepository(api: api, store: try .unwritable(), now: { fixedDate })
         var currentDate = fixedDate
-        let viewModel = EpisodeListViewModel(repository: repository, now: { currentDate })
+        let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { currentDate })
         await viewModel.start()
         for _ in 0..<3 { await viewModel.loadNextPage() }
         #expect(viewModel.episodes.count == 45)
@@ -204,7 +204,7 @@ struct EpisodeListViewModelTests {
         await api.holdPage(3, until: gate)
         let store = FileEpisodeStore.temporary()
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
-        let viewModel = EpisodeListViewModel(repository: repository, now: { fixedDate })
+        let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { fixedDate })
         await viewModel.start()
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
@@ -225,7 +225,7 @@ struct EpisodeListViewModelTests {
         let slowGate = Gate()
         await api.holdPage(1, until: slowGate)
         let repository = DefaultEpisodeRepository(api: api, store: .temporary())
-        let viewModel = EpisodeListViewModel(repository: repository)
+        let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600)
 
         let slow = Task { await viewModel.refresh() }
         while await api.requestedPages.isEmpty { await Task.yield() }

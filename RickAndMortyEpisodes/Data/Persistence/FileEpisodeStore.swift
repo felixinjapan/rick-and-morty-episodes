@@ -10,6 +10,8 @@ import Foundation
 /// There is no protocol in front of it: tests point it at a temporary folder, so they
 /// exercise real encoding and file I/O instead of a fake.
 actor FileEpisodeStore {
+    static let defaultFileName = "episodes-cache.json"
+
     private let fileURL: URL
 
     init(fileURL: URL) {
@@ -20,7 +22,7 @@ actor FileEpisodeStore {
     /// (it holds exports), while the cache is an internal detail.
     static func makeDefault() -> FileEpisodeStore {
         let directory = URL.applicationSupportDirectory
-        return FileEpisodeStore(fileURL: directory.appending(path: "episodes-cache.json"))
+        return FileEpisodeStore(fileURL: directory.appending(path: defaultFileName))
     }
 
     func load() throws -> EpisodeSnapshot? {

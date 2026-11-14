@@ -11,7 +11,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
     private let api: any RickAndMortyAPI
     private let store: FileEpisodeStore
     private let now: @Sendable () -> Date
-    private let logger = Logger(subsystem: "RickAndMortyEpisodes", category: "DefaultEpisodeRepository")
+    private let logger = Logger(category: "DefaultEpisodeRepository")
     private var characterCache: [Int: CharacterDetails] = [:]
 
     init(

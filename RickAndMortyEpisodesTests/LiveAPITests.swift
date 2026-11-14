@@ -11,7 +11,7 @@ struct LiveAPITests {
         body: Data = Data(),
         onRequest: @escaping @Sendable (URLRequest) -> Void = { _ in }
     ) -> LiveRickAndMortyAPI {
-        LiveRickAndMortyAPI(transport: HTTPTransport { request in
+        LiveRickAndMortyAPI(baseURL: AppConfiguration.production.apiBaseURL, transport: HTTPTransport { request in
             onRequest(request)
             let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
             return (body, response)
@@ -19,10 +19,10 @@ struct LiveAPITests {
     }
 
     private func failingAPI(_ error: URLError.Code) -> LiveRickAndMortyAPI {
-        LiveRickAndMortyAPI(transport: HTTPTransport { _ in throw URLError(error) })
+        LiveRickAndMortyAPI(baseURL: AppConfiguration.production.apiBaseURL, transport: HTTPTransport { _ in throw URLError(error) })
     }
 
-    private let recorded = LiveRickAndMortyAPI(transport: .recorded)
+    private let recorded = LiveRickAndMortyAPI(baseURL: AppConfiguration.production.apiBaseURL, transport: .recorded)
 
     @Test("Decodes a real episode page")
     func decodesEpisodePage() async throws {

@@ -40,7 +40,7 @@ final class EpisodeListViewModel {
 
     init(
         repository: any EpisodeRepository,
-        staleInterval: TimeInterval = 60 * 60,
+        staleInterval: TimeInterval,
         now: @escaping () -> Date = { .now }
     ) {
         self.repository = repository

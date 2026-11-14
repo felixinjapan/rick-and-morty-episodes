@@ -45,7 +45,9 @@ extension HTTPTransport {
 
 /// The real API client running on recorded data.
 struct RecordedRickAndMortyAPI: RickAndMortyAPI {
-    private let client = LiveRickAndMortyAPI(transport: .recorded)
+    /// The recorded transport answers by path (`/episode`, `/character/{id}`), so the host is
+    /// never contacted; `.invalid` is a reserved domain that can't resolve.
+    private let client = LiveRickAndMortyAPI(baseURL: URL(string: "https://recorded.invalid/api")!, transport: .recorded)
 
     func episodes(page: Int) async throws -> EpisodePage {
         try await client.episodes(page: page)
@@ -68,6 +70,6 @@ struct RecordedRickAndMortyAPI: RickAndMortyAPI {
 
 extension FileEpisodeStore {
     /// A throwaway cache for previews.
-    static let preview = FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "Previews/episodes-cache.json"))
+    static let preview = FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "Previews").appending(path: FileEpisodeStore.defaultFileName))
 }
 #endif

@@ -10,7 +10,10 @@ struct RickAndMortyEpisodesApp: App {
     init() {
         let repository = AppDependencies.makeRepository()
         self.repository = repository
-        _episodeList = State(initialValue: EpisodeListViewModel(repository: repository))
+        _episodeList = State(initialValue: EpisodeListViewModel(
+            repository: repository,
+            staleInterval: AppConfiguration.current.freshnessInterval
+        ))
     }
 
     var body: some Scene {
