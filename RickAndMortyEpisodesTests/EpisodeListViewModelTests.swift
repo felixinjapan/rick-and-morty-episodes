@@ -217,7 +217,8 @@ struct EpisodeListViewModelTests {
         #expect(await api.requestedPages.filter { $0 == 1 }.count == 2)
     }
 
-    @Test("Cancelling the final page's footer does not discard the completed cache")
+    // Waits for a request in a loop; the time limit turns a regression into a failure, not a hang.
+    @Test("Cancelling the final page's footer does not discard the completed cache", .timeLimit(.minutes(1)))
     func cancelledFinalPageStillPersists() async throws {
         let api = threePageAPI()
         let gate = Gate()
@@ -269,7 +270,7 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.listIdentity == 1)
     }
 
-    @Test("The refresh indicator stays visible until every overlapping refresh finishes")
+    @Test("The refresh indicator stays visible until every overlapping refresh finishes", .timeLimit(.minutes(1)))
     func overlappingRefreshIndicator() async {
         let api = threePageAPI()
         let slowGate = Gate()
