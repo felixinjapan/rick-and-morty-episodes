@@ -9,24 +9,8 @@ struct EpisodeListView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                if let refreshError = viewModel.refreshError {
-                    RefreshErrorBanner(message: refreshError)
-                }
-
-                ForEach(viewModel.episodes) { episode in
-                    NavigationLink(value: episode) {
-                        EpisodeRow(episode: episode)
-                    }
-                    .accessibilityIdentifier("episode.row.\(episode.id)")
-                }
-
-                EpisodeListFooter(footer: viewModel.footer, viewModel: viewModel)
-            }
-            // A new identity rebuilds the list from the top (see `listIdentity`).
-            .id(viewModel.listIdentity)
-            .listStyle(.plain)
-            .overlay {
+            Group {
+                // With no episodes to show, the error replaces the list instead of covering it.
                 if let message = viewModel.emptyListError {
                     ContentUnavailableView {
                         Label(.episodeListLoadErrorTitle, systemImage: "exclamationmark.triangle")
@@ -37,6 +21,8 @@ struct EpisodeListView: View {
                             .buttonStyle(.bordered)
                     }
                     .accessibilityIdentifier("episodeList.loadError")
+                } else {
+                    episodeList
                 }
             }
             .navigationTitle(.episodeListTitle)
@@ -55,9 +41,29 @@ struct EpisodeListView: View {
                     }
                 }
             }
-            .refreshable { await viewModel.refresh() }
             .task { await viewModel.start() }
         }
+    }
+
+    private var episodeList: some View {
+        List {
+            if let refreshError = viewModel.refreshError {
+                RefreshErrorBanner(message: refreshError)
+            }
+
+            ForEach(viewModel.episodes) { episode in
+                NavigationLink(value: episode) {
+                    EpisodeRow(episode: episode)
+                }
+                .accessibilityIdentifier("episode.row.\(episode.id)")
+            }
+
+            EpisodeListFooter(footer: viewModel.footer, viewModel: viewModel)
+        }
+        // A new identity rebuilds the list from the top (see `listIdentity`).
+        .id(viewModel.listIdentity)
+        .listStyle(.plain)
+        .refreshable { await viewModel.refresh() }
     }
 }
 
