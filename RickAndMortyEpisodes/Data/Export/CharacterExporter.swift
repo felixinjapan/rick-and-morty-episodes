@@ -2,7 +2,7 @@ import Foundation
 
 /// Writes a character's details to a plain-text file in `directory`. The app passes
 /// Documents/Exports (see `AppDependencies.makeExporter()`), which the Files app shows.
-struct CharacterExporter {
+struct CharacterExporter: CharacterExporting {
     let directory: URL
 
     /// The file contents. Kept separate from file I/O so it can be tested directly.

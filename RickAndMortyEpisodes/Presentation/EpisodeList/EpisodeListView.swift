@@ -5,7 +5,7 @@ struct EpisodeListView: View {
     let viewModel: EpisodeListViewModel
     /// Passed on to the character screen this list navigates to.
     let characterRepository: any CharacterRepository
-    let exporter: CharacterExporter
+    let exporter: any CharacterExporting
 
     var body: some View {
         NavigationStack {
@@ -161,7 +161,7 @@ private func episodeListPreview(_ repositories: AppDependencies.Repositories) ->
             staleInterval: AppConfiguration.current.freshnessInterval
         ),
         characterRepository: repositories.characters,
-        exporter: .preview
+        exporter: CharacterExporter.preview
     )
 }
 #endif

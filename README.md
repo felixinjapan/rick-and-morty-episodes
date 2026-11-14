@@ -93,8 +93,8 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   check and background scheduling) and the request timeouts. Only the App layer reads it;
   the composition root passes the values down as plain parameters.
 - **Dependency injection** goes through initialisers, wired in one place (`AppDependencies`).
-  Protocols sit at layer boundaries only: the repository (between features and data) and
-  the network (so tests control it). The file store has none, because tests point it at
+  Protocols sit at layer boundaries only: the repositories and the exporter (between
+  features and data) and the network (so tests control it). The file store has none, because tests point it at
   a temporary folder and exercise real file I/O.
   UI tests launch with `-uiTesting`, which uses recorded API responses.
 
