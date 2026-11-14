@@ -103,6 +103,8 @@ final class EpisodeFlowUITests: XCTestCase {
         character.tap()
         let export = app.buttons["characterDetail.export"]
         XCTAssertTrue(export.waitForExistence(timeout: 5))
+        // The button is there from the start but disabled until the character has loaded.
+        XCTAssertTrue(export.wait(for: \.isEnabled, toEqual: true, timeout: 5))
         export.tap()
         XCTAssertTrue(app.staticTexts["export.confirmation"].waitForExistence(timeout: 5))
 
