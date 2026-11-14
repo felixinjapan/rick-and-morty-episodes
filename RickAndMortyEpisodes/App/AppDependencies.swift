@@ -20,6 +20,13 @@ enum AppDependencies {
         )
     }
 
+    /// Exports go to Documents/Exports. Documents is exposed in the Files app
+    /// (`UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace`), so a file can be opened
+    /// from Files › On My iPhone › Episodes, or handed to another app through the share sheet.
+    static func makeExporter() -> CharacterExporter {
+        CharacterExporter(directory: URL.documentsDirectory.appending(path: "Exports", directoryHint: .isDirectory))
+    }
+
     private static func makeDataSources(
         configuration: AppConfiguration,
         arguments: [String]

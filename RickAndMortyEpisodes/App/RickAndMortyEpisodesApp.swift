@@ -4,6 +4,7 @@ import SwiftUI
 struct RickAndMortyEpisodesApp: App {
     @Environment(\.scenePhase) private var scenePhase
     private let repositories: AppDependencies.Repositories
+    private let exporter = AppDependencies.makeExporter()
     /// Owned here rather than by the view, so the app's lifecycle handler can reach it.
     @State private var episodeList: EpisodeListViewModel
 
@@ -18,7 +19,7 @@ struct RickAndMortyEpisodesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            EpisodeListView(viewModel: episodeList, characterRepository: repositories.characters)
+            EpisodeListView(viewModel: episodeList, characterRepository: repositories.characters, exporter: exporter)
                 // Explicit tint from the asset (light, dark and high-contrast variants), so the
                 // accent never falls back to system blue if the Info.plist accent isn't applied.
                 .tint(Color("AccentColor"))

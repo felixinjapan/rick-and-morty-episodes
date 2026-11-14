@@ -1,16 +1,9 @@
 import Foundation
 
-/// Writes a character's details to a plain-text file in the app's Documents/Exports folder.
-///
-/// Documents is exposed in the Files app (`UIFileSharingEnabled` and
-/// `LSSupportsOpeningDocumentsInPlace` in Info.plist), so the file can be opened from
-/// Files › On My iPhone › Episodes, or handed to another app through the share sheet.
+/// Writes a character's details to a plain-text file in `directory`. The app passes
+/// Documents/Exports (see `AppDependencies.makeExporter()`), which the Files app shows.
 struct CharacterExporter {
     let directory: URL
-
-    static let `default` = CharacterExporter(
-        directory: URL.documentsDirectory.appending(path: "Exports", directoryHint: .isDirectory)
-    )
 
     /// The file contents. Kept separate from file I/O so it can be tested directly.
     static func text(for character: CharacterDetails) -> String {

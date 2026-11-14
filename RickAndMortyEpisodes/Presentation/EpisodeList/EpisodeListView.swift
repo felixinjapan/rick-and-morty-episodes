@@ -5,6 +5,7 @@ struct EpisodeListView: View {
     let viewModel: EpisodeListViewModel
     /// Passed on to the character screen this list navigates to.
     let characterRepository: any CharacterRepository
+    let exporter: CharacterExporter
 
 
     var body: some View {
@@ -45,7 +46,7 @@ struct EpisodeListView: View {
                 EpisodeCharactersView(episode: episode)
             }
             .navigationDestination(for: CharacterRoute.self) { route in
-                CharacterDetailView(characterID: route.id, repository: characterRepository)
+                CharacterDetailView(characterID: route.id, repository: characterRepository, exporter: exporter)
             }
             .toolbar {
                 // A status item in the bottom toolbar (as in Mail) instead of a floating label,
@@ -154,7 +155,8 @@ private struct LastUpdatedLabel: View {
             repository: DefaultEpisodeRepository(api: api, store: .preview),
             staleInterval: AppConfiguration.current.freshnessInterval
         ),
-        characterRepository: DefaultCharacterRepository(api: api)
+        characterRepository: DefaultCharacterRepository(api: api),
+        exporter: .preview
     )
 }
 #endif
