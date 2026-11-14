@@ -25,12 +25,20 @@ actor FileEpisodeStore {
         return FileEpisodeStore(fileURL: directory.appending(path: defaultFileName))
     }
 
+    /// The saved list, or `nil` if there is none or it was written in another format version.
+    /// Throws if the file exists but can't be read.
     func load() throws -> EpisodeSnapshot? {
         // `path(percentEncoded: false)`: the default `path()` percent-encodes, so
         // "Application Support" would become "Application%20Support" and never be found.
         guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return nil }
         let data = try Data(contentsOf: fileURL)
-        return try JSONDecoder().decode(EpisodeSnapshot.self, from: data)
+        // Read the version first: a file from an older or newer format is not an error, just
+        // not usable, so the app reloads from the network and overwrites it.
+        struct VersionOnly: Decodable { let version: Int? }
+        guard try JSONDecoder().decode(VersionOnly.self, from: data).version == CachedEpisodeSnapshot.currentVersion else {
+            return nil
+        }
+        return try JSONDecoder().decode(CachedEpisodeSnapshot.self, from: data).toDomain()
     }
 
     func save(_ snapshot: EpisodeSnapshot) throws {
@@ -38,7 +46,7 @@ actor FileEpisodeStore {
             at: fileURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
-        let data = try JSONEncoder().encode(snapshot)
+        let data = try JSONEncoder().encode(CachedEpisodeSnapshot(snapshot))
         // `.completeFileProtectionUntilFirstUserAuthentication`: background refresh must be able
         // to write while the device is locked, which `.completeFileProtection` would prevent.
         try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
