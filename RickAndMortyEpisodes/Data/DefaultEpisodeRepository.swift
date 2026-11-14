@@ -47,40 +47,25 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         try await translatingErrors { try await store.save(snapshot) }
     }
 
-    /// Fetches every page and replaces the cache as one unit.
+    /// Fetches page 1 and saves it as the new start of the list. Pages the user had loaded
+    /// beyond it are dropped from the cache; they load again as the user scrolls.
     ///
-    /// Overlapping refreshes (e.g. pull-to-refresh while the background task runs) are
-    /// not merged: each fetches a complete list, and the store writes them one at a time,
-    /// so the cache always holds a complete list.
-    func refreshAll() async throws -> EpisodeSnapshot {
-        try await translatingErrors { try await fetchAndSaveAllPages() }
-    }
-
-    private func fetchAndSaveAllPages() async throws -> EpisodeSnapshot {
-        let api = self.api
-        let firstPage = try await api.episodes(page: 1)
-        var pages: [Int: [Episode]] = [1: firstPage.episodes]
-
-        // The first page tells us how many pages exist; fetch the rest in parallel.
-        if firstPage.pageCount > 1 {
-            try await withThrowingTaskGroup(of: (Int, [Episode]).self) { group in
-                for page in 2...firstPage.pageCount {
-                    group.addTask { (page, try await api.episodes(page: page).episodes) }
-                }
-                for try await (page, episodes) in group {
-                    pages[page] = episodes
-                }
-            }
+    /// One request however many pages the API has, so it also fits easily in the short
+    /// time a background task gets. Overlapping refreshes are not merged: each saves a
+    /// valid first page, and the store writes them one at a time.
+    func refreshFirstPage() async throws -> EpisodeSnapshot {
+        try await translatingErrors {
+            let firstPage = try await api.episodes(page: 1)
+            // A cancelled refresh (for example, a background task out of time) saves nothing.
+            try Task.checkCancellation()
+            let snapshot = EpisodeSnapshot(
+                episodes: firstPage.episodes,
+                nextPage: firstPage.hasNextPage ? 2 : nil,
+                refreshedAt: now()
+            )
+            try await store.save(snapshot)
+            return snapshot
         }
-
-        // Never persist a partial result: if anything failed or was cancelled, the
-        // previous snapshot stays as it was.
-        try Task.checkCancellation()
-
-        let episodes = pages.keys.sorted().flatMap { pages[$0] ?? [] }
-        let snapshot = EpisodeSnapshot(episodes: episodes, refreshedAt: now())
-        try await store.save(snapshot)
-        return snapshot
     }
 
     // MARK: - Characters

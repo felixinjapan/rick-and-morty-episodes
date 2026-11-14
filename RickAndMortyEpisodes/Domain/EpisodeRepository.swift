@@ -13,11 +13,12 @@ protocol EpisodeRepository: Sendable {
     /// One page for incremental loading while the user scrolls (first launch, no cache yet).
     func episodesPage(_ page: Int) async throws -> EpisodePage
 
-    /// Persists a list that was fully loaded page by page.
+    /// Persists the pages loaded so far.
     func save(_ snapshot: EpisodeSnapshot) async throws
 
-    /// Fetches every page and replaces the cache as one unit.
-    func refreshAll() async throws -> EpisodeSnapshot
+    /// Fetches page 1 and saves it as the new start of the list. Deeper pages load again
+    /// as the user scrolls, so a refresh costs one request however many pages exist.
+    func refreshFirstPage() async throws -> EpisodeSnapshot
 
     /// Details of one character.
     func character(id: Int) async throws -> CharacterDetails

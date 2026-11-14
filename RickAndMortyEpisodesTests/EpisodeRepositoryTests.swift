@@ -16,18 +16,20 @@ private let apiToDomainErrors: [(APIError, EpisodeError)] = [
 
 @Suite("Episode repository")
 struct EpisodeRepositoryTests {
-    @Test("Refresh fetches every page, keeps API order, and saves one snapshot")
-    func refreshFetchesAllPages() async throws {
+    @Test("Refresh fetches only the first page and saves it as the start of the list")
+    func refreshFetchesFirstPage() async throws {
         let api = threePageAPI()
-        let store = FileEpisodeStore.temporary()
-        let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
+        let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), refreshedAt: fixedDate)
+        let store = try await FileEpisodeStore.temporary(containing: previous)
+        let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate.addingTimeInterval(60) })
 
-        let snapshot = try await repository.refreshAll()
+        let snapshot = try await repository.refreshFirstPage()
 
-        #expect(snapshot.episodes.map(\.id) == Array(1...45))
-        #expect(snapshot.refreshedAt == fixedDate)
+        #expect(await api.requestedPages == [1])
+        #expect(snapshot.episodes.map(\.id) == Array(1...20))
+        #expect(snapshot.nextPage == 2)
+        #expect(snapshot.refreshedAt == fixedDate.addingTimeInterval(60))
         #expect(try await store.load() == snapshot)
-        #expect(await api.requestedPages.sorted() == [1, 2, 3])
     }
 
     @Test("Network errors reach callers as domain errors", arguments: apiToDomainErrors)
@@ -38,16 +40,16 @@ struct EpisodeRepositoryTests {
         }
     }
 
-    @Test("A failed page leaves the previous cache untouched")
+    @Test("A failed refresh leaves the previous cache untouched")
     func failedRefreshKeepsCache() async throws {
         let api = threePageAPI()
-        await api.setPage(2, .failure(APIError.http(statusCode: 500)))
+        await api.setPage(1, .failure(APIError.http(statusCode: 500)))
         let previous = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
         let store = try await FileEpisodeStore.temporary(containing: previous)
         let repository = DefaultEpisodeRepository(api: api, store: store)
 
         await #expect(throws: EpisodeError.serverUnavailable) {
-            try await repository.refreshAll()
+            try await repository.refreshFirstPage()
         }
         #expect(try await store.load() == previous)
     }
@@ -60,7 +62,7 @@ struct EpisodeRepositoryTests {
         let store = FileEpisodeStore.temporary()
         let repository = DefaultEpisodeRepository(api: api, store: store)
 
-        let refresh = Task { try await repository.refreshAll() }
+        let refresh = Task { try await repository.refreshFirstPage() }
         while await api.requestedPages.isEmpty { await Task.yield() }
         refresh.cancel()
         await gate.open()

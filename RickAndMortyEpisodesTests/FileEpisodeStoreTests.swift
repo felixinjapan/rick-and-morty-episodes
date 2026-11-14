@@ -19,11 +19,29 @@ struct FileEpisodeStoreTests {
     func roundTrip() async throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }
-        let snapshot = EpisodeSnapshot(episodes: [.make(id: 1), .make(id: 2)], refreshedAt: fixedDate)
+        let snapshot = EpisodeSnapshot(episodes: [.make(id: 1), .make(id: 2)], nextPage: 2, refreshedAt: fixedDate)
 
         try await store.save(snapshot)
 
         #expect(try await store.load() == snapshot)
+    }
+
+    @Test("A cache saved before partial lists existed loads as a complete list")
+    func cacheWithoutNextPage() async throws {
+        struct OlderSnapshot: Encodable {
+            let episodes: [Episode]
+            let refreshedAt: Date
+        }
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let data = try JSONEncoder().encode(OlderSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate))
+        try data.write(to: directory.appending(path: "cache.json"))
+
+        let loaded = try #require(try await store.load())
+
+        #expect(loaded.episodes.map(\.id) == [1])
+        #expect(loaded.nextPage == nil)
     }
 
     @Test("Works in folders whose names contain spaces, like Application Support")

@@ -41,14 +41,15 @@ final class EpisodeFlowUITests: XCTestCase {
         }
         XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
 
-        // Relaunch without resetting the cache. Without a cache, "Last updated" only appears
-        // after scrolling through every page, so seeing it right away proves the list came from disk.
+        // Relaunch without resetting the cache and with every request failing. Without a
+        // cache this would show the full-screen error, so the list must have come from disk.
         app.terminate()
-        app.launchArguments = ["-uiTesting"]
+        app.launchArguments = ["-uiTesting", "-networkUnavailable"]
         app.launch()
 
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.descendants(matching: .any)["episodeList.loadError"].exists)
     }
 
     func testEpisodeToCharacterDetailToExport() {

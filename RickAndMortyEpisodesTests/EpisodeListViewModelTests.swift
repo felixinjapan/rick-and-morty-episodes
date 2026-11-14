@@ -25,15 +25,15 @@ struct EpisodeListViewModelTests {
         await viewModel.loadNextPage()
         #expect(viewModel.episodes.count == 20)
         #expect(viewModel.footer == .loading(page: 2))
+        // Each loaded page is saved, and "Last updated" is the time page 1 was fetched.
+        #expect(try await store.load() == EpisodeSnapshot(episodes: viewModel.episodes, nextPage: 2, refreshedAt: fixedDate))
+        #expect(viewModel.lastRefreshed == fixedDate)
 
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
         #expect(viewModel.episodes.map(\.id) == Array(1...45))
         #expect(viewModel.footer == .endReached(count: 45))
-
-        // The fully loaded list is saved for next launch, and the timestamp is shown.
-        #expect(try await store.load()?.episodes.count == 45)
-        #expect(viewModel.lastRefreshed == fixedDate)
+        #expect(try await store.load() == EpisodeSnapshot(episodes: viewModel.episodes, nextPage: nil, refreshedAt: fixedDate))
     }
 
     @Test("Reaching the end doesn't trigger more requests")
@@ -110,15 +110,32 @@ struct EpisodeListViewModelTests {
         #expect(await api.requestedPages.isEmpty)
     }
 
-    @Test("Stale cached content is shown, then refreshed")
+    @Test("A partly loaded cache continues paging where it stopped")
+    func partialCacheContinuesPaging() async throws {
+        let api = threePageAPI()
+        let cached = EpisodeSnapshot(episodes: (1...20).map(Episode.make), nextPage: 2, refreshedAt: fixedDate)
+        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached))
+
+        await viewModel.start()
+        #expect(viewModel.footer == .loading(page: 2))
+
+        await viewModel.loadNextPage()
+        #expect(viewModel.episodes.map(\.id) == Array(1...40))
+        #expect(await api.requestedPages == [2])
+    }
+
+    @Test("Stale cached content is shown, then refreshed from page 1")
     func staleCache() async throws {
-        let cached = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
-        let viewModel = makeViewModel(store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(7200))
+        let api = threePageAPI()
+        let cached = EpisodeSnapshot(episodes: (1...45).map(Episode.make), refreshedAt: fixedDate)
+        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(7200))
 
         await viewModel.start()
 
-        #expect(viewModel.episodes.count == 45)
+        #expect(viewModel.episodes.map(\.id) == Array(1...20))
+        #expect(viewModel.footer == .loading(page: 2))
         #expect(viewModel.refreshError == nil)
+        #expect(await api.requestedPages == [1])
     }
 
     @Test("A failed refresh keeps the cached content and shows a banner")
@@ -135,17 +152,20 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.footer == .endReached(count: 1))
     }
 
-    @Test("Pull-to-refresh replaces a partially paged list with the complete one")
-    func refreshReplacesPartialList() async {
-        let viewModel = makeViewModel()
+    @Test("Pull-to-refresh starts the list again from a fresh page 1")
+    func refreshStartsFromFirstPage() async {
+        let api = threePageAPI()
+        let viewModel = makeViewModel(api: api)
         await viewModel.start()
         await viewModel.loadNextPage()
-        #expect(viewModel.episodes.count == 20)
+        await viewModel.loadNextPage()
+        #expect(viewModel.episodes.count == 40)
 
         await viewModel.refresh()
 
-        #expect(viewModel.episodes.map(\.id) == Array(1...45))
-        #expect(viewModel.footer == .endReached(count: 45))
+        #expect(viewModel.episodes.map(\.id) == Array(1...20))
+        #expect(viewModel.footer == .loading(page: 2))
+        #expect(await api.requestedPages == [1, 2, 1])
     }
 
     @Test("Returning to the foreground picks up data saved by a background refresh")
@@ -240,6 +260,6 @@ struct EpisodeListViewModelTests {
         await slowGate.open()
         await slow.value
         #expect(!viewModel.isRefreshing)
-        #expect(viewModel.episodes.count == 45)
+        #expect(viewModel.episodes.count == 20)
     }
 }
