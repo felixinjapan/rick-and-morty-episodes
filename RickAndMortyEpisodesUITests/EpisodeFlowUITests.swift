@@ -53,11 +53,12 @@ final class EpisodeFlowUITests: XCTestCase {
     }
 
     func testEpisodeToCharacterDetailToExport() {
-        let pilot = app.staticTexts["Pilot"]
+        // Navigation uses identifiers, so copy or language changes don't break the test.
+        let pilot = app.buttons["episode.row.1"]
         XCTAssertTrue(pilot.waitForExistence(timeout: 5))
         pilot.tap()
 
-        let character = app.buttons["Character #1"]
+        let character = app.buttons["character.link.1"]
         XCTAssertTrue(character.waitForExistence(timeout: 5))
         character.tap()
 
@@ -74,7 +75,7 @@ final class EpisodeFlowUITests: XCTestCase {
 
         app.buttons["characterDetail.export"].tap()
         XCTAssertTrue(app.staticTexts["export.confirmation"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Share"].exists)
+        XCTAssertTrue(app.buttons["export.share"].exists)
     }
 
     /// `LabeledContent` may expose its label and value as one accessibility element
@@ -96,8 +97,8 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(lastUpdated.waitForExistence(timeout: 5))
         XCTAssertTrue(app.frame.contains(lastUpdated.frame))
 
-        app.staticTexts["Pilot"].tap()
-        let character = app.buttons["Character #1"]
+        app.buttons["episode.row.1"].tap()
+        let character = app.buttons["character.link.1"]
         XCTAssertTrue(character.waitForExistence(timeout: 5))
         character.tap()
         let export = app.buttons["characterDetail.export"]

@@ -18,6 +18,7 @@ struct EpisodeCharactersView: View {
                     NavigationLink(value: CharacterRoute(id: id)) {
                         Label(.characterTitle(id), systemImage: "person.crop.circle")
                     }
+                    .accessibilityIdentifier("character.link.\(id)")
                 }
             } header: {
                 // Data and punctuation only, so nothing to translate.
