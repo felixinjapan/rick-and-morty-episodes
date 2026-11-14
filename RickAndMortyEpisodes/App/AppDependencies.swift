@@ -49,11 +49,6 @@ enum AppDependencies {
                 : RecordedRickAndMortyAPI()
             return (api, FileEpisodeStore(fileURL: cacheURL))
         }
-
-        // `-offline`: the normal app on recorded responses, e.g. for a demo without Wi-Fi.
-        if arguments.contains("-offline") {
-            return (RecordedRickAndMortyAPI(), FileEpisodeStore.makeDefault())
-        }
         #endif
 
         let api = LiveRickAndMortyAPI(

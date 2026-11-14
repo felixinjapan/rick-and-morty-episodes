@@ -2,8 +2,8 @@
 import Foundation
 
 /// Real responses recorded from rickandmortyapi.com (all 51 episodes and the 826 characters
-/// they reference), stored in `RecordedResponses/`. Used by UI tests, previews and the
-/// `-offline` launch argument so the app can run without the network.
+/// they reference), stored in `RecordedResponses/`. Used by UI tests and previews so they
+/// run without the network.
 ///
 /// The folder is listed in `DEVELOPMENT_ASSET_PATHS`, so it is left out of archived builds.
 enum RecordedResponses {
