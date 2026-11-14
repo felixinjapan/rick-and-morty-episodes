@@ -99,7 +99,7 @@ extension CharacterDetails {
     static let rick = CharacterDetails(
         id: 1,
         name: "Rick Sanchez",
-        status: "Alive",
+        status: .alive,
         species: "Human",
         originName: "Earth (C-137)",
         episodeCount: 51,

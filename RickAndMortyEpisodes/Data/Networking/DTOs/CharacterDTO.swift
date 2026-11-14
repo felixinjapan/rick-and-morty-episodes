@@ -24,11 +24,22 @@ extension CharacterDTO {
         CharacterDetails(
             id: id,
             name: name,
-            status: status,
+            status: CharacterStatus(apiValue: status),
             species: species,
             originName: origin.name,
             episodeCount: episode.count,
             imageURL: URL(string: image)
         )
+    }
+}
+
+extension CharacterStatus {
+    /// Maps the API's text; any value the app doesn't know becomes `.unknown`.
+    init(apiValue: String) {
+        switch apiValue.lowercased() {
+        case "alive": self = .alive
+        case "dead": self = .dead
+        default: self = .unknown
+        }
     }
 }

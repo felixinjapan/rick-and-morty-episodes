@@ -79,24 +79,15 @@ private struct CharacterDetailContent: View {
                         Image(systemName: "circle.fill")
                             .font(.caption2)
                             .imageScale(.small)
-                            .foregroundStyle(statusColor)
+                            .foregroundStyle(character.status.color)
                             .accessibilityHidden(true)
-                        Text(character.status)
+                        Text(character.status.title)
                     }
                 }
                 LabeledContent(String(localized: .characterDetailSpecies), value: character.species)
                 LabeledContent(String(localized: .characterDetailOrigin), value: character.originName)
                 LabeledContent(String(localized: .characterDetailEpisodes), value: character.episodeCount, format: .number)
             }
-        }
-    }
-
-
-    private var statusColor: Color {
-        switch character.status.lowercased() {
-        case "alive": .green
-        case "dead": .red
-        default: .gray
         }
     }
 }

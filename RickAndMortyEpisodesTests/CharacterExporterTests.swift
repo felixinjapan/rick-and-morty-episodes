@@ -24,7 +24,7 @@ struct CharacterExporterTests {
     ])
     func fileNames(name: String, expected: String) {
         let character = CharacterDetails(
-            id: 1, name: name, status: "", species: "", originName: "", episodeCount: 0, imageURL: nil
+            id: 1, name: name, status: .unknown, species: "", originName: "", episodeCount: 0, imageURL: nil
         )
         #expect(CharacterExporter.fileName(for: character) == expected)
     }

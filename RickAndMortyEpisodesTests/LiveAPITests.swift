@@ -50,11 +50,18 @@ struct LiveAPITests {
     func decodesCharacter() async throws {
         let character = try await recorded.character(id: 1)
         #expect(character.name == "Rick Sanchez")
-        #expect(character.status == "Alive")
+        #expect(character.status == .alive)
         #expect(character.species == "Human")
         #expect(character.originName == "Earth (C-137)")
         #expect(character.episodeCount == 51)
         #expect(character.imageURL != nil)
+    }
+
+    @Test("Character status maps the API's values", arguments: [
+        ("Alive", CharacterStatus.alive), ("Dead", .dead), ("unknown", .unknown), ("Zombie", .unknown),
+    ])
+    func statusMapping(apiValue: String, expected: CharacterStatus) {
+        #expect(CharacterStatus(apiValue: apiValue) == expected)
     }
 
     @Test("Decodes a character whose origin is unknown")
