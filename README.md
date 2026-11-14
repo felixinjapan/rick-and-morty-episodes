@@ -85,7 +85,9 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   status, decoding). The repositories translate it into the domain's `EpisodeError`, and
   the presentation layer (`Presentation/Shared/ErrorMessages.swift`) decides the wording.
   Cancellation passes through unchanged, so it is never shown as an error.
-- **Networking** maps JSON DTOs to domain entities, so API changes stay in one layer.
+- **Networking** maps JSON DTOs to domain entities, so API changes stay in one layer. The
+  air date is parsed into a `Date` there (`en_US_POSIX`, GMT); an unreadable value becomes
+  `nil` for that episode only, shown as "Unknown air date". Presentation formats it as `dd/MM/yyyy`.
 - **Configuration** that is a product or environment decision lives in `AppConfiguration`:
   the API base URL, the 1-hour freshness interval (used by both the foreground staleness
   check and background scheduling) and the request timeouts. Only the App layer reads it;

@@ -26,13 +26,20 @@ struct FormattingTests {
         ("September 10, 2017", "10/09/2017"),
         ("January 31, 2021", "31/01/2021"),
     ])
-    func airDateFormatting(apiValue: String, expected: String) {
-        #expect(AirDateFormatter.displayString(from: apiValue) == expected)
+    func airDateFormatting(apiValue: String, expected: String) throws {
+        let date = try #require(AirDateParser.date(from: apiValue))
+        #expect(AirDateFormatter.displayString(from: date) == expected)
     }
 
-    @Test("Unparseable air dates are shown unchanged", arguments: ["", "TBA", "2013-12-02"])
+    @Test("Air dates not in the API's format are read as missing", arguments: ["", "TBA", "2013-12-02"])
     func unparseableAirDate(apiValue: String) {
-        #expect(AirDateFormatter.displayString(from: apiValue) == apiValue)
+        #expect(AirDateParser.date(from: apiValue) == nil)
+    }
+
+    @Test("A missing air date is shown as unknown")
+    func missingAirDate() {
+        let episode = Episode(id: 1, name: "Pilot", airDate: nil, code: "S01E01", characterIDs: [])
+        #expect(episode.formattedAirDate == "Unknown air date")
     }
 
     @Test("Character IDs are parsed from resource URLs")

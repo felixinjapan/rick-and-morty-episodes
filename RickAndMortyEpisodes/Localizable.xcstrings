@@ -169,6 +169,18 @@
         }
       }
     },
+    "episode.airDate.unknown" : {
+      "comment" : "Shown instead of an episode's air date when the API's value couldn't be read",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown air date"
+          }
+        }
+      }
+    },
     "episodeCharacters.count" : {
       "comment" : "Footer below an episode's character list",
       "extractionState" : "manual",
