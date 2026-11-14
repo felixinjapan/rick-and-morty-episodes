@@ -63,7 +63,8 @@ struct CharacterDetailViewModelTests {
         defer { try? FileManager.default.removeItem(at: blocker) }
         let repository = DefaultCharacterRepository(api: StubAPI(characters: [1: .success(.rick)]))
         let viewModel = CharacterDetailViewModel(
-            characterID: 1, repository: repository, exporter: CharacterExporter(directory: blocker.appending(path: "Exports"))
+            characterID: 1, repository: repository,
+            exporter: CharacterExporter(directory: blocker.appending(path: "Exports"))
         )
 
         await viewModel.load()

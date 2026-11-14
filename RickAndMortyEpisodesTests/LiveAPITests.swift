@@ -19,7 +19,10 @@ struct LiveAPITests {
     }
 
     private func failingAPI(_ error: URLError.Code) -> LiveRickAndMortyAPI {
-        LiveRickAndMortyAPI(baseURL: AppConfiguration.production.apiBaseURL, transport: HTTPTransport { _ in throw URLError(error) })
+        LiveRickAndMortyAPI(
+            baseURL: AppConfiguration.production.apiBaseURL,
+            transport: HTTPTransport { _ in throw URLError(error) }
+        )
     }
 
     private let recorded = LiveRickAndMortyAPI(baseURL: AppConfiguration.production.apiBaseURL, transport: .recorded)

@@ -35,9 +35,8 @@ actor FileEpisodeStore {
         // Read the version first: a file from an older or newer format is not an error, just
         // not usable, so the app reloads from the network and overwrites it.
         struct VersionOnly: Decodable { let version: Int? }
-        guard try JSONDecoder().decode(VersionOnly.self, from: data).version == CachedEpisodeSnapshot.currentVersion else {
-            return nil
-        }
+        let version = try JSONDecoder().decode(VersionOnly.self, from: data).version
+        guard version == CachedEpisodeSnapshot.currentVersion else { return nil }
         return try JSONDecoder().decode(CachedEpisodeSnapshot.self, from: data).toDomain()
     }
 

@@ -26,14 +26,18 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.episodes.count == 20)
         #expect(viewModel.footer == .loading(page: 2))
         // Each loaded page is saved, and "Last updated" is the time page 1 was fetched.
-        #expect(try await store.load() == EpisodeSnapshot(episodes: viewModel.episodes, nextPage: 2, refreshedAt: fixedDate))
+        #expect(try await store.load() == EpisodeSnapshot(
+            episodes: viewModel.episodes, nextPage: 2, refreshedAt: fixedDate
+        ))
         #expect(viewModel.lastRefreshed == fixedDate)
 
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
         #expect(viewModel.episodes.map(\.id) == Array(1...45))
         #expect(viewModel.footer == .endReached(count: 45))
-        #expect(try await store.load() == EpisodeSnapshot(episodes: viewModel.episodes, nextPage: nil, refreshedAt: fixedDate))
+        #expect(try await store.load() == EpisodeSnapshot(
+            episodes: viewModel.episodes, nextPage: nil, refreshedAt: fixedDate
+        ))
     }
 
     @Test("Reaching the end doesn't trigger more requests")
@@ -100,7 +104,9 @@ struct EpisodeListViewModelTests {
     func freshCache() async throws {
         let api = threePageAPI()
         let cached = EpisodeSnapshot(episodes: [.make(id: 1), .make(id: 2)], refreshedAt: fixedDate)
-        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(60))
+        let viewModel = makeViewModel(
+            api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(60)
+        )
 
         await viewModel.start()
 
@@ -128,7 +134,9 @@ struct EpisodeListViewModelTests {
     func staleCache() async throws {
         let api = threePageAPI()
         let cached = EpisodeSnapshot(episodes: (1...45).map(Episode.make), refreshedAt: fixedDate)
-        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(7200))
+        let viewModel = makeViewModel(
+            api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(7200)
+        )
 
         await viewModel.start()
 
@@ -186,11 +194,15 @@ struct EpisodeListViewModelTests {
 
     @Test("Returning to the foreground picks up data saved by a background refresh")
     func foregroundPicksUpBackgroundData() async throws {
-        let store = try await FileEpisodeStore.temporary(containing: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate))
+        let store = try await FileEpisodeStore.temporary(
+            containing: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
+        )
         let viewModel = makeViewModel(store: store)
         await viewModel.start()
 
-        let newer = EpisodeSnapshot(episodes: [.make(id: 1), .make(id: 2)], refreshedAt: fixedDate.addingTimeInterval(60))
+        let newer = EpisodeSnapshot(
+            episodes: [.make(id: 1), .make(id: 2)], refreshedAt: fixedDate.addingTimeInterval(60)
+        )
         try await store.save(newer)
         await viewModel.refreshIfNeeded()
 
@@ -201,7 +213,9 @@ struct EpisodeListViewModelTests {
     @Test("A fresh background snapshot clears an earlier refresh error")
     func foregroundSnapshotClearsRefreshError() async throws {
         let api = StubAPI(pages: [1: .failure(APIError.offline)])
-        let store = try await FileEpisodeStore.temporary(containing: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate))
+        let store = try await FileEpisodeStore.temporary(
+            containing: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
+        )
         let viewModel = makeViewModel(api: api, store: store)
         await viewModel.start()
         await viewModel.refresh()
@@ -262,7 +276,9 @@ struct EpisodeListViewModelTests {
         let gate = Gate()
         await api.holdPage(1, until: gate)
         let cached = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
-        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(7200))
+        let viewModel = makeViewModel(
+            api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(7200)
+        )
 
         // Launch with a stale cache starts a refresh; the app becomes active while it runs.
         let launch = Task { await viewModel.start() }

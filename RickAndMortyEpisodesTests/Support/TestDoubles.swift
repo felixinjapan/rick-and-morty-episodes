@@ -82,10 +82,12 @@ extension FileEpisodeStore {
 
 // MARK: - Builders
 
-
 extension Episode {
     static func make(id: Int) -> Episode {
-        Episode(id: id, name: "Episode \(id)", airDate: Date(timeIntervalSince1970: 1_385_942_400), code: "S01E\(id)", characterIDs: [1, 2])
+        Episode(
+            id: id, name: "Episode \(id)", airDate: Date(timeIntervalSince1970: 1_385_942_400),
+            code: "S01E\(id)", characterIDs: [1, 2]
+        )
     }
 }
 
