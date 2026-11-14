@@ -26,22 +26,19 @@ struct FileEpisodeStoreTests {
         #expect(try await store.load() == snapshot)
     }
 
-    @Test("A cache saved before partial lists existed loads as a complete list")
-    func cacheWithoutNextPage() async throws {
-        struct OlderSnapshot: Encodable {
-            let episodes: [Episode]
-            let refreshedAt: Date
-        }
+    @Test("A cache file from another format version is treated as no cache", arguments: [
+        // The format before versioning: the air date was text.
+        #"{"episodes":[{"id":1,"name":"Pilot","airDate":"December 2, 2013","code":"S01E01","characterIDs":[1]}],"refreshedAt":0}"#,
+        // A future version.
+        #"{"version":99,"episodes":[],"refreshedAt":0}"#,
+    ])
+    func otherFormatVersion(json: String) async throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let data = try JSONEncoder().encode(OlderSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate))
-        try data.write(to: directory.appending(path: "cache.json"))
+        try Data(json.utf8).write(to: directory.appending(path: "cache.json"))
 
-        let loaded = try #require(try await store.load())
-
-        #expect(loaded.episodes.map(\.id) == [1])
-        #expect(loaded.nextPage == nil)
+        #expect(try await store.load() == nil)
     }
 
     @Test("Works in folders whose names contain spaces, like Application Support")
