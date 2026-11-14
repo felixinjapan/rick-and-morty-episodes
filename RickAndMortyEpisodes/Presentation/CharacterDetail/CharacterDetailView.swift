@@ -26,16 +26,10 @@ struct CharacterDetailView: View {
             .sheet(item: $viewModel.exportedFile) { file in
                 ExportConfirmationView(fileURL: file.url)
             }
-            .alert(
-                .characterDetailExportFailedTitle,
-                isPresented: Binding(
-                    get: { viewModel.exportError != nil },
-                    set: { if !$0 { viewModel.exportError = nil } }
-                )
-            ) {
+            .alert(.characterDetailExportFailedTitle, isPresented: $viewModel.isShowingExportError) {
                 Button(role: .cancel) {} label: { Text(.commonOk) }
             } message: {
-                Text(viewModel.exportError ?? "")
+                Text(viewModel.exportErrorMessage)
             }
     }
 

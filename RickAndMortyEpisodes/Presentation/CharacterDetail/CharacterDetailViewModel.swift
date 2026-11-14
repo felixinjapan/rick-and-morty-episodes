@@ -18,7 +18,9 @@ final class CharacterDetailViewModel {
     private(set) var state: State = .loading
     /// Set after a successful export; drives the confirmation sheet.
     var exportedFile: ExportedFile?
-    var exportError: String?
+    /// Drives the "Export Failed" alert; the alert sets it back to `false` when dismissed.
+    var isShowingExportError = false
+    private(set) var exportErrorMessage = ""
 
     let characterID: Int
     private let repository: any CharacterRepository
@@ -51,7 +53,8 @@ final class CharacterDetailViewModel {
             // A few hundred bytes, so writing synchronously on the main actor is fine.
             exportedFile = ExportedFile(url: try exporter.export(character))
         } catch {
-            exportError = String(localized: .characterDetailExportFailedMessage(error.localizedDescription))
+            exportErrorMessage = String(localized: .characterDetailExportFailedMessage(error.localizedDescription))
+            isShowingExportError = true
         }
     }
 }
