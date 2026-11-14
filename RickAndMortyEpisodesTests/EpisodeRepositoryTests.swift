@@ -2,18 +2,6 @@ import Foundation
 import Testing
 @testable import RickAndMortyEpisodes
 
-private let apiToDomainErrors: [(APIError, EpisodeError)] = [
-    (.offline, .offline),
-    (.timedOut, .timedOut),
-    (.http(statusCode: 404), .notFound),
-    (.http(statusCode: 429), .rateLimited),
-    (.http(statusCode: 503), .serverUnavailable),
-    (.invalidResponse, .serverUnavailable),
-    (.decoding, .unreadableData),
-    (.http(statusCode: 400), .failed),
-    (.transport(.cannotFindHost), .failed),
-]
-
 @Suite("Episode repository")
 struct EpisodeRepositoryTests {
     @Test("Refresh fetches only the first page and saves it as the start of the list")
@@ -30,14 +18,6 @@ struct EpisodeRepositoryTests {
         #expect(snapshot.nextPage == 2)
         #expect(snapshot.refreshedAt == fixedDate.addingTimeInterval(60))
         #expect(try await store.load() == snapshot)
-    }
-
-    @Test("Network errors reach callers as domain errors", arguments: apiToDomainErrors)
-    func errorTranslation(apiError: APIError, expected: EpisodeError) async {
-        let repository = DefaultEpisodeRepository(api: StubAPI(characters: [1: .failure(apiError)]), store: .temporary())
-        await #expect(throws: expected) {
-            try await repository.character(id: 1)
-        }
     }
 
     @Test("Loading pages appends each one and saves the list so far")
@@ -124,18 +104,6 @@ struct EpisodeRepositoryTests {
         try Data("not json".utf8).write(to: fileURL)
         let repository = DefaultEpisodeRepository(api: StubAPI(), store: FileEpisodeStore(fileURL: fileURL))
         #expect(await repository.currentSnapshot() == nil)
-    }
-
-    @Test("Character details are cached in memory")
-    func characterCaching() async throws {
-        let api = StubAPI(characters: [1: .success(.rick)])
-        let repository = DefaultEpisodeRepository(api: api, store: .temporary())
-
-        _ = try await repository.character(id: 1)
-        let second = try await repository.character(id: 1)
-
-        #expect(second == .rick)
-        #expect(await api.requestedCharacters == [1])
     }
 }
 

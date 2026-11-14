@@ -1,6 +1,6 @@
 import Foundation
 
-/// The episode and character data the features need, independent of where it comes from.
+/// The episode list the features need, independent of where it comes from.
 /// View models depend on this protocol; `DefaultEpisodeRepository` in the Data layer
 /// implements it with the API and the file cache.
 ///
@@ -19,7 +19,4 @@ protocol EpisodeRepository: Sendable {
     /// Fetches page 1 and saves it as the new start of the list. Deeper pages load again
     /// as the user scrolls, so a refresh costs one request however many pages exist.
     func refreshFirstPage() async throws -> EpisodeSnapshot
-
-    /// Details of one character.
-    func character(id: Int) async throws -> CharacterDetails
 }

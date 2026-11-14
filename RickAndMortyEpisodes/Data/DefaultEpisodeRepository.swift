@@ -1,18 +1,17 @@
 import Foundation
 import os
 
-/// The app's `EpisodeRepository`: the single source of truth for episode and character data.
+/// The app's `EpisodeRepository`: the single source of truth for the episode list.
 /// Decides what comes from the network and what comes from the cache, and is shared by the
 /// UI and background refresh.
 ///
-/// An actor because it holds mutable state (the character cache) that is reached from
+/// An actor because it holds mutable state (the latest list) that is reached from
 /// the main actor and from the background task at the same time.
 actor DefaultEpisodeRepository: EpisodeRepository {
     private let api: any RickAndMortyAPI
     private let store: FileEpisodeStore
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultEpisodeRepository")
-    private var characterCache: [Int: CharacterDetails] = [:]
     /// The list as last loaded, refreshed or read from disk. A page is only appended to
     /// this list, so a page that arrives after a refresh can't overwrite the newer list.
     private var latest: EpisodeSnapshot?
@@ -55,7 +54,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
             page = 1
         }
 
-        let loaded = try await translatingErrors { try await api.episodes(page: page) }
+        let loaded = try await translatingErrors(logger: logger) { try await api.episodes(page: page) }
 
         // A refresh replaced the list while this page was loading: drop the page and
         // return the newer list, instead of saving the old one over it.
@@ -81,7 +80,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
     /// time a background task gets. Overlapping refreshes are not merged: each saves a
     /// valid first page, and the store writes them one at a time.
     func refreshFirstPage() async throws -> EpisodeSnapshot {
-        let firstPage = try await translatingErrors { try await api.episodes(page: 1) }
+        let firstPage = try await translatingErrors(logger: logger) { try await api.episodes(page: 1) }
         // Saved even if cancellation arrives now: the page is valid, and saving it is one
         // small atomic write, so the request isn't wasted.
         let snapshot = EpisodeSnapshot(
@@ -101,34 +100,6 @@ actor DefaultEpisodeRepository: EpisodeRepository {
             try await store.save(snapshot)
         } catch {
             logger.error("Failed to save episode cache: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    // MARK: - Characters
-
-    /// Character details, kept in memory for the session so going back and forth
-    /// between screens doesn't re-download them.
-    func character(id: Int) async throws -> CharacterDetails {
-        if let cached = characterCache[id] {
-            return cached
-        }
-        let character = try await translatingErrors { try await api.character(id: id) }
-        characterCache[id] = character
-        return character
-    }
-
-    // MARK: - Errors
-
-    /// Runs `operation` and rethrows its failure as an `EpisodeError`, so nothing above the
-    /// Data layer depends on HTTP or URL-loading errors. Cancellation passes through unchanged.
-    private func translatingErrors<T>(_ operation: () async throws -> T) async throws -> T {
-        do {
-            return try await operation()
-        } catch let cancellation as CancellationError {
-            throw cancellation
-        } catch {
-            logger.error("Request failed: \(String(describing: error), privacy: .public)")
-            throw (error as? APIError)?.toDomain() ?? EpisodeError.failed
         }
     }
 }

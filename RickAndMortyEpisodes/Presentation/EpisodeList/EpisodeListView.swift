@@ -3,7 +3,8 @@ import SwiftUI
 struct EpisodeListView: View {
     /// Owned by the app, which also forwards foreground events to it (see `RickAndMortyEpisodesApp`).
     let viewModel: EpisodeListViewModel
-    let repository: any EpisodeRepository
+    /// Passed on to the character screen this list navigates to.
+    let characterRepository: any CharacterRepository
 
 
     var body: some View {
@@ -42,7 +43,7 @@ struct EpisodeListView: View {
                 EpisodeCharactersView(episode: episode)
             }
             .navigationDestination(for: CharacterRoute.self) { route in
-                CharacterDetailView(characterID: route.id, repository: repository)
+                CharacterDetailView(characterID: route.id, repository: characterRepository)
             }
             .toolbar {
                 // A status item in the bottom toolbar (as in Mail) instead of a floating label,
@@ -145,10 +146,13 @@ private struct LastUpdatedLabel: View {
 
 #if DEBUG
 #Preview {
-    let repository = DefaultEpisodeRepository(api: RecordedRickAndMortyAPI(), store: .preview)
+    let api = RecordedRickAndMortyAPI()
     EpisodeListView(
-        viewModel: EpisodeListViewModel(repository: repository, staleInterval: AppConfiguration.current.freshnessInterval),
-        repository: repository
+        viewModel: EpisodeListViewModel(
+            repository: DefaultEpisodeRepository(api: api, store: .preview),
+            staleInterval: AppConfiguration.current.freshnessInterval
+        ),
+        characterRepository: DefaultCharacterRepository(api: api)
     )
 }
 #endif
