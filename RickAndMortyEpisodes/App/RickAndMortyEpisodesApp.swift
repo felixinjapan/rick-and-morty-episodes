@@ -22,7 +22,7 @@ struct RickAndMortyEpisodesApp: App {
             EpisodeListView(viewModel: episodeList, characterRepository: repositories.characters, exporter: exporter)
                 // Explicit tint from the asset (light, dark and high-contrast variants), so the
                 // accent never falls back to system blue if the Info.plist accent isn't applied.
-                .tint(Color("AccentColor"))
+                .tint(.accent)
         }
         .onChange(of: scenePhase) { _, newPhase in
             // The app's whole lifecycle handling in one place.
