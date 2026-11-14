@@ -10,7 +10,8 @@ struct EpisodeListViewModelTests {
         store: FileEpisodeStore = .temporary(),
         now: Date = fixedDate
     ) -> EpisodeListViewModel {
-        let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
+        // One clock for both, so a fetch made "later" is stamped later.
+        let repository = DefaultEpisodeRepository(api: api, store: store, now: { now })
         return EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { now })
     }
 
@@ -146,11 +147,13 @@ struct EpisodeListViewModelTests {
         #expect(await api.requestedPages == [1])
     }
 
-    @Test("A failed refresh keeps the cached content and shows a banner")
+    @Test("A failed refresh keeps the cached content and shows a banner until a refresh succeeds")
     func failedRefreshKeepsContent() async throws {
         let api = StubAPI(pages: [1: .failure(APIError.offline)])
         let cached = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
-        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached))
+        let viewModel = makeViewModel(
+            api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(60)
+        )
 
         await viewModel.start()
         await viewModel.refresh()
@@ -158,6 +161,12 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.episodes.map(\.id) == [1])
         #expect(viewModel.refreshError == DataError.offline.userMessage)
         #expect(viewModel.footer == .endReached(count: 1))
+
+        // Back online: pulling again replaces the list and removes the banner.
+        await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true)))
+        await viewModel.refresh()
+        #expect(viewModel.episodes.count == 20)
+        #expect(viewModel.refreshError == nil)
     }
 
     @Test("Loading another page keeps the refresh error while the list is still old")
