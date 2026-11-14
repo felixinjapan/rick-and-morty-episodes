@@ -3,14 +3,17 @@ import Foundation
 /// Composition root: the one place where concrete implementations are chosen.
 /// Everything below it receives its dependencies through initialisers.
 enum AppDependencies {
-    static func makeRepository(arguments: [String] = ProcessInfo.processInfo.arguments) -> any EpisodeRepository {
+    static func makeRepository(
+        configuration: AppConfiguration = .current,
+        arguments: [String] = ProcessInfo.processInfo.arguments
+    ) -> any EpisodeRepository {
         #if DEBUG
         // UI tests launch with `-uiTesting`: recorded API responses, so they're deterministic and
         // never touch the network. The real file store is used (in a separate folder whose name
         // contains a space, like "Application Support") so relaunching from the cache is tested
         // too; `-resetCache` starts from an empty cache.
         if arguments.contains("-uiTesting") {
-            let cacheURL = URL.temporaryDirectory.appending(path: "UI Testing/episodes-cache.json")
+            let cacheURL = URL.temporaryDirectory.appending(path: "UI Testing").appending(path: FileEpisodeStore.defaultFileName)
             if arguments.contains("-resetCache") {
                 try? FileManager.default.removeItem(at: cacheURL)
             }
@@ -24,7 +27,13 @@ enum AppDependencies {
         #endif
 
         return DefaultEpisodeRepository(
-            api: LiveRickAndMortyAPI(transport: .urlSession(.api)),
+            api: LiveRickAndMortyAPI(
+                baseURL: configuration.apiBaseURL,
+                transport: .urlSession(.api(
+                    requestTimeout: configuration.requestTimeout,
+                    resourceTimeout: configuration.resourceTimeout
+                ))
+            ),
             store: FileEpisodeStore.makeDefault()
         )
     }

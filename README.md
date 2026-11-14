@@ -80,6 +80,10 @@ App/       AppDependencies: the composition root that picks the concrete types
   the presentation layer (`Features/Shared/ErrorMessages.swift`) decides the wording.
   Cancellation passes through unchanged, so it is never shown as an error.
 - **Networking** maps JSON DTOs to domain entities, so API changes stay in one layer.
+- **Configuration** that is a product or environment decision lives in `AppConfiguration`:
+  the API base URL, the 1-hour freshness interval (used by both the foreground staleness
+  check and background scheduling) and the request timeouts. Only the App layer reads it;
+  the composition root passes the values down as plain parameters.
 - **Dependency injection** goes through initialisers, wired in one place (`AppDependencies`).
   Protocols sit at layer boundaries only: the repository (between features and data) and
   the network (so tests control it). The file store has none, because tests point it at

@@ -18,12 +18,10 @@ struct HTTPTransport: Sendable {
 }
 
 struct LiveRickAndMortyAPI: RickAndMortyAPI {
-    static let defaultBaseURL = URL(string: "https://rickandmortyapi.com/api")!
-
     private let baseURL: URL
     private let transport: HTTPTransport
 
-    init(baseURL: URL = Self.defaultBaseURL, transport: HTTPTransport) {
+    init(baseURL: URL, transport: HTTPTransport) {
         self.baseURL = baseURL
         self.transport = transport
     }
@@ -72,12 +70,12 @@ struct LiveRickAndMortyAPI: RickAndMortyAPI {
 }
 
 extension URLSession {
-    /// Short timeouts suit a small JSON API; the default 60s would leave a spinner up too long.
-    static let api: URLSession = {
+    /// The session for the API. The timeouts come from `AppConfiguration`.
+    static func api(requestTimeout: TimeInterval, resourceTimeout: TimeInterval) -> URLSession {
         let configuration = URLSessionConfiguration.default
-        configuration.timeoutIntervalForRequest = 15
-        configuration.timeoutIntervalForResource = 30
+        configuration.timeoutIntervalForRequest = requestTimeout
+        configuration.timeoutIntervalForResource = resourceTimeout
         configuration.waitsForConnectivity = false
         return URLSession(configuration: configuration)
-    }()
+    }
 }

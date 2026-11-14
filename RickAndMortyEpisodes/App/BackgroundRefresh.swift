@@ -10,9 +10,9 @@ import os
 enum BackgroundRefresh {
     /// Must match `BGTaskSchedulerPermittedIdentifiers` in Info.plist.
     static let taskIdentifier = "dev.felixinjapan.RickAndMortyEpisodes.refresh"
-    static let minimumInterval: TimeInterval = 60 * 60
+    static let minimumInterval = AppConfiguration.current.freshnessInterval
 
-    private static let logger = Logger(subsystem: "RickAndMortyEpisodes", category: "BackgroundRefresh")
+    private static let logger = Logger(category: "BackgroundRefresh")
 
     static func schedule() {
         let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)

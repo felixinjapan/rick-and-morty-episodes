@@ -146,6 +146,9 @@ private struct LastUpdatedLabel: View {
 #if DEBUG
 #Preview {
     let repository = DefaultEpisodeRepository(api: RecordedRickAndMortyAPI(), store: .preview)
-    EpisodeListView(viewModel: EpisodeListViewModel(repository: repository), repository: repository)
+    EpisodeListView(
+        viewModel: EpisodeListViewModel(repository: repository, staleInterval: AppConfiguration.current.freshnessInterval),
+        repository: repository
+    )
 }
 #endif
