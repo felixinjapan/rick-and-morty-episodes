@@ -2,7 +2,7 @@
 import Foundation
 
 /// Real responses recorded from rickandmortyapi.com (all 51 episodes and the 826 characters
-/// they reference), stored in `RecordedResponses/`. Used by UI tests and previews so they
+/// they reference), stored in `StubData/`. Used by UI tests and previews so they
 /// run without the network.
 ///
 /// The folder is listed in `DEVELOPMENT_ASSET_PATHS`, so it is left out of archived builds.
