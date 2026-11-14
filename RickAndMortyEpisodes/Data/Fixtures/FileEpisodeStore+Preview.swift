@@ -2,7 +2,11 @@
 import Foundation
 
 extension FileEpisodeStore {
-    /// A throwaway cache for previews.
-    static let preview = FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "Previews").appending(path: FileEpisodeStore.defaultFileName))
+    /// A new, empty cache for each preview, so a preview never depends on what an earlier
+    /// run saved.
+    static func preview() -> FileEpisodeStore {
+        let folder = URL.temporaryDirectory.appending(path: "Previews/\(UUID().uuidString)")
+        return FileEpisodeStore(fileURL: folder.appending(path: defaultFileName))
+    }
 }
 #endif
