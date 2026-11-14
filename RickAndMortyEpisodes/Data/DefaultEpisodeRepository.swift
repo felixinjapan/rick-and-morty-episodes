@@ -128,21 +128,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
             throw cancellation
         } catch {
             logger.error("Request failed: \(String(describing: error), privacy: .public)")
-            throw Self.domainError(for: error)
-        }
-    }
-
-    static func domainError(for error: any Error) -> EpisodeError {
-        guard let apiError = error as? APIError else { return .failed }
-        switch apiError {
-        case .offline: return .offline
-        case .timedOut: return .timedOut
-        case .http(404): return .notFound
-        case .http(429): return .rateLimited
-        case .http(let status) where status >= 500: return .serverUnavailable
-        case .invalidResponse: return .serverUnavailable
-        case .decoding: return .unreadableData
-        case .transport, .http: return .failed
+            throw (error as? APIError)?.toDomain() ?? EpisodeError.failed
         }
     }
 }

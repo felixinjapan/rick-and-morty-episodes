@@ -1,7 +1,7 @@
 import Foundation
 
 /// How a request failed, in HTTP and URL-loading terms. It stays in the Data layer:
-/// `DefaultEpisodeRepository` translates it into the domain's `EpisodeError`.
+/// `toDomain()` translates it into the domain's `EpisodeError`, like the DTOs' `toDomain()`.
 /// Cancellation is deliberately not a case: it is surfaced as `CancellationError` so
 /// callers can ignore it instead of showing an error.
 enum APIError: Error, Equatable {
@@ -20,6 +20,24 @@ enum APIError: Error, Equatable {
             .timedOut
         default:
             .transport(error.code)
+        }
+    }
+}
+
+// MARK: - Mapping to the domain
+
+extension APIError {
+    /// The domain's view of this failure, for code above the Data layer.
+    func toDomain() -> EpisodeError {
+        switch self {
+        case .offline: .offline
+        case .timedOut: .timedOut
+        case .http(404): .notFound
+        case .http(429): .rateLimited
+        case .http(let status) where status >= 500: .serverUnavailable
+        case .invalidResponse: .serverUnavailable
+        case .decoding: .unreadableData
+        case .transport, .http: .failed
         }
     }
 }
