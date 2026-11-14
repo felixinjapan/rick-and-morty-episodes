@@ -36,4 +36,22 @@ struct CharacterDetailViewModelTests {
         #expect(viewModel.state == .failed(message: EpisodeError.notFound.userMessage))
         #expect(viewModel.exportedFile == nil)
     }
+
+    @Test("A failed export shows an error and no file")
+    func exportFailure() async throws {
+        // A file where the export folder should be, so creating the folder fails.
+        let blocker = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data().write(to: blocker)
+        defer { try? FileManager.default.removeItem(at: blocker) }
+        let repository = DefaultCharacterRepository(api: StubAPI(characters: [1: .success(.rick)]))
+        let viewModel = CharacterDetailViewModel(
+            characterID: 1, repository: repository, exporter: CharacterExporter(directory: blocker.appending(path: "Exports"))
+        )
+
+        await viewModel.load()
+        viewModel.export()
+
+        #expect(viewModel.exportError != nil)
+        #expect(viewModel.exportedFile == nil)
+    }
 }
