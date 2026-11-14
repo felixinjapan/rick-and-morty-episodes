@@ -42,41 +42,4 @@ extension HTTPTransport {
         return (body ?? Data(#"{"error":"Not found"}"#.utf8), response)
     }
 }
-
-/// The real API client running on recorded data.
-struct RecordedRickAndMortyAPI: RickAndMortyAPI {
-    /// The recorded transport answers by path (`/episode`, `/character/{id}`), so the host is
-    /// never contacted; `.invalid` is a reserved domain that can't resolve.
-    private let client = LiveRickAndMortyAPI(baseURL: URL(string: "https://recorded.invalid/api")!, transport: .recorded)
-
-    func episodes(page: Int) async throws -> EpisodePage {
-        try await client.episodes(page: page)
-    }
-
-    func character(id: Int) async throws -> CharacterDetails {
-        let character = try await client.character(id: id)
-        // Avatars are served by the API's server; leave them out so offline mode makes no requests.
-        return CharacterDetails(
-            id: character.id,
-            name: character.name,
-            status: character.status,
-            species: character.species,
-            originName: character.originName,
-            episodeCount: character.episodeCount,
-            imageURL: nil
-        )
-    }
-}
-
-/// An API with no connection: every request fails as if the device were offline.
-/// UI tests use it (`-networkUnavailable`) to prove that content came from the cache.
-struct UnavailableRickAndMortyAPI: RickAndMortyAPI {
-    func episodes(page: Int) async throws -> EpisodePage { throw APIError.offline }
-    func character(id: Int) async throws -> CharacterDetails { throw APIError.offline }
-}
-
-extension FileEpisodeStore {
-    /// A throwaway cache for previews.
-    static let preview = FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "Previews").appending(path: FileEpisodeStore.defaultFileName))
-}
 #endif
