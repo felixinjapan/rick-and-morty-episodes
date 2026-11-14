@@ -72,10 +72,10 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   on, and `EpisodeError`. It knows nothing about JSON, HTTP, files or SwiftUI. There are no
   use-case classes: with three screens they would only forward calls to the repository.
 - **`DefaultEpisodeRepository`** is the single source of truth, shared by the UI and the
-  background task. It is an actor because both reach it at once. A refresh fetches every
-  page and saves only if all of them arrived, so the cache is only ever replaced as a whole.
-  Overlapping refreshes are not merged: each saves a complete list, and the store writes
-  one at a time.
+  background task. It is an actor because both reach it at once. A refresh fetches page 1
+  only and saves it as the new start of the list; deeper pages load (and are cached) again
+  as the user scrolls. Overlapping refreshes are not merged: each saves a valid first page,
+  and the store writes one at a time.
 - **Errors** have one vocabulary per layer. Networking reports `APIError` (offline, HTTP
   status, decoding). The repository translates it into the domain's `EpisodeError`, and
   the presentation layer (`Presentation/Shared/ErrorMessages.swift`) decides the wording.
@@ -95,9 +95,8 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 
 | Decision | Why | Alternative considered |
 |---|---|---|
-| Incremental paging for the first load, full refresh afterwards | The assignment asks for an "end of list" text once all episodes are loaded. After that, a refresh replaces the whole list so it's never half-updated. | Load all pages up front: simpler, but the end text means little then |
+| Refresh fetches page 1 only; deeper pages load and are cached as the user scrolls | A refresh costs one request however many pages the API has, so it also fits easily in a background task's short time. The "end of list" text still appears once the user has scrolled through every page. | Refetch every page on each refresh: the cache is always complete, but the cost grows with the catalogue (100 pages = 100 requests), and a background task could run out of time and save nothing. Or check page 1 and fetch only new pages: cheaper offline, but more logic. |
 | JSON file cache in an actor | About 50 records, always read and written as a whole, with no queries. Atomic writes, easy to test. | SwiftData or Core Data: no benefit at this size, plus concurrency friction |
-| Concurrent page fetch in a `TaskGroup` on refresh | Fast, and the result is put back in page order | Fetching pages one by one |
 | `BGAppRefreshTask` via SwiftUI `.backgroundTask` | Native, with automatic cancellation when time runs out | Silent push (needs a server) |
 | Refresh in the foreground when data is older than 1 h | iOS doesn't guarantee background tasks will run | Relying only on `BGTaskScheduler` |
 | Plain-text export in `Documents/Exports`, shown in Files, plus a share sheet | Readable in any document reader, and found in the Files app | `fileExporter`: the user picks a folder, so nothing is stored automatically |
@@ -110,8 +109,8 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   (`RickAndMortyEpisodesApp`). Going to the background schedules a `BGAppRefreshTask`
   (no sooner than 1 h); becoming active calls the list view model's `refreshIfNeeded()`.
   The app owns that view model so the handler can reach it.
-- The task fetches all pages and saves a new snapshot. When the app comes back to the
-  foreground, the list picks up that snapshot, and refreshes if the data is still stale.
+- The task fetches page 1 and saves it as the new start of the list. When the app comes
+  back to the foreground, the list picks up that snapshot, and refreshes if it's still stale.
 - iOS decides when (and whether) to run the task. It is an optimisation; the foreground
   refresh when data is stale is what keeps data fresh.
 - To trigger it manually on a device, pause the app in the debugger after it has been in

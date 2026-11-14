@@ -17,7 +17,11 @@ enum AppDependencies {
             if arguments.contains("-resetCache") {
                 try? FileManager.default.removeItem(at: cacheURL)
             }
-            return DefaultEpisodeRepository(api: RecordedRickAndMortyAPI(), store: FileEpisodeStore(fileURL: cacheURL))
+            // `-networkUnavailable`: every request fails, so anything on screen came from the cache.
+            let api: any RickAndMortyAPI = arguments.contains("-networkUnavailable")
+                ? UnavailableRickAndMortyAPI()
+                : RecordedRickAndMortyAPI()
+            return DefaultEpisodeRepository(api: api, store: FileEpisodeStore(fileURL: cacheURL))
         }
 
         // `-offline`: the normal app on recorded responses, e.g. for a demo without Wi-Fi.

@@ -27,13 +27,13 @@ enum BackgroundRefresh {
     }
 
     /// Runs when iOS launches the task. SwiftUI's `.backgroundTask` modifier cancels this
-    /// async function when the system's time runs out; `refreshAll()` then saves nothing,
+    /// async function when the system's time runs out; `refreshFirstPage()` then saves nothing,
     /// so the previous cache stays intact.
     static func perform(using repository: any EpisodeRepository) async {
         // Schedule the next run first, so one failure doesn't stop future refreshes.
         schedule()
         do {
-            let snapshot = try await repository.refreshAll()
+            let snapshot = try await repository.refreshFirstPage()
             logger.info("Background refresh saved \(snapshot.episodes.count) episodes")
         } catch {
             logger.error("Background refresh failed: \(String(describing: error), privacy: .public)")

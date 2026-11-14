@@ -116,9 +116,11 @@ final class EpisodeListViewModel {
         case .success(let loaded):
             episodes += loaded.episodes
             nextPage = loaded.hasNextPage ? page + 1 : nil
-            if nextPage == nil {
-                await saveCompleteList()
+            if page == 1 {
+                // "Last updated" and the staleness check refer to when page 1 was fetched.
+                lastRefreshed = now()
             }
+            await saveLoadedPages()
         case .failure(let error):
             pageError = error.userMessage
         }
@@ -126,13 +128,14 @@ final class EpisodeListViewModel {
 
     // MARK: - Refresh
 
-    /// Re-fetches the full list. Used by pull-to-refresh and when cached data is stale.
+    /// Starts the list again from a freshly fetched page 1; deeper pages load again as the
+    /// user scrolls. Used by pull-to-refresh and when cached data is stale.
     func refresh() async {
         activeRefreshCount += 1
         defer { activeRefreshCount -= 1 }
 
         do {
-            let snapshot = try await repository.refreshAll()
+            let snapshot = try await repository.refreshFirstPage()
             apply(snapshot)
         } catch is CancellationError {
             // The pull-to-refresh gesture or view went away; nothing to report.
@@ -156,17 +159,16 @@ final class EpisodeListViewModel {
         listGeneration += 1
         episodes = snapshot.episodes
         lastRefreshed = snapshot.refreshedAt
-        nextPage = nil
+        nextPage = snapshot.nextPage
         pageError = nil
         refreshError = nil
         isLoadingPage = false
     }
 
-    private func saveCompleteList() async {
-        let snapshot = EpisodeSnapshot(episodes: episodes, refreshedAt: now())
-        // Set before saving: the list on screen is fresh even if the disk is full.
-        lastRefreshed = snapshot.refreshedAt
-        // A failed save only means the list won't be available offline;
+    /// Saves every page loaded so far, so the list reopens where the user left it.
+    private func saveLoadedPages() async {
+        let snapshot = EpisodeSnapshot(episodes: episodes, nextPage: nextPage, refreshedAt: lastRefreshed ?? now())
+        // A failed save only means these pages won't be available offline;
         // there's no need to bother the user with it.
         try? await repository.save(snapshot)
     }
