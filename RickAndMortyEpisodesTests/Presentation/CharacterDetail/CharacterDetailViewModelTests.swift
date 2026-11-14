@@ -52,8 +52,7 @@ struct CharacterDetailViewModelTests {
         await viewModel.load()
         viewModel.export()
 
-        #expect(viewModel.isShowingExportError)
-        #expect(viewModel.exportErrorMessage.isEmpty == false)
+        #expect(viewModel.exportErrorMessage != nil)
         #expect(viewModel.exportedFile == nil)
     }
 }
