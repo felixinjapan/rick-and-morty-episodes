@@ -90,6 +90,12 @@ final class EpisodeFlowUITests: XCTestCase {
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launch()
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
+
+        // The "Last updated" status item stays fully on screen; the bottom bar caps its text size.
+        let lastUpdated = app.staticTexts["episodeList.lastUpdated"]
+        XCTAssertTrue(lastUpdated.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.frame.contains(lastUpdated.frame))
+
         app.staticTexts["Pilot"].tap()
         let character = app.buttons["Character #1"]
         XCTAssertTrue(character.waitForExistence(timeout: 5))
