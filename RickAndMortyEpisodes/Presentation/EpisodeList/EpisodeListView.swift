@@ -148,21 +148,21 @@ private struct LastUpdatedLabel: View {
 
 #if DEBUG
 #Preview("Loaded") {
-    episodeListPreview(api: RecordedRickAndMortyAPI())
+    episodeListPreview(AppDependencies.makePreviewRepositories())
 }
 
 #Preview("Offline") {
-    episodeListPreview(api: UnavailableRickAndMortyAPI())
+    episodeListPreview(AppDependencies.makePreviewRepositories(networkUnavailable: true))
 }
 
 @MainActor
-private func episodeListPreview(api: any RickAndMortyAPI) -> some View {
+private func episodeListPreview(_ repositories: AppDependencies.Repositories) -> some View {
     EpisodeListView(
         viewModel: EpisodeListViewModel(
-            repository: DefaultEpisodeRepository(api: api, store: .preview()),
+            repository: repositories.episodes,
             staleInterval: AppConfiguration.current.freshnessInterval
         ),
-        characterRepository: DefaultCharacterRepository(api: api),
+        characterRepository: repositories.characters,
         exporter: .preview
     )
 }
