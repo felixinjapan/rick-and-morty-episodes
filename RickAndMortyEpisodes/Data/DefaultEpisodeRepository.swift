@@ -81,19 +81,17 @@ actor DefaultEpisodeRepository: EpisodeRepository {
     /// time a background task gets. Overlapping refreshes are not merged: each saves a
     /// valid first page, and the store writes them one at a time.
     func refreshFirstPage() async throws -> EpisodeSnapshot {
-        try await translatingErrors {
-            let firstPage = try await api.episodes(page: 1)
-            // Saved even if cancellation arrives now: the page is valid, and saving it is one
-            // small atomic write, so the request isn't wasted.
-            let snapshot = EpisodeSnapshot(
-                episodes: firstPage.episodes,
-                nextPage: firstPage.hasNextPage ? 2 : nil,
-                refreshedAt: now()
-            )
-            latest = snapshot
-            await persist(snapshot)
-            return snapshot
-        }
+        let firstPage = try await translatingErrors { try await api.episodes(page: 1) }
+        // Saved even if cancellation arrives now: the page is valid, and saving it is one
+        // small atomic write, so the request isn't wasted.
+        let snapshot = EpisodeSnapshot(
+            episodes: firstPage.episodes,
+            nextPage: firstPage.hasNextPage ? 2 : nil,
+            refreshedAt: now()
+        )
+        latest = snapshot
+        await persist(snapshot)
+        return snapshot
     }
 
     /// Saves the list. A failed save only means it won't be available offline, so it is
