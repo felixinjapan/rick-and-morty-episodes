@@ -325,7 +325,7 @@ struct EpisodeListViewModelTests {
 
         await slowGate.open()
         await slow.value
-        #expect(!viewModel.isRefreshing)
+        #expect(viewModel.isRefreshing == false)
         #expect(viewModel.episodes.count == 20)
     }
 }

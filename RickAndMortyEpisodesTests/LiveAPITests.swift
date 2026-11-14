@@ -41,7 +41,7 @@ struct LiveAPITests {
     @Test("The last page reports no next page")
     func lastPage() async throws {
         let page = try await recorded.episodes(page: 3)
-        #expect(!page.hasNextPage)
+        #expect(page.hasNextPage == false)
         #expect(page.episodes.last?.id == 51)
     }
 
