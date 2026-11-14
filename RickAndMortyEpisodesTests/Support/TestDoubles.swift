@@ -90,8 +90,8 @@ extension Episode {
 }
 
 extension EpisodePage {
-    static func make(ids: ClosedRange<Int>, pageCount: Int, hasNextPage: Bool) -> EpisodePage {
-        EpisodePage(episodes: ids.map(Episode.make), pageCount: pageCount, hasNextPage: hasNextPage)
+    static func make(ids: ClosedRange<Int>, hasNextPage: Bool) -> EpisodePage {
+        EpisodePage(episodes: ids.map(Episode.make), hasNextPage: hasNextPage)
     }
 }
 
@@ -112,8 +112,8 @@ let fixedDate = Date(timeIntervalSince1970: 1_700_000_000)
 /// Three pages (20 + 20 + 5 episodes), like the real API's shape.
 func threePageAPI() -> StubAPI {
     StubAPI(pages: [
-        1: .success(.make(ids: 1...20, pageCount: 3, hasNextPage: true)),
-        2: .success(.make(ids: 21...40, pageCount: 3, hasNextPage: true)),
-        3: .success(.make(ids: 41...45, pageCount: 3, hasNextPage: false)),
+        1: .success(.make(ids: 1...20, hasNextPage: true)),
+        2: .success(.make(ids: 21...40, hasNextPage: true)),
+        3: .success(.make(ids: 41...45, hasNextPage: false)),
     ])
 }

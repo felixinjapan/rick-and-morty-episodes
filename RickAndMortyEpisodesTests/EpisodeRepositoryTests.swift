@@ -48,7 +48,7 @@ struct EpisodeRepositoryTests {
         await api.holdPage(2, until: gate)
         let lateLoad = Task { try await repository.loadNextPage(after: first) }
         while !(await api.requestedPages.contains(2)) { await Task.yield() }
-        await api.setPage(1, .success(.make(ids: 101...120, pageCount: 3, hasNextPage: true)))
+        await api.setPage(1, .success(.make(ids: 101...120, hasNextPage: true)))
         let refreshed = try await repository.refreshFirstPage()
         await gate.open()
 
@@ -113,7 +113,7 @@ struct EpisodeRepositoryTests {
 private struct CancelsAfterResponseAPI: RickAndMortyAPI {
     func episodes(page: Int) async throws -> EpisodePage {
         withUnsafeCurrentTask { $0?.cancel() }
-        return .make(ids: 1...20, pageCount: 3, hasNextPage: true)
+        return .make(ids: 1...20, hasNextPage: true)
     }
 
     func character(id: Int) async throws -> CharacterDetails {

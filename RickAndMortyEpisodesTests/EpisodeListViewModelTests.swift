@@ -72,7 +72,7 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.episodes.count == 20)
         #expect(viewModel.emptyListError == nil)
 
-        await api.setPage(2, .success(.make(ids: 21...40, pageCount: 3, hasNextPage: true)))
+        await api.setPage(2, .success(.make(ids: 21...40, hasNextPage: true)))
         await viewModel.loadNextPage()
         #expect(viewModel.episodes.count == 40)
         #expect(viewModel.footer == .loading(page: 3))
@@ -89,7 +89,7 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.emptyListError == DataError.offline.userMessage)
         #expect(viewModel.footer == .none)
 
-        await api.setPage(1, .success(.make(ids: 1...20, pageCount: 3, hasNextPage: true)))
+        await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true)))
         await viewModel.loadNextPage()
         #expect(viewModel.emptyListError == nil)
         #expect(viewModel.episodes.count == 20)
