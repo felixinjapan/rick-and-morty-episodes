@@ -37,7 +37,11 @@ final class CharacterDetailViewModel {
     }
 
     func load() async {
-        state = .loading
+        // Keep a loaded character on screen while it reloads: going back to `.loading` would
+        // tear down the list, and its scroll position, for data that is already there.
+        if character == nil {
+            state = .loading
+        }
         do {
             state = .loaded(try await repository.character(id: characterID))
         } catch is CancellationError {
