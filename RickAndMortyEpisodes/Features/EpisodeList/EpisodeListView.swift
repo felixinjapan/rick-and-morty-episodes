@@ -5,6 +5,11 @@ struct EpisodeListView: View {
     let viewModel: EpisodeListViewModel
     let repository: any EpisodeRepository
 
+    /// The end-of-list text, using the plural rules in the string catalog.
+    static func endOfListText(count: Int) -> String {
+        String(localized: "You've reached the end · \(count) episodes", comment: "Last row of the episode list once every episode is loaded")
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -87,7 +92,7 @@ private struct EpisodeListFooter: View {
                 }
                 .frame(maxWidth: .infinity)
             case .endReached(let count):
-                Text("You've reached the end · \(count) episodes")
+                Text(EpisodeListView.endOfListText(count: count))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)

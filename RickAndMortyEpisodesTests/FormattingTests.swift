@@ -3,6 +3,14 @@ import Testing
 
 @Suite("Formatting")
 struct FormattingTests {
+    @Test("Counts use the string catalog's singular and plural forms")
+    func pluralCounts() {
+        #expect(EpisodeCharactersView.characterCountText(1) == "1 character")
+        #expect(EpisodeCharactersView.characterCountText(19) == "19 characters")
+        #expect(EpisodeListView.endOfListText(count: 1) == "You've reached the end · 1 episode")
+        #expect(EpisodeListView.endOfListText(count: 51) == "You've reached the end · 51 episodes")
+    }
+
     @Test("Air date is shown as dd/MM/yyyy", arguments: [
         ("December 2, 2013", "02/12/2013"),
         ("April 7, 2014", "07/04/2014"),
