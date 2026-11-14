@@ -1,8 +1,7 @@
 import Foundation
 
-/// A character from `GET /character/{id}` as the API sends it
-/// (https://rickandmortyapi.com/documentation). Only the fields the app uses are decoded,
-/// so unrelated API additions can't break decoding.
+/// The `GET /character/{id}` response (https://rickandmortyapi.com/documentation#character)
+/// Decodes only the fields the app uses, so new API fields can't break it.
 struct CharacterDTO: Decodable, Sendable {
     struct Origin: Decodable, Sendable {
         let name: String
@@ -34,7 +33,7 @@ extension CharacterDTO {
 }
 
 extension CharacterStatus {
-    /// Maps the API's text; any value the app doesn't know becomes `.unknown`.
+    /// Maps the API's status text; values the app doesn't know become `.unknown`.
     init(apiValue: String) {
         switch apiValue.lowercased() {
         case "alive": self = .alive

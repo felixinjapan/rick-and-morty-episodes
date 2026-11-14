@@ -1,12 +1,11 @@
 import Foundation
 
-/// An episode as the API sends it (https://rickandmortyapi.com/documentation).
-/// Only the fields the app uses are decoded, so unrelated API additions can't break decoding.
-/// `airDate` stays an optional string here and is parsed in `toDomain()`, so a missing or
-/// unreadable date affects only that episode instead of failing the whole page.
+/// One episode in the `/episode` response (https://rickandmortyapi.com/documentation#episode)
+/// Decodes only the fields the app uses, so new API fields can't break it.
 struct EpisodeDTO: Decodable, Sendable {
     let id: Int
     let name: String
+    /// Kept as text and parsed in `toDomain()`, so a missing or bad date affects only this episode.
     let airDate: String?
     let episode: String
     let characters: [String]
