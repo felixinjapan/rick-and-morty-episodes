@@ -38,7 +38,9 @@ extension HTTPTransport {
             body = try RecordedResponses.character(id: id)
         }
 
-        let response = HTTPURLResponse(url: url, statusCode: body == nil ? 404 : 200, httpVersion: nil, headerFields: nil)!
+        let response = HTTPURLResponse(
+            url: url, statusCode: body == nil ? 404 : 200, httpVersion: nil, headerFields: nil
+        )!
         return (body ?? Data(#"{"error":"Not found"}"#.utf8), response)
     }
 }

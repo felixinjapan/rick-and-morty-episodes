@@ -37,7 +37,9 @@ enum AppDependencies {
         // contains a space, like "Application Support") so relaunching from the cache is tested
         // too; `-resetCache` starts from an empty cache.
         if arguments.contains("-uiTesting") {
-            let cacheURL = URL.temporaryDirectory.appending(path: "UI Testing").appending(path: FileEpisodeStore.defaultFileName)
+            let cacheURL = URL.temporaryDirectory
+                .appending(path: "UI Testing")
+                .appending(path: FileEpisodeStore.defaultFileName)
             if arguments.contains("-resetCache") {
                 try? FileManager.default.removeItem(at: cacheURL)
             }

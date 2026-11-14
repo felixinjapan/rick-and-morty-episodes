@@ -54,7 +54,10 @@ struct LiveRickAndMortyAPI: RickAndMortyAPI {
         } catch {
             // The error names the field and type that didn't match, which is what's needed to
             // diagnose an API change. It contains no user data: the API is public.
-            Self.logger.error("Decoding \(Response.self, privacy: .public) from \(url, privacy: .public) failed: \(String(describing: error), privacy: .public)")
+            Self.logger.error("""
+                Decoding \(Response.self, privacy: .public) from \(url, privacy: .public) failed: \
+                \(String(describing: error), privacy: .public)
+                """)
             throw APIError.decoding
         }
     }

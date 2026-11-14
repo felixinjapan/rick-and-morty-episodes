@@ -33,6 +33,9 @@ struct EpisodeRow: View {
 
 #Preview {
     List {
-        EpisodeRow(episode: Episode(id: 1, name: "Pilot", airDate: Date(timeIntervalSince1970: 1_385_942_400), code: "S01E01", characterIDs: [1, 2]))
+        EpisodeRow(episode: Episode(
+            id: 1, name: "Pilot", airDate: Date(timeIntervalSince1970: 1_385_942_400),
+            code: "S01E01", characterIDs: [1, 2]
+        ))
     }
 }

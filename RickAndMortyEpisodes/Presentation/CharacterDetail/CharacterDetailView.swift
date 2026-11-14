@@ -82,7 +82,9 @@ private struct CharacterDetailContent: View {
                 }
                 LabeledContent(String(localized: .characterDetailSpecies), value: character.species)
                 LabeledContent(String(localized: .characterDetailOrigin), value: character.originName)
-                LabeledContent(String(localized: .characterDetailEpisodes), value: character.episodeCount, format: .number)
+                LabeledContent(
+                    String(localized: .characterDetailEpisodes), value: character.episodeCount, format: .number
+                )
             }
         }
     }

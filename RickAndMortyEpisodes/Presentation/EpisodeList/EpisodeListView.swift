@@ -7,7 +7,6 @@ struct EpisodeListView: View {
     let characterRepository: any CharacterRepository
     let exporter: CharacterExporter
 
-
     var body: some View {
         NavigationStack {
             List {
