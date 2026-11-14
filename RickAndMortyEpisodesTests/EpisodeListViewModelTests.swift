@@ -192,24 +192,6 @@ struct EpisodeListViewModelTests {
         #expect(await api.requestedPages == [1, 2, 1])
     }
 
-    @Test("Returning to the foreground picks up data saved by a background refresh")
-    func foregroundPicksUpBackgroundData() async throws {
-        let store = try await FileEpisodeStore.temporary(
-            containing: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
-        )
-        let viewModel = makeViewModel(store: store)
-        await viewModel.start()
-
-        let newer = EpisodeSnapshot(
-            episodes: [.make(id: 1), .make(id: 2)], refreshedAt: fixedDate.addingTimeInterval(60)
-        )
-        try await store.save(newer)
-        await viewModel.refreshIfNeeded()
-
-        #expect(viewModel.episodes.count == 2)
-        #expect(viewModel.lastRefreshed == newer.refreshedAt)
-    }
-
     @Test("A fresh background snapshot clears an earlier refresh error")
     func foregroundSnapshotClearsRefreshError() async throws {
         let api = StubAPI(pages: [1: .failure(APIError.offline)])

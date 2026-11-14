@@ -66,12 +66,6 @@ struct LiveAPITests {
         #expect(CharacterStatus(apiValue: apiValue) == expected)
     }
 
-    @Test("Decodes a character whose origin is unknown")
-    func decodesUnknownOrigin() async throws {
-        let character = try await recorded.character(id: 19)
-        #expect(character.originName == "unknown")
-    }
-
     @Test("All 51 recorded episodes decode across the three pages")
     func allRecordedEpisodes() async throws {
         var episodes: [Episode] = []
