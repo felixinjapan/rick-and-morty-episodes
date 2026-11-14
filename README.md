@@ -31,7 +31,7 @@ xcodebuild test -project RickAndMortyEpisodes.xcodeproj -scheme RickAndMortyEpis
 
 ### Recorded data
 
-`RickAndMortyEpisodes/RecordedResponses/` holds real API responses: all 51 episodes
+`RickAndMortyEpisodes/StubData/` holds real API responses: all 51 episodes
 (3 pages) and the 826 characters they reference. In Debug builds they are served through
 the real `LiveRickAndMortyAPI` with a different `HTTPTransport`, so URL building, status
 handling and decoding run exactly as in production:
