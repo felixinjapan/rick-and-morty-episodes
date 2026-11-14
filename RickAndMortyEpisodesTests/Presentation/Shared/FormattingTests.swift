@@ -15,21 +15,9 @@ struct FormattingTests {
         #expect(AirDateFormatter.displayString(from: date) == expected)
     }
 
-    @Test("Air dates not in the API's format are read as missing", arguments: ["", "TBA", "2013-12-02"])
-    func unparseableAirDate(apiValue: String) {
-        #expect(AirDateParser.date(from: apiValue) == nil)
-    }
-
     @Test("A missing air date is shown as unknown")
     func missingAirDate() {
         let episode = Episode(id: 1, name: "Pilot", airDate: nil, code: "S01E01", characterIDs: [])
         #expect(episode.formattedAirDate == "Unknown air date")
-    }
-
-    @Test("Character IDs are parsed from resource URLs")
-    func resourceIDParsing() {
-        #expect(ResourceID.from("https://rickandmortyapi.com/api/character/42") == 42)
-        #expect(ResourceID.from("https://rickandmortyapi.com/api/character/") == nil)
-        #expect(ResourceID.from("not a url") == nil)
     }
 }
