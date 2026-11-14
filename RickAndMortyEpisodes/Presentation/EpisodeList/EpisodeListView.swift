@@ -33,10 +33,8 @@ struct EpisodeListView: View {
                     } description: {
                         Text(message)
                     } actions: {
-                        Button { Task { await viewModel.loadNextPage() } } label: {
-                            Text(.commonRetry).foregroundStyle(Color.onAccent)
-                        }
-                        .buttonStyle(.borderedProminent)
+                        Button(.commonRetry) { Task { await viewModel.loadNextPage() } }
+                            .buttonStyle(.bordered)
                     }
                     .accessibilityIdentifier("episodeList.loadError")
                 }

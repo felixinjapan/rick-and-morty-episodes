@@ -26,10 +26,9 @@ struct ExportConfirmationView: View {
                         .fixedSize(horizontal: false, vertical: true)
                     ShareLink(item: fileURL) {
                         Label(.exportShare, systemImage: "square.and.arrow.up")
-                            .foregroundStyle(Color.onAccent)
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.bordered)
                     .controlSize(.large)
                     .accessibilityIdentifier("export.share")
                 }
