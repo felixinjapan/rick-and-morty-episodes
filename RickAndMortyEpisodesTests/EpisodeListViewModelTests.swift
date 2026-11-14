@@ -68,7 +68,7 @@ struct EpisodeListViewModelTests {
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
 
-        #expect(viewModel.footer == .failed(message: EpisodeError.offline.userMessage))
+        #expect(viewModel.footer == .failed(message: DataError.offline.userMessage))
         #expect(viewModel.episodes.count == 20)
         #expect(viewModel.emptyListError == nil)
 
@@ -86,7 +86,7 @@ struct EpisodeListViewModelTests {
         await viewModel.start()
         await viewModel.loadNextPage()
 
-        #expect(viewModel.emptyListError == EpisodeError.offline.userMessage)
+        #expect(viewModel.emptyListError == DataError.offline.userMessage)
         #expect(viewModel.footer == .none)
 
         await api.setPage(1, .success(.make(ids: 1...20, pageCount: 3, hasNextPage: true)))
@@ -148,7 +148,7 @@ struct EpisodeListViewModelTests {
         await viewModel.refresh()
 
         #expect(viewModel.episodes.map(\.id) == [1])
-        #expect(viewModel.refreshError == EpisodeError.offline.userMessage)
+        #expect(viewModel.refreshError == DataError.offline.userMessage)
         #expect(viewModel.footer == .endReached(count: 1))
     }
 
@@ -160,12 +160,12 @@ struct EpisodeListViewModelTests {
         let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached))
         await viewModel.start()
         await viewModel.refresh()
-        #expect(viewModel.refreshError == EpisodeError.offline.userMessage)
+        #expect(viewModel.refreshError == DataError.offline.userMessage)
 
         await viewModel.loadNextPage()
 
         #expect(viewModel.episodes.count == 40)
-        #expect(viewModel.refreshError == EpisodeError.offline.userMessage)
+        #expect(viewModel.refreshError == DataError.offline.userMessage)
     }
 
     @Test("Pull-to-refresh starts the list again from a fresh page 1")

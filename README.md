@@ -50,7 +50,7 @@ Presentation/  SwiftUI views ──▶ @MainActor @Observable view models
                (EpisodeListViewModel, CharacterDetailViewModel)
                                     │ depend on
                                     ▼
-Domain/        Episode, CharacterDetails, EpisodeError,
+Domain/        Episode, CharacterDetails, DataError,
                EpisodeRepository, CharacterRepository (protocols)
                                     ▲ implemented by
                                     │
@@ -71,7 +71,7 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   screen. The character ID screen has none, because its data is already in `Episode`.
 - **Domain** holds the entities, the repository protocols the view models depend on
   (`EpisodeRepository` for the list, `CharacterRepository` for character details, so each
-  view model sees only what it uses), and `EpisodeError`. It knows nothing about JSON, HTTP, files or SwiftUI. There are no
+  view model sees only what it uses), and `DataError`. It knows nothing about JSON, HTTP, files or SwiftUI. There are no
   use-case classes: with three screens they would only forward calls to the repository.
 - **`DefaultEpisodeRepository`** is the single source of truth, shared by the UI and the
   background task. It is an actor because both reach it at once. It owns the cached list:
@@ -82,7 +82,7 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 - **`DefaultCharacterRepository`** fetches character details and keeps them in memory for
   the session. Both repositories share one API client.
 - **Errors** have one vocabulary per layer. Networking reports `APIError` (offline, HTTP
-  status, decoding). The repositories translate it into the domain's `EpisodeError`, and
+  status, decoding). The repositories translate it into the domain's `DataError`, and
   the presentation layer (`Presentation/Shared/ErrorMessages.swift`) decides the wording.
   Cancellation passes through unchanged, so it is never shown as an error.
 - **Networking** maps JSON DTOs to domain entities, so API changes stay in one layer. The
