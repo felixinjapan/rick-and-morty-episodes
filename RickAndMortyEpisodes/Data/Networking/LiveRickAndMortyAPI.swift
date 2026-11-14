@@ -1,8 +1,11 @@
 import Foundation
+import os
 
 /// The real API client: builds requests, sends them through an `HTTPTransport`, checks
 /// the status and maps the JSON to domain entities. Errors are reported as `APIError`.
 struct LiveRickAndMortyAPI: RickAndMortyAPI {
+    private static let logger = Logger(category: "LiveRickAndMortyAPI")
+
     private let baseURL: URL
     private let transport: HTTPTransport
 
@@ -49,6 +52,9 @@ struct LiveRickAndMortyAPI: RickAndMortyAPI {
         do {
             return try JSONDecoder().decode(Response.self, from: data)
         } catch {
+            // The error names the field and type that didn't match, which is what's needed to
+            // diagnose an API change. It contains no user data: the API is public.
+            Self.logger.error("Decoding \(Response.self, privacy: .public) from \(url, privacy: .public) failed: \(String(describing: error), privacy: .public)")
             throw APIError.decoding
         }
     }
