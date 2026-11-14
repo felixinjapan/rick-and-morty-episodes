@@ -228,7 +228,7 @@ struct EpisodeListViewModelTests {
     }
 
     @Test("A cache write failure does not disable future foreground refreshes")
-    func failedBootstrapSaveStillTracksFreshness() async throws {
+    func cacheWriteFailureKeepsRefreshing() async throws {
         let api = threePageAPI()
         let repository = DefaultEpisodeRepository(api: api, store: try .unwritable(), now: { fixedDate })
         var currentDate = fixedDate
