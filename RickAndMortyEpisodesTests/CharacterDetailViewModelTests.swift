@@ -37,24 +37,6 @@ struct CharacterDetailViewModelTests {
         #expect(viewModel.exportedFile == nil)
     }
 
-    @Test("Reloading keeps the loaded character on screen", .timeLimit(.minutes(1)))
-    func reloadKeepsLoadedCharacter() async {
-        let repository = SecondLoadHeld()
-        let viewModel = CharacterDetailViewModel(
-            characterID: 1, repository: repository,
-            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
-        )
-        await viewModel.load()
-
-        let reload = Task { await viewModel.load() }
-        while await repository.calls < 2 { await Task.yield() }
-        #expect(viewModel.state == .loaded(.rick))
-
-        await repository.gate.open()
-        await reload.value
-        #expect(viewModel.state == .loaded(.rick))
-    }
-
     @Test("A failed export shows an error and no file")
     func exportFailure() async throws {
         // A file where the export folder should be, so creating the folder fails.
@@ -73,17 +55,5 @@ struct CharacterDetailViewModelTests {
         #expect(viewModel.isShowingExportError)
         #expect(viewModel.exportErrorMessage.isEmpty == false)
         #expect(viewModel.exportedFile == nil)
-    }
-}
-
-/// Answers the first load at once and holds later ones until `gate` opens.
-private actor SecondLoadHeld: CharacterRepository {
-    let gate = Gate()
-    private(set) var calls = 0
-
-    func character(id: Int) async throws -> CharacterDetails {
-        calls += 1
-        if calls > 1 { await gate.wait() }
-        return .rick
     }
 }

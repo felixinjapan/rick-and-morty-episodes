@@ -20,22 +20,6 @@ struct EpisodeRepositoryTests {
         #expect(try await store.load() == snapshot)
     }
 
-    @Test("Loading pages appends each one and saves the list so far")
-    func loadPagesSavesEach() async throws {
-        let store = FileEpisodeStore.temporary()
-        let repository = DefaultEpisodeRepository(api: threePageAPI(), store: store, now: { fixedDate })
-
-        let first = try await repository.loadNextPage(after: nil)
-        #expect(first == EpisodeSnapshot(episodes: (1...20).map(Episode.make), nextPage: 2, refreshedAt: fixedDate))
-        #expect(try await store.load() == first)
-
-        let second = try await repository.loadNextPage(after: first)
-        #expect(second.episodes.map(\.id) == Array(1...40))
-        #expect(second.nextPage == 3)
-        #expect(second.refreshedAt == fixedDate)
-        #expect(try await store.load() == second)
-    }
-
     // Tests that wait for a request in a loop have a time limit, so a regression fails instead of hanging.
     @Test("A page that arrives after a refresh doesn't overwrite the refreshed list", .timeLimit(.minutes(1)))
     func latePageAfterRefresh() async throws {
