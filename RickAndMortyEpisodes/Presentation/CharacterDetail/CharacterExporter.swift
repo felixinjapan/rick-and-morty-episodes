@@ -16,7 +16,7 @@ struct CharacterExporter {
     static func text(for character: CharacterDetails) -> String {
         """
         Name: \(character.name)
-        Status: \(character.status)
+        Status: \(exportValue(of: character.status))
         Species: \(character.species)
         Origin: \(character.originName)
         Episodes: \(character.episodeCount)
@@ -40,5 +40,15 @@ struct CharacterExporter {
         let fileURL = directory.appending(path: Self.fileName(for: character))
         try Self.text(for: character).write(to: fileURL, atomically: true, encoding: .utf8)
         return fileURL
+    }
+
+    /// The export is a fixed-format file other apps read, so it keeps the API's English
+    /// wording regardless of the app's language.
+    private static func exportValue(of status: CharacterStatus) -> String {
+        switch status {
+        case .alive: "Alive"
+        case .dead: "Dead"
+        case .unknown: "unknown"
+        }
     }
 }
