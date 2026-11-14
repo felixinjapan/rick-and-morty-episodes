@@ -83,8 +83,8 @@ actor DefaultEpisodeRepository: EpisodeRepository {
     func refreshFirstPage() async throws -> EpisodeSnapshot {
         try await translatingErrors {
             let firstPage = try await api.episodes(page: 1)
-            // A cancelled refresh (for example, a background task out of time) saves nothing.
-            try Task.checkCancellation()
+            // Saved even if cancellation arrives now: the page is valid, and saving it is one
+            // small atomic write, so the request isn't wasted.
             let snapshot = EpisodeSnapshot(
                 episodes: firstPage.episodes,
                 nextPage: firstPage.hasNextPage ? 2 : nil,

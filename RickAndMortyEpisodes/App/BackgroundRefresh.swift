@@ -27,8 +27,8 @@ enum BackgroundRefresh {
     }
 
     /// Runs when iOS launches the task. SwiftUI's `.backgroundTask` modifier cancels this
-    /// async function when the system's time runs out; `refreshFirstPage()` then saves nothing,
-    /// so the previous cache stays intact.
+    /// async function when the system's time runs out. A request still in flight then fails
+    /// and nothing is saved; a page that already arrived is still saved (one small atomic write).
     static func perform(using repository: any EpisodeRepository) async {
         // Schedule the next run first, so one failure doesn't stop future refreshes.
         schedule()
