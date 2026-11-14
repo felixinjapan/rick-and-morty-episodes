@@ -95,11 +95,21 @@ private struct CharacterDetailContent: View {
 }
 
 #if DEBUG
-#Preview {
+#Preview("Loaded") {
     NavigationStack {
         CharacterDetailView(
             characterID: 1,
             repository: DefaultCharacterRepository(api: RecordedRickAndMortyAPI()),
+            exporter: .preview
+        )
+    }
+}
+
+#Preview("Offline") {
+    NavigationStack {
+        CharacterDetailView(
+            characterID: 1,
+            repository: DefaultCharacterRepository(api: UnavailableRickAndMortyAPI()),
             exporter: .preview
         )
     }
