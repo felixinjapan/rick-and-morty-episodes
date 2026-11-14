@@ -89,7 +89,7 @@ struct EpisodeRepositoryTests {
         #expect(try await store.load() == previous)
     }
 
-    @Test("A cancelled refresh saves nothing")
+    @Test("A refresh cancelled before the response arrives saves nothing")
     func cancelledRefreshSavesNothing() async throws {
         let api = threePageAPI()
         let gate = Gate()
@@ -104,6 +104,18 @@ struct EpisodeRepositoryTests {
 
         await #expect(throws: CancellationError.self) { try await refresh.value }
         #expect(try await store.load() == nil)
+    }
+
+    @Test("A refresh cancelled after the response arrived still saves page 1")
+    func refreshCancelledAfterResponseStillSaves() async throws {
+        let store = FileEpisodeStore.temporary()
+        let repository = DefaultEpisodeRepository(api: CancelsAfterResponseAPI(), store: store, now: { fixedDate })
+
+        // Its own task, so the cancellation doesn't reach the test itself.
+        let snapshot = try await Task { try await repository.refreshFirstPage() }.value
+
+        #expect(snapshot.episodes.map(\.id) == Array(1...20))
+        #expect(try await store.load() == snapshot)
     }
 
     @Test("An unreadable cache is treated as no cache")
@@ -124,5 +136,18 @@ struct EpisodeRepositoryTests {
 
         #expect(second == .rick)
         #expect(await api.requestedCharacters == [1])
+    }
+}
+
+/// Returns page 1 but cancels the calling task on the way out, like a cancellation that
+/// arrives just after the response.
+private struct CancelsAfterResponseAPI: RickAndMortyAPI {
+    func episodes(page: Int) async throws -> EpisodePage {
+        withUnsafeCurrentTask { $0?.cancel() }
+        return .make(ids: 1...20, pageCount: 3, hasNextPage: true)
+    }
+
+    func character(id: Int) async throws -> CharacterDetails {
+        throw APIError.http(statusCode: 404)
     }
 }
