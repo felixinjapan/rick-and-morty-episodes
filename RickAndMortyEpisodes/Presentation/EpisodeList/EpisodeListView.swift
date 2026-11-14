@@ -19,6 +19,7 @@ struct EpisodeListView: View {
                     NavigationLink(value: episode) {
                         EpisodeRow(episode: episode)
                     }
+                    .accessibilityIdentifier("episode.row.\(episode.id)")
                 }
 
                 EpisodeListFooter(footer: viewModel.footer, viewModel: viewModel)
