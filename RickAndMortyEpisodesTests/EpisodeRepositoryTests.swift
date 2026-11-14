@@ -36,7 +36,8 @@ struct EpisodeRepositoryTests {
         #expect(try await store.load() == second)
     }
 
-    @Test("A page that arrives after a refresh doesn't overwrite the refreshed list")
+    // Tests that wait for a request in a loop have a time limit, so a regression fails instead of hanging.
+    @Test("A page that arrives after a refresh doesn't overwrite the refreshed list", .timeLimit(.minutes(1)))
     func latePageAfterRefresh() async throws {
         let api = threePageAPI()
         let store = FileEpisodeStore.temporary()
@@ -69,7 +70,7 @@ struct EpisodeRepositoryTests {
         #expect(try await store.load() == previous)
     }
 
-    @Test("A refresh cancelled before the response arrives saves nothing")
+    @Test("A refresh cancelled before the response arrives saves nothing", .timeLimit(.minutes(1)))
     func cancelledRefreshSavesNothing() async throws {
         let api = threePageAPI()
         let gate = Gate()
