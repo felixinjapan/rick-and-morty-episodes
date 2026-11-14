@@ -95,7 +95,7 @@ private struct CharacterDetailContent: View {
     NavigationStack {
         CharacterDetailView(
             characterID: 1,
-            repository: DefaultCharacterRepository(api: RecordedRickAndMortyAPI()),
+            repository: AppDependencies.makePreviewRepositories().characters,
             exporter: .preview
         )
     }
@@ -105,7 +105,7 @@ private struct CharacterDetailContent: View {
     NavigationStack {
         CharacterDetailView(
             characterID: 1,
-            repository: DefaultCharacterRepository(api: UnavailableRickAndMortyAPI()),
+            repository: AppDependencies.makePreviewRepositories(networkUnavailable: true).characters,
             exporter: .preview
         )
     }
