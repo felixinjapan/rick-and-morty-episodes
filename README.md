@@ -51,10 +51,11 @@ Presentation/  SwiftUI views ──▶ @MainActor @Observable view models
                                     │ depend on
                                     ▼
 Domain/        Episode, CharacterDetails, EpisodeError,
-               EpisodeRepository (protocol)
+               EpisodeRepository, CharacterRepository (protocols)
                                     ▲ implemented by
                                     │
 Data/          DefaultEpisodeRepository (actor)  ◀── App/BackgroundRefresh (BGAppRefreshTask)
+               DefaultCharacterRepository (actor, in-memory cache)
                   │                       │
                   ▼                       ▼
                Networking/             Persistence/
@@ -68,8 +69,9 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 - **Views** only display state. A view model exists only where there is real logic to
   test: paging and refreshing on the list, and loading and exporting on the detail
   screen. The character ID screen has none, because its data is already in `Episode`.
-- **Domain** holds the entities, the `EpisodeRepository` protocol the view models depend
-  on, and `EpisodeError`. It knows nothing about JSON, HTTP, files or SwiftUI. There are no
+- **Domain** holds the entities, the repository protocols the view models depend on
+  (`EpisodeRepository` for the list, `CharacterRepository` for character details, so each
+  view model sees only what it uses), and `EpisodeError`. It knows nothing about JSON, HTTP, files or SwiftUI. There are no
   use-case classes: with three screens they would only forward calls to the repository.
 - **`DefaultEpisodeRepository`** is the single source of truth, shared by the UI and the
   background task. It is an actor because both reach it at once. It owns the cached list:
@@ -77,8 +79,10 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   only and saves it as the new start of the list. A page that arrives after a refresh is
   dropped rather than saved over the newer list. Overlapping refreshes are not merged: each
   saves a valid first page, and the store writes one at a time.
+- **`DefaultCharacterRepository`** fetches character details and keeps them in memory for
+  the session. Both repositories share one API client.
 - **Errors** have one vocabulary per layer. Networking reports `APIError` (offline, HTTP
-  status, decoding). The repository translates it into the domain's `EpisodeError`, and
+  status, decoding). The repositories translate it into the domain's `EpisodeError`, and
   the presentation layer (`Presentation/Shared/ErrorMessages.swift`) decides the wording.
   Cancellation passes through unchanged, so it is never shown as an error.
 - **Networking** maps JSON DTOs to domain entities, so API changes stay in one layer.

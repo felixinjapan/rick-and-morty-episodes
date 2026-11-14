@@ -3,7 +3,7 @@ import SwiftUI
 struct CharacterDetailView: View {
     @State private var viewModel: CharacterDetailViewModel
 
-    init(characterID: Int, repository: any EpisodeRepository) {
+    init(characterID: Int, repository: any CharacterRepository) {
         _viewModel = State(initialValue: CharacterDetailViewModel(characterID: characterID, repository: repository))
     }
 
@@ -154,7 +154,7 @@ private struct ExportConfirmationView: View {
     NavigationStack {
         CharacterDetailView(
             characterID: 1,
-            repository: DefaultEpisodeRepository(api: RecordedRickAndMortyAPI(), store: .preview)
+            repository: DefaultCharacterRepository(api: RecordedRickAndMortyAPI())
         )
     }
 }

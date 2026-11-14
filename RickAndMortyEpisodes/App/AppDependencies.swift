@@ -3,10 +3,27 @@ import Foundation
 /// Composition root: the one place where concrete implementations are chosen.
 /// Everything below it receives its dependencies through initialisers.
 enum AppDependencies {
-    static func makeRepository(
+    struct Repositories {
+        let episodes: any EpisodeRepository
+        let characters: any CharacterRepository
+    }
+
+    /// Both repositories share one API client.
+    static func makeRepositories(
         configuration: AppConfiguration = .current,
         arguments: [String] = ProcessInfo.processInfo.arguments
-    ) -> any EpisodeRepository {
+    ) -> Repositories {
+        let (api, store) = makeDataSources(configuration: configuration, arguments: arguments)
+        return Repositories(
+            episodes: DefaultEpisodeRepository(api: api, store: store),
+            characters: DefaultCharacterRepository(api: api)
+        )
+    }
+
+    private static func makeDataSources(
+        configuration: AppConfiguration,
+        arguments: [String]
+    ) -> (any RickAndMortyAPI, FileEpisodeStore) {
         #if DEBUG
         // UI tests launch with `-uiTesting`: recorded API responses, so they're deterministic and
         // never touch the network. The real file store is used (in a separate folder whose name
@@ -21,24 +38,22 @@ enum AppDependencies {
             let api: any RickAndMortyAPI = arguments.contains("-networkUnavailable")
                 ? UnavailableRickAndMortyAPI()
                 : RecordedRickAndMortyAPI()
-            return DefaultEpisodeRepository(api: api, store: FileEpisodeStore(fileURL: cacheURL))
+            return (api, FileEpisodeStore(fileURL: cacheURL))
         }
 
         // `-offline`: the normal app on recorded responses, e.g. for a demo without Wi-Fi.
         if arguments.contains("-offline") {
-            return DefaultEpisodeRepository(api: RecordedRickAndMortyAPI(), store: FileEpisodeStore.makeDefault())
+            return (RecordedRickAndMortyAPI(), FileEpisodeStore.makeDefault())
         }
         #endif
 
-        return DefaultEpisodeRepository(
-            api: LiveRickAndMortyAPI(
-                baseURL: configuration.apiBaseURL,
-                transport: .urlSession(.api(
-                    requestTimeout: configuration.requestTimeout,
-                    resourceTimeout: configuration.resourceTimeout
-                ))
-            ),
-            store: FileEpisodeStore.makeDefault()
+        let api = LiveRickAndMortyAPI(
+            baseURL: configuration.apiBaseURL,
+            transport: .urlSession(.api(
+                requestTimeout: configuration.requestTimeout,
+                resourceTimeout: configuration.resourceTimeout
+            ))
         )
+        return (api, FileEpisodeStore.makeDefault())
     }
 }
