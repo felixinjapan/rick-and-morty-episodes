@@ -1,6 +1,6 @@
 import Foundation
 
-extension EpisodeError {
+extension DataError {
     /// The sentence shown to the user, from the string catalog.
     var message: String {
         switch self {
@@ -16,9 +16,9 @@ extension EpisodeError {
 }
 
 extension Error {
-    /// Message for the UI. The repository only throws `EpisodeError` (or cancellation),
+    /// Message for the UI. The repository only throws `DataError` (or cancellation),
     /// so anything else falls back to the generic text.
     var userMessage: String {
-        ((self as? EpisodeError) ?? .failed).message
+        ((self as? DataError) ?? .failed).message
     }
 }

@@ -4,7 +4,7 @@ import Foundation
 /// View models depend on this protocol; `DefaultEpisodeRepository` in the Data layer
 /// implements it with the API and the file cache.
 ///
-/// Throwing methods throw `EpisodeError`, or `CancellationError` when the calling task
+/// Throwing methods throw `DataError`, or `CancellationError` when the calling task
 /// is cancelled.
 protocol EpisodeRepository: Sendable {
     /// The list to show: the saved one or the one last loaded, whichever is newer.

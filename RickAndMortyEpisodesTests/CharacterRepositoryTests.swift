@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import RickAndMortyEpisodes
 
-private let apiToDomainErrors: [(APIError, EpisodeError)] = [
+private let apiToDomainErrors: [(APIError, DataError)] = [
     (.offline, .offline),
     (.timedOut, .timedOut),
     (.http(statusCode: 404), .notFound),
@@ -17,7 +17,7 @@ private let apiToDomainErrors: [(APIError, EpisodeError)] = [
 @Suite("Character repository")
 struct CharacterRepositoryTests {
     @Test("Network errors reach callers as domain errors", arguments: apiToDomainErrors)
-    func errorTranslation(apiError: APIError, expected: EpisodeError) async {
+    func errorTranslation(apiError: APIError, expected: DataError) async {
         let repository = DefaultCharacterRepository(api: StubAPI(characters: [1: .failure(apiError)]))
         await #expect(throws: expected) {
             try await repository.character(id: 1)
