@@ -239,6 +239,36 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.lastRefreshed == fixedDate)
     }
 
+    @Test("Returning to the app rebuilds the list only when it replaced rows the user had loaded")
+    func listIdentityOnReturn() async {
+        let repository = DefaultEpisodeRepository(api: threePageAPI(), store: .temporary(), now: { fixedDate })
+        var currentDate = fixedDate
+        let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { currentDate })
+        await viewModel.start()
+        await viewModel.loadNextPage()
+        await viewModel.loadNextPage()
+        #expect(viewModel.episodes.count == 40)
+
+        // Back within the hour: nothing changes.
+        await viewModel.refreshIfNeeded()
+        #expect(viewModel.listIdentity == 0)
+
+        // Back after two hours: a fresh page 1 replaces the 40 loaded rows.
+        currentDate = fixedDate.addingTimeInterval(7200)
+        await viewModel.refreshIfNeeded()
+        #expect(viewModel.episodes.count == 20)
+        #expect(viewModel.listIdentity == 1)
+
+        // Only page 1 loaded: a refresh updates it in place.
+        await viewModel.refreshIfNeeded()
+        #expect(viewModel.listIdentity == 1)
+
+        // Page loads and pull-to-refresh never rebuild the list.
+        await viewModel.loadNextPage()
+        await viewModel.refresh()
+        #expect(viewModel.listIdentity == 1)
+    }
+
     @Test("The refresh indicator stays visible until every overlapping refresh finishes")
     func overlappingRefreshIndicator() async {
         let api = threePageAPI()

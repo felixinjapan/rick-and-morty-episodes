@@ -22,6 +22,8 @@ struct EpisodeListView: View {
 
                 EpisodeListFooter(footer: viewModel.footer, viewModel: viewModel)
             }
+            // A new identity rebuilds the list from the top (see `listIdentity`).
+            .id(viewModel.listIdentity)
             .listStyle(.plain)
             .overlay {
                 if let message = viewModel.emptyListError {
