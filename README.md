@@ -51,7 +51,7 @@ Presentation/  SwiftUI views ──▶ @MainActor @Observable view models
                                     │ depend on
                                     ▼
 Domain/        Episode, CharacterDetails, DataError,
-               EpisodeRepository, CharacterRepository (protocols)
+               EpisodeRepository, CharacterRepository, CharacterExporting (protocols)
                                     ▲ implemented by
                                     │
 Data/          DefaultEpisodeRepository (actor)  ◀── App/BackgroundRefresh (BGAppRefreshTask)
@@ -69,10 +69,11 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 - **Views** only display state. A view model exists only where there is real logic to
   test: paging and refreshing on the list, and loading and exporting on the detail
   screen. The character ID screen has none, because its data is already in `Episode`.
-- **Domain** holds the entities, the repository protocols the view models depend on
-  (`EpisodeRepository` for the list, `CharacterRepository` for character details, so each
-  view model sees only what it uses), and `DataError`. It knows nothing about JSON, HTTP, files or SwiftUI. There are no
-  use-case classes: with three screens they would only forward calls to the repository.
+- **Domain** holds the entities, the protocols the view models depend on
+  (`EpisodeRepository` for the list, `CharacterRepository` and `CharacterExporting` for
+  character details, so each view model sees only what it uses), and `DataError`. It knows
+  nothing about JSON, HTTP, files or SwiftUI. There are no use-case classes: with three
+  screens they would only forward calls to the repository.
 - **`DefaultEpisodeRepository`** is the single source of truth, shared by the UI and the
   background task. It is an actor because both reach it at once. It owns the cached list:
   it loads each next page, appends it and saves the list so far, and a refresh fetches page 1
@@ -90,13 +91,13 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   `nil` for that episode only, shown as "Unknown air date". Presentation formats it as `dd/MM/yyyy`.
 - **Configuration** that is a product or environment decision lives in `AppConfiguration`:
   the API base URL, the 1-hour freshness interval (used by both the foreground staleness
-  check and background scheduling) and the request timeouts. Only the App layer reads it;
-  the composition root passes the values down as plain parameters.
+  check and background scheduling) and the request timeouts. Only the App layer reads it
+  (plus DEBUG previews and tests); the composition root passes the values down as plain
+  parameters.
 - **Dependency injection** goes through initialisers, wired in one place (`AppDependencies`).
   Protocols sit at layer boundaries only: the repositories and the exporter (between
-  features and data) and the network (so tests control it). The file store has none, because tests point it at
-  a temporary folder and exercise real file I/O.
-  UI tests launch with `-uiTesting`, which uses recorded API responses.
+  features and data) and the network (so tests control it). The file store has none,
+  because tests point it at a temporary folder and exercise real file I/O.
 
 ## Key decisions
 
@@ -107,7 +108,7 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 | `BGAppRefreshTask` via SwiftUI `.backgroundTask` | Native, with automatic cancellation when time runs out | Silent push (needs a server) |
 | Refresh in the foreground when data is older than 1 h | iOS doesn't guarantee background tasks will run | Relying only on `BGTaskScheduler` |
 | Plain-text export in `Documents/Exports`, shown in Files, plus a share sheet | Readable in any document reader, and found in the Files app | `fileExporter`: the user picks a folder, so nothing is stored automatically |
-| `AsyncImage` with `URLCache` | One image per screen | Nuke or Kingfisher: worth it for image-heavy lists |
+| `AsyncImage`, relying on the system HTTP cache (it keeps no decoded images) | One image per screen | Nuke or Kingfisher: worth it for image-heavy lists |
 | Swift Testing for unit tests, XCUITest for UI tests | Current tooling; UI automation still needs XCTest | – |
 
 ## Background refresh
@@ -119,8 +120,8 @@ both readings of that:
   is fresh the next time the app opens (details below).
 - **Without blocking the list while it's open:** the cached list shows immediately, stale data
   (older than 1 h) refreshes quietly at launch and on returning to the app, with an
-  "Updating…" status instead of a full-screen loader, and all network, decoding and file work
-  runs off the main thread in actors.
+  "Updating…" status instead of a full-screen loader, and all of the list's network,
+  decoding and cache work runs off the main thread in actors.
 
 - All lifecycle handling is in one place: the app's `scenePhase` handler
   (`RickAndMortyEpisodesApp`). Going to the background schedules a `BGAppRefreshTask`
