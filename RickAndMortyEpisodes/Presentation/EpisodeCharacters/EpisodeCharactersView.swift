@@ -38,6 +38,6 @@ struct EpisodeCharactersView: View {
 
 #Preview {
     NavigationStack {
-        EpisodeCharactersView(episode: Episode(id: 1, name: "Pilot", airDate: "December 2, 2013", code: "S01E01", characterIDs: [1, 2, 35]))
+        EpisodeCharactersView(episode: Episode(id: 1, name: "Pilot", airDate: Date(timeIntervalSince1970: 1_385_942_400), code: "S01E01", characterIDs: [1, 2, 35]))
     }
 }
