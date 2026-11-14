@@ -13,6 +13,9 @@ actor DefaultEpisodeRepository: EpisodeRepository {
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultEpisodeRepository")
     private var characterCache: [Int: CharacterDetails] = [:]
+    /// The list as last loaded, refreshed or read from disk. A page is only appended to
+    /// this list, so a page that arrives after a refresh can't overwrite the newer list.
+    private var latest: EpisodeSnapshot?
 
     init(
         api: any RickAndMortyAPI,
@@ -26,25 +29,49 @@ actor DefaultEpisodeRepository: EpisodeRepository {
 
     // MARK: - Episodes
 
-    /// The persisted list, or `nil` if there is none or it can't be read.
+    /// The list to show: the saved one or the one last loaded, whichever is newer. The disk
+    /// can be newer when a background refresh saved while the app was suspended.
     /// A corrupt cache isn't fatal: the app falls back to loading from the network.
-    func cachedSnapshot() async -> EpisodeSnapshot? {
+    func currentSnapshot() async -> EpisodeSnapshot? {
         do {
-            return try await store.load()
+            if let saved = try await store.load(), saved.refreshedAt > (latest?.refreshedAt ?? .distantPast) {
+                latest = saved
+            }
         } catch {
             logger.error("Failed to read episode cache: \(error.localizedDescription, privacy: .public)")
-            return nil
         }
+        return latest
     }
 
-    /// One page for incremental loading while the user scrolls (first launch, no cache yet).
-    func episodesPage(_ page: Int) async throws -> EpisodePage {
-        try await translatingErrors { try await api.episodes(page: page) }
-    }
+    /// Loads the page after `current` (page 1 when `current` is `nil`), appends it, saves
+    /// the result and returns it. Each page is saved as it arrives, so the list reopens
+    /// where the user left it.
+    func loadNextPage(after current: EpisodeSnapshot?) async throws -> EpisodeSnapshot {
+        let page: Int
+        if let current {
+            guard let next = current.nextPage else { return current }
+            page = next
+        } else {
+            page = 1
+        }
 
-    /// Persists a list that was fully loaded page by page.
-    func save(_ snapshot: EpisodeSnapshot) async throws {
-        try await translatingErrors { try await store.save(snapshot) }
+        let loaded = try await translatingErrors { try await api.episodes(page: page) }
+
+        // A refresh replaced the list while this page was loading: drop the page and
+        // return the newer list, instead of saving the old one over it.
+        if latest != current, let latest {
+            return latest
+        }
+
+        let snapshot = EpisodeSnapshot(
+            episodes: (current?.episodes ?? []) + loaded.episodes,
+            nextPage: loaded.hasNextPage ? page + 1 : nil,
+            // "Last updated" and the staleness check refer to when page 1 was fetched.
+            refreshedAt: current?.refreshedAt ?? now()
+        )
+        latest = snapshot
+        await persist(snapshot)
+        return snapshot
     }
 
     /// Fetches page 1 and saves it as the new start of the list. Pages the user had loaded
@@ -63,8 +90,19 @@ actor DefaultEpisodeRepository: EpisodeRepository {
                 nextPage: firstPage.hasNextPage ? 2 : nil,
                 refreshedAt: now()
             )
-            try await store.save(snapshot)
+            latest = snapshot
+            await persist(snapshot)
             return snapshot
+        }
+    }
+
+    /// Saves the list. A failed save only means it won't be available offline, so it is
+    /// logged rather than reported to the user.
+    private func persist(_ snapshot: EpisodeSnapshot) async {
+        do {
+            try await store.save(snapshot)
+        } catch {
+            logger.error("Failed to save episode cache: \(error.localizedDescription, privacy: .public)")
         }
     }
 
