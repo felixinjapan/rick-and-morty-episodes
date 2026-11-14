@@ -15,7 +15,7 @@ struct RecordedRickAndMortyAPI: RickAndMortyAPI {
 
     func character(id: Int) async throws -> CharacterDetails {
         let character = try await client.character(id: id)
-        // Avatars are served by the API's server; leave them out so offline mode makes no requests.
+        // Avatars are served by the API's server; leave them out so tests and previews make no requests.
         return CharacterDetails(
             id: character.id,
             name: character.name,

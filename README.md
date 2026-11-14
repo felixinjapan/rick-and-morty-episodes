@@ -29,16 +29,15 @@ xcodebuild test -project RickAndMortyEpisodes.xcodeproj -scheme RickAndMortyEpis
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-### Offline mode and recorded data
+### Recorded data
 
 `RickAndMortyEpisodes/RecordedResponses/` holds real API responses: all 51 episodes
 (3 pages) and the 826 characters they reference. In Debug builds they are served through
 the real `LiveRickAndMortyAPI` with a different `HTTPTransport`, so URL building, status
 handling and decoding run exactly as in production:
 
-- UI tests launch with `-uiTesting` and never use the network.
-- Add `-offline` to the scheme's launch arguments to run the app without Wi-Fi. Character
-  images are omitted, because they are served by the API's server.
+- UI tests launch with `-uiTesting` and never use the network. Character images are
+  omitted, because they are served by the API's server.
 - The folder is listed in `DEVELOPMENT_ASSET_PATHS`, so it is excluded from archives.
 
 ## Architecture
