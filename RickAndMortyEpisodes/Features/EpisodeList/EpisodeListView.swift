@@ -5,10 +5,6 @@ struct EpisodeListView: View {
     let viewModel: EpisodeListViewModel
     let repository: any EpisodeRepository
 
-    /// The end-of-list text, using the plural rules in the string catalog.
-    static func endOfListText(count: Int) -> String {
-        String(localized: "You've reached the end · \(count) episodes", comment: "Last row of the episode list once every episode is loaded")
-    }
 
     var body: some View {
         NavigationStack {
@@ -29,19 +25,19 @@ struct EpisodeListView: View {
             .overlay {
                 if let message = viewModel.emptyListError {
                     ContentUnavailableView {
-                        Label("Couldn't Load Episodes", systemImage: "exclamationmark.triangle")
+                        Label(.episodeListLoadErrorTitle, systemImage: "exclamationmark.triangle")
                     } description: {
                         Text(message)
                     } actions: {
                         Button { Task { await viewModel.loadNextPage() } } label: {
-                            Text("Retry").foregroundStyle(Color.onAccent)
+                            Text(.commonRetry).foregroundStyle(Color.onAccent)
                         }
                         .buttonStyle(.borderedProminent)
                     }
                     .accessibilityIdentifier("episodeList.loadError")
                 }
             }
-            .navigationTitle("Episodes")
+            .navigationTitle(.episodeListTitle)
             .navigationDestination(for: Episode.self) { episode in
                 EpisodeCharactersView(episode: episode)
             }
@@ -76,7 +72,7 @@ private struct EpisodeListFooter: View {
             case .loading(let page):
                 ProgressView()
                     .frame(maxWidth: .infinity)
-                    .accessibilityLabel("Loading more episodes")
+                    .accessibilityLabel(.episodeListLoadingMore)
                     // Re-runs for each new page while the footer stays visible.
                     .task(id: page) { await viewModel.loadNextPage() }
             case .failed(let message):
@@ -85,14 +81,14 @@ private struct EpisodeListFooter: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                    Button("Retry") {
+                    Button(.commonRetry) {
                         Task { await viewModel.loadNextPage() }
                     }
                     .buttonStyle(.bordered)
                 }
                 .frame(maxWidth: .infinity)
             case .endReached(let count):
-                Text(EpisodeListView.endOfListText(count: count))
+                Text(.episodeListEndOfList(count))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
@@ -111,7 +107,7 @@ private struct RefreshErrorBanner: View {
     var body: some View {
         Label {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Couldn't refresh. Showing saved episodes.")
+                Text(.episodeListRefreshErrorTitle)
                     .font(.subheadline.weight(.semibold))
                 Text(message)
                     .font(.footnote)
@@ -134,9 +130,9 @@ private struct LastUpdatedLabel: View {
         HStack(spacing: 6) {
             if isRefreshing {
                 ProgressView().controlSize(.mini)
-                Text("Updating…")
+                Text(.episodeListUpdating)
             } else if let date {
-                Text("Last updated \(date.formatted(date: .abbreviated, time: .shortened))")
+                Text(.episodeListLastUpdated(date.formatted(date: .abbreviated, time: .shortened)))
                     .accessibilityIdentifier("episodeList.lastUpdated")
             }
         }

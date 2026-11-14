@@ -9,11 +9,11 @@ struct CharacterDetailView: View {
 
     var body: some View {
         content
-            .navigationTitle(viewModel.character?.name ?? String(localized: "Character #\(viewModel.characterID)", comment: "Title until the character's name has loaded"))
+            .navigationTitle(viewModel.character?.name ?? String(localized: .characterTitle(viewModel.characterID)))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Export", systemImage: "square.and.arrow.up") {
+                    Button(.characterDetailExport, systemImage: "square.and.arrow.up") {
                         viewModel.export()
                     }
                     .disabled(viewModel.character == nil)
@@ -25,13 +25,13 @@ struct CharacterDetailView: View {
                 ExportConfirmationView(fileURL: file.url)
             }
             .alert(
-                "Export Failed",
+                .characterDetailExportFailedTitle,
                 isPresented: Binding(
                     get: { viewModel.exportError != nil },
                     set: { if !$0 { viewModel.exportError = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) {}
+                Button(role: .cancel) {} label: { Text(.commonOk) }
             } message: {
                 Text(viewModel.exportError ?? "")
             }
@@ -45,12 +45,12 @@ struct CharacterDetailView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed(let message):
             ContentUnavailableView {
-                Label("Couldn't Load Character", systemImage: "exclamationmark.triangle")
+                Label(.characterDetailLoadErrorTitle, systemImage: "exclamationmark.triangle")
             } description: {
                 Text(message)
             } actions: {
                 Button { Task { await viewModel.load() } } label: {
-                    Text("Retry").foregroundStyle(Color.onAccent)
+                    Text(.commonRetry).foregroundStyle(Color.onAccent)
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -70,10 +70,10 @@ private struct CharacterDetailContent: View {
                     .listRowBackground(Color.clear)
             }
 
-            Section("Details") {
-                LabeledContent("Name", value: character.name)
+            Section(.characterDetailDetails) {
+                LabeledContent(String(localized: .characterDetailName), value: character.name)
                     .accessibilityIdentifier("characterDetail.name")
-                LabeledContent("Status") {
+                LabeledContent(String(localized: .characterDetailStatus)) {
                     // An SF Symbol, not a fixed-size shape, so the dot scales with Dynamic Type.
                     HStack(spacing: 6) {
                         Image(systemName: "circle.fill")
@@ -84,9 +84,9 @@ private struct CharacterDetailContent: View {
                         Text(character.status)
                     }
                 }
-                LabeledContent("Species", value: character.species)
-                LabeledContent("Origin", value: character.originName)
-                LabeledContent("Episodes", value: character.episodeCount, format: .number)
+                LabeledContent(String(localized: .characterDetailSpecies), value: character.species)
+                LabeledContent(String(localized: .characterDetailOrigin), value: character.originName)
+                LabeledContent(String(localized: .characterDetailEpisodes), value: character.episodeCount, format: .number)
             }
         }
     }
@@ -116,15 +116,16 @@ private struct ExportConfirmationView: View {
                         .imageScale(.large)
                         .foregroundStyle(.green)
                         .accessibilityHidden(true)
-                    Text("Saved")
+                    Text(.exportSaved)
                         .font(.title2.bold())
                         .accessibilityIdentifier("export.confirmation")
-                    Text("**\(fileURL.lastPathComponent)** was saved. Find it in Files, in the Episodes folder under Exports.")
+                    // AttributedString(localized:) applies the **bold** markup in the catalog value.
+                    Text(AttributedString(localized: .exportMessage(fileURL.lastPathComponent)))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     ShareLink(item: fileURL) {
-                        Label("Share", systemImage: "square.and.arrow.up")
+                        Label(.exportShare, systemImage: "square.and.arrow.up")
                             .foregroundStyle(Color.onAccent)
                             .frame(maxWidth: .infinity)
                     }
@@ -139,7 +140,7 @@ private struct ExportConfirmationView: View {
             .toolbar {
                 // The sheet only confirms a finished action, so it is dismissed with Close, not Done.
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close", systemImage: "xmark") { dismiss() }
+                    Button(.commonClose, systemImage: "xmark") { dismiss() }
                 }
             }
         }
