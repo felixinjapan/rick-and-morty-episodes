@@ -9,10 +9,10 @@ complete app: built for its actual requirements, testable, and easy to change.
 
 | Requirement | Where |
 |---|---|
-| List all episodes (name, air date `dd/mm/yyyy`, episode code) | `Features/EpisodeList` |
+| List all episodes (name, air date `dd/mm/yyyy`, episode code) | `Presentation/EpisodeList` |
 | "End of list" text once everything is loaded | `EpisodeListView` footer |
-| Episode → list of character IDs | `Features/EpisodeCharacters` |
-| Character ID → detail (image, name, status, species, origin, episode count) | `Features/CharacterDetail` |
+| Episode → list of character IDs | `Presentation/EpisodeCharacters` |
+| Character ID → detail (image, name, status, species, origin, episode count) | `Presentation/CharacterDetail` |
 | Export character details to a local file other apps can open | `CharacterExporter` |
 | Background refresh of the list | `App/BackgroundRefresh.swift` |
 | *Extra:* persistence, pull-to-refresh, "last updated" timestamp | `Data/Persistence/`, `EpisodeListViewModel` |
@@ -46,22 +46,23 @@ handling and decoding run exactly as in production:
 MVVM with a thin domain layer. Folders are the layers; dependencies point inward.
 
 ```
-Features/  SwiftUI views ──▶ @MainActor @Observable view models
-           (EpisodeListViewModel, CharacterDetailViewModel)
-                                   │ depend on
-                                   ▼
-Domain/    Episode, CharacterDetails, EpisodeError,
-           EpisodeRepository (protocol)
-                                   ▲ implemented by
-                                   │
-Data/      DefaultEpisodeRepository (actor)  ◀── App/BackgroundRefresh (BGAppRefreshTask)
-              │                       │
-              ▼                       ▼
-           Networking/             Persistence/
-           RickAndMortyAPI (protocol)  FileEpisodeStore (actor, JSON file)
-           └ LiveRickAndMortyAPI (URLSession via HTTPTransport)
+Presentation/  SwiftUI views ──▶ @MainActor @Observable view models
+               (EpisodeListViewModel, CharacterDetailViewModel)
+                                    │ depend on
+                                    ▼
+Domain/        Episode, CharacterDetails, EpisodeError,
+               EpisodeRepository (protocol)
+                                    ▲ implemented by
+                                    │
+Data/          DefaultEpisodeRepository (actor)  ◀── App/BackgroundRefresh (BGAppRefreshTask)
+                  │                       │
+                  ▼                       ▼
+               Networking/             Persistence/
+               RickAndMortyAPI (protocol)  FileEpisodeStore (actor, JSON file)
+               └ LiveRickAndMortyAPI (URLSession via HTTPTransport)
 
-App/       AppDependencies: the composition root that picks the concrete types
+App/           AppDependencies: the composition root that picks the concrete types
+Support/       Cross-cutting helpers that belong to no layer (logging)
 ```
 
 - **Views** only display state. A view model exists only where there is real logic to
@@ -77,7 +78,7 @@ App/       AppDependencies: the composition root that picks the concrete types
   one at a time.
 - **Errors** have one vocabulary per layer. Networking reports `APIError` (offline, HTTP
   status, decoding). The repository translates it into the domain's `EpisodeError`, and
-  the presentation layer (`Features/Shared/ErrorMessages.swift`) decides the wording.
+  the presentation layer (`Presentation/Shared/ErrorMessages.swift`) decides the wording.
   Cancellation passes through unchanged, so it is never shown as an error.
 - **Networking** maps JSON DTOs to domain entities, so API changes stay in one layer.
 - **Configuration** that is a product or environment decision lives in `AppConfiguration`:
