@@ -168,10 +168,14 @@ final class EpisodeListViewModel {
     }
 
     private func apply(_ snapshot: EpisodeSnapshot) {
+        // Only a newer fetch of page 1 makes the data fresh. A page added to the same list
+        // doesn't, so a refresh error stays on screen until then.
+        if snapshot.refreshedAt != lastRefreshed {
+            refreshError = nil
+        }
         listGeneration += 1
         self.snapshot = snapshot
         pageError = nil
-        refreshError = nil
         isLoadingPage = false
     }
 }
