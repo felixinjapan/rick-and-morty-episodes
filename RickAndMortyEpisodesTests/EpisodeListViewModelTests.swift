@@ -240,6 +240,25 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.lastRefreshed == fixedDate)
     }
 
+    @Test("Returning to the app while a refresh is running doesn't start another", .timeLimit(.minutes(1)))
+    func noDuplicateRefreshOnReturn() async throws {
+        let api = threePageAPI()
+        let gate = Gate()
+        await api.holdPage(1, until: gate)
+        let cached = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
+        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(7200))
+
+        // Launch with a stale cache starts a refresh; the app becomes active while it runs.
+        let launch = Task { await viewModel.start() }
+        while await api.requestedPages.isEmpty { await Task.yield() }
+        await viewModel.refreshIfNeeded()
+
+        #expect(await api.requestedPages == [1])
+        await gate.open()
+        await launch.value
+        #expect(viewModel.episodes.count == 20)
+    }
+
     @Test("Returning to the app rebuilds the list only when it replaced rows the user had loaded")
     func listIdentityOnReturn() async {
         let repository = DefaultEpisodeRepository(api: threePageAPI(), store: .temporary(), now: { fixedDate })
