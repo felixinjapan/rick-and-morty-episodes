@@ -92,6 +92,17 @@ struct LiveAPITests {
         }
     }
 
+    @Test("A missing air date affects only that episode, not the whole page")
+    func nullAirDate() async throws {
+        let json = """
+            {"info": {"next": null}, "results": [
+                {"id": 1, "name": "Pilot", "air_date": null, "episode": "S01E01", "characters": []}
+            ]}
+            """
+        let page = try await api(body: Data(json.utf8)).episodes(page: 1)
+        #expect(page.episodes.map(\.airDate) == [nil])
+    }
+
     @Test("Malformed JSON becomes a decoding error")
     func malformedJSON() async {
         await #expect(throws: APIError.decoding) {
