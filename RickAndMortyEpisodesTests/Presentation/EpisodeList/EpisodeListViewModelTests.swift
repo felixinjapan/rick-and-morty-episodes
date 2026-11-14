@@ -50,15 +50,20 @@ struct EpisodeListViewModelTests {
         #expect(await api.requestedPages == [1, 2, 3])
     }
 
-    @Test("Simultaneous triggers load a page only once")
+    @Test("A second trigger while a page is loading is ignored", .timeLimit(.minutes(1)))
     func duplicateTriggersAreIgnored() async {
         let api = threePageAPI()
+        let gate = Gate()
+        await api.holdPage(1, until: gate)
         let viewModel = makeViewModel(api: api)
         await viewModel.start()
 
-        async let first: Void = viewModel.loadNextPage()
-        async let second: Void = viewModel.loadNextPage()
-        _ = await (first, second)
+        // Page 1 is held, so the second trigger is sure to arrive while it is loading.
+        let first = Task { await viewModel.loadNextPage() }
+        while await api.requestedPages.isEmpty { await Task.yield() }
+        await viewModel.loadNextPage()
+        await gate.open()
+        await first.value
 
         #expect(await api.requestedPages == [1])
         #expect(viewModel.episodes.count == 20)
