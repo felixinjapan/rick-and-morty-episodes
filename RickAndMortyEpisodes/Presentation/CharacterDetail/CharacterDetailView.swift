@@ -45,10 +45,8 @@ struct CharacterDetailView: View {
             } description: {
                 Text(message)
             } actions: {
-                Button { Task { await viewModel.load() } } label: {
-                    Text(.commonRetry).foregroundStyle(Color.onAccent)
-                }
-                .buttonStyle(.borderedProminent)
+                Button(.commonRetry) { Task { await viewModel.load() } }
+                    .buttonStyle(.bordered)
             }
         case .loaded(let character):
             CharacterDetailContent(character: character)
