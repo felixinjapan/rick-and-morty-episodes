@@ -112,6 +112,16 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 
 ## Background refresh
 
+The brief asks to "implement refreshing the list content in the background". The app covers
+both readings of that:
+
+- **While the app is in the background:** a `BGAppRefreshTask` updates the saved list, so it
+  is fresh the next time the app opens (details below).
+- **Without blocking the list while it's open:** the cached list shows immediately, stale data
+  (older than 1 h) refreshes quietly at launch and on returning to the app, with an
+  "Updating…" status instead of a full-screen loader, and all network, decoding and file work
+  runs off the main thread in actors.
+
 - All lifecycle handling is in one place: the app's `scenePhase` handler
   (`RickAndMortyEpisodesApp`). Going to the background schedules a `BGAppRefreshTask`
   (no sooner than 1 h); becoming active calls the list view model's `refreshIfNeeded()`.
