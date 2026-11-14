@@ -3,7 +3,7 @@ import SwiftUI
 struct CharacterDetailView: View {
     @State private var viewModel: CharacterDetailViewModel
 
-    init(characterID: Int, repository: any CharacterRepository, exporter: CharacterExporter) {
+    init(characterID: Int, repository: any CharacterRepository, exporter: any CharacterExporting) {
         _viewModel = State(initialValue: CharacterDetailViewModel(
             characterID: characterID, repository: repository, exporter: exporter
         ))
@@ -95,7 +95,7 @@ private struct CharacterDetailContent: View {
         CharacterDetailView(
             characterID: 1,
             repository: AppDependencies.makePreviewRepositories().characters,
-            exporter: .preview
+            exporter: CharacterExporter.preview
         )
     }
 }
@@ -105,7 +105,7 @@ private struct CharacterDetailContent: View {
         CharacterDetailView(
             characterID: 1,
             repository: AppDependencies.makePreviewRepositories(networkUnavailable: true).characters,
-            exporter: .preview
+            exporter: CharacterExporter.preview
         )
     }
 }

@@ -24,9 +24,9 @@ final class CharacterDetailViewModel {
 
     let characterID: Int
     private let repository: any CharacterRepository
-    private let exporter: CharacterExporter
+    private let exporter: any CharacterExporting
 
-    init(characterID: Int, repository: any CharacterRepository, exporter: CharacterExporter) {
+    init(characterID: Int, repository: any CharacterRepository, exporter: any CharacterExporting) {
         self.characterID = characterID
         self.repository = repository
         self.exporter = exporter
