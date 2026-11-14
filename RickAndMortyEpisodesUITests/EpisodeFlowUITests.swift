@@ -90,6 +90,12 @@ final class EpisodeFlowUITests: XCTestCase {
         return query.matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
+    /// The system share sheet. `activityCollectionView` is UIKit's own identifier, not the
+    /// app's, so if an iOS update renames it, this is the one place to change.
+    private var shareSheet: XCUIElement {
+        app.collectionViews["activityCollectionView"]
+    }
+
     func testExportRemainsReachableAtLargestAccessibilityTextSize() {
         app.terminate()
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
@@ -125,6 +131,6 @@ final class EpisodeFlowUITests: XCTestCase {
         attachment.lifetime = .keepAlways
         add(attachment)
         share.tap()
-        XCTAssertTrue(app.collectionViews["activityCollectionView"].waitForExistence(timeout: 5))
+        XCTAssertTrue(shareSheet.waitForExistence(timeout: 5), "The share sheet should open for the exported file")
     }
 }
