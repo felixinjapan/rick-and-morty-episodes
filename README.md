@@ -72,10 +72,11 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   on, and `EpisodeError`. It knows nothing about JSON, HTTP, files or SwiftUI. There are no
   use-case classes: with three screens they would only forward calls to the repository.
 - **`DefaultEpisodeRepository`** is the single source of truth, shared by the UI and the
-  background task. It is an actor because both reach it at once. A refresh fetches page 1
-  only and saves it as the new start of the list; deeper pages load (and are cached) again
-  as the user scrolls. Overlapping refreshes are not merged: each saves a valid first page,
-  and the store writes one at a time.
+  background task. It is an actor because both reach it at once. It owns the cached list:
+  it loads each next page, appends it and saves the list so far, and a refresh fetches page 1
+  only and saves it as the new start of the list. A page that arrives after a refresh is
+  dropped rather than saved over the newer list. Overlapping refreshes are not merged: each
+  saves a valid first page, and the store writes one at a time.
 - **Errors** have one vocabulary per layer. Networking reports `APIError` (offline, HTTP
   status, decoding). The repository translates it into the domain's `EpisodeError`, and
   the presentation layer (`Presentation/Shared/ErrorMessages.swift`) decides the wording.
