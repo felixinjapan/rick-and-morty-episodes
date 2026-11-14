@@ -12,7 +12,7 @@ struct EpisodeListView: View {
         NavigationStack {
             List {
                 if let refreshError = viewModel.refreshError {
-                    RefreshErrorBanner(message: refreshError, lastRefreshed: viewModel.lastRefreshed)
+                    RefreshErrorBanner(message: refreshError)
                 }
 
                 ForEach(viewModel.episodes) { episode in
@@ -107,7 +107,6 @@ private struct EpisodeListFooter: View {
 
 private struct RefreshErrorBanner: View {
     let message: String
-    let lastRefreshed: Date?
 
     var body: some View {
         Label {

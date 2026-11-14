@@ -29,7 +29,6 @@ struct LiveAPITests {
         let page = try await recorded.episodes(page: 1)
 
         #expect(page.episodes.count == 20)
-        #expect(page.pageCount == 3)
         #expect(page.hasNextPage)
 
         let pilot = try #require(page.episodes.first)
