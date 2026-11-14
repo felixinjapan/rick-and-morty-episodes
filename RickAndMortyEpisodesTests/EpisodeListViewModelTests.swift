@@ -152,6 +152,22 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.footer == .endReached(count: 1))
     }
 
+    @Test("Loading another page keeps the refresh error while the list is still old")
+    func pageLoadKeepsRefreshError() async throws {
+        let api = threePageAPI()
+        await api.setPage(1, .failure(APIError.offline))
+        let cached = EpisodeSnapshot(episodes: (1...20).map(Episode.make), nextPage: 2, refreshedAt: fixedDate)
+        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached))
+        await viewModel.start()
+        await viewModel.refresh()
+        #expect(viewModel.refreshError == EpisodeError.offline.userMessage)
+
+        await viewModel.loadNextPage()
+
+        #expect(viewModel.episodes.count == 40)
+        #expect(viewModel.refreshError == EpisodeError.offline.userMessage)
+    }
+
     @Test("Pull-to-refresh starts the list again from a fresh page 1")
     func refreshStartsFromFirstPage() async {
         let api = threePageAPI()
