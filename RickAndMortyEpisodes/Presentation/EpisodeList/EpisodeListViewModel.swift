@@ -37,8 +37,9 @@ final class EpisodeListViewModel {
     private var hasStarted = false
     private var hasCheckedCache = false
     private var activeRefreshCount = 0
-    /// Incremented whenever the whole list is replaced, so a page request that was
-    /// started before a refresh can't append stale results to the new list.
+    /// Incremented whenever the whole list is replaced. A page request started before that
+    /// ignores its outcome: the repository has already dropped the late page, and its error
+    /// or its "loading finished" belongs to the old list, not the one on screen.
     private var listGeneration = 0
 
     private let repository: any EpisodeRepository
