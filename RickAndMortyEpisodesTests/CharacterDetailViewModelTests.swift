@@ -25,7 +25,10 @@ struct CharacterDetailViewModelTests {
     @Test("A failed load shows an error and export stays unavailable")
     func loadFailure() async {
         let repository = DefaultCharacterRepository(api: StubAPI())
-        let viewModel = CharacterDetailViewModel(characterID: 99999, repository: repository)
+        let viewModel = CharacterDetailViewModel(
+            characterID: 99999, repository: repository,
+            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
+        )
 
         await viewModel.load()
         viewModel.export()

@@ -3,8 +3,10 @@ import SwiftUI
 struct CharacterDetailView: View {
     @State private var viewModel: CharacterDetailViewModel
 
-    init(characterID: Int, repository: any CharacterRepository) {
-        _viewModel = State(initialValue: CharacterDetailViewModel(characterID: characterID, repository: repository))
+    init(characterID: Int, repository: any CharacterRepository, exporter: CharacterExporter) {
+        _viewModel = State(initialValue: CharacterDetailViewModel(
+            characterID: characterID, repository: repository, exporter: exporter
+        ))
     }
 
     var body: some View {
@@ -97,7 +99,8 @@ private struct CharacterDetailContent: View {
     NavigationStack {
         CharacterDetailView(
             characterID: 1,
-            repository: DefaultCharacterRepository(api: RecordedRickAndMortyAPI())
+            repository: DefaultCharacterRepository(api: RecordedRickAndMortyAPI()),
+            exporter: .preview
         )
     }
 }
