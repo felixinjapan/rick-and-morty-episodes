@@ -95,7 +95,9 @@ final class EpisodeListViewModel {
     /// then refreshes from the network if the data is still stale. The app calls this
     /// when it returns to the foreground.
     func refreshIfNeeded() async {
-        guard hasCheckedCache else { return }
+        // A refresh already running (e.g. the stale-cache refresh at launch) will bring the
+        // list up to date; starting another would only repeat the same request.
+        guard hasCheckedCache, !isRefreshing else { return }
         let rowsBefore = episodes.count
         if let snapshot = await repository.currentSnapshot(),
            snapshot.refreshedAt > (lastRefreshed ?? .distantPast) {
