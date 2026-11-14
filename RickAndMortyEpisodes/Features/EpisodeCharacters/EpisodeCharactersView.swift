@@ -10,6 +10,11 @@ struct CharacterRoute: Hashable {
 struct EpisodeCharactersView: View {
     let episode: Episode
 
+    /// "1 character" or "19 characters", using the plural rules in the string catalog.
+    static func characterCountText(_ count: Int) -> String {
+        String(localized: "\(count) characters", comment: "Footer below an episode's character list")
+    }
+
     var body: some View {
         List {
             Section {
@@ -19,9 +24,10 @@ struct EpisodeCharactersView: View {
                     }
                 }
             } header: {
-                Text("\(episode.code) · \(episode.formattedAirDate)")
+                // Data and punctuation only, so nothing to translate.
+                Text(verbatim: "\(episode.code) · \(episode.formattedAirDate)")
             } footer: {
-                Text("\(episode.characterIDs.count) characters")
+                Text(Self.characterCountText(episode.characterIDs.count))
             }
         }
         .overlay {

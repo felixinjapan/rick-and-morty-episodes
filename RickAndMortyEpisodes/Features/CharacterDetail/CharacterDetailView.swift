@@ -9,7 +9,7 @@ struct CharacterDetailView: View {
 
     var body: some View {
         content
-            .navigationTitle(viewModel.character?.name ?? "Character #\(viewModel.characterID)")
+            .navigationTitle(viewModel.character?.name ?? String(localized: "Character #\(viewModel.characterID)", comment: "Title until the character's name has loaded"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {

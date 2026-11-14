@@ -1,0 +1,103 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld characters" : {
+      "comment" : "Footer below an episode's character list",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld character"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld characters"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "**%@** was saved. Find it in Files, in the Episodes folder under Exports." : {},
+    "Character #%lld" : {
+      "comment" : "Title until the character's name has loaded"
+    },
+    "Close" : {},
+    "Couldn't Load Character" : {},
+    "Couldn't Load Episodes" : {},
+    "Couldn't refresh. Showing saved episodes." : {},
+    "Details" : {},
+    "Episodes" : {},
+    "Export" : {},
+    "Export Failed" : {},
+    "Image of %@" : {},
+    "Last updated %@" : {},
+    "Loading more episodes" : {},
+    "Loading portrait" : {},
+    "Name" : {},
+    "No Characters" : {},
+    "OK" : {},
+    "Origin" : {},
+    "Portrait unavailable for %@" : {},
+    "Retry" : {},
+    "Saved" : {},
+    "Share" : {},
+    "Something went wrong. Try again in a moment." : {
+      "comment" : "Error message: Any other failure"
+    },
+    "Species" : {},
+    "Status" : {},
+    "The file couldn't be saved. %@" : {
+      "comment" : "Export failure alert; the placeholder is the system's reason"
+    },
+    "The server is having problems. Please try again later." : {
+      "comment" : "Error message: Server error or unexpected response"
+    },
+    "The server took too long to respond. Try again in a moment." : {
+      "comment" : "Error message: Request timed out"
+    },
+    "The server's data could not be read. Try again later." : {
+      "comment" : "Error message: The response couldn't be decoded"
+    },
+    "This item could not be found." : {
+      "comment" : "Error message: The requested episode or character doesn't exist"
+    },
+    "Too many requests. Please try again in a moment." : {
+      "comment" : "Error message: The server is rate limiting the app"
+    },
+    "Updating…" : {},
+    "You appear to be offline. Check your connection, then try again." : {
+      "comment" : "Error message: No internet connection"
+    },
+    "You've reached the end · %lld episodes" : {
+      "comment" : "Last row of the episode list once every episode is loaded",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You've reached the end · %lld episode"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You've reached the end · %lld episodes"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
