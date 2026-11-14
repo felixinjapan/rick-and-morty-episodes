@@ -182,7 +182,7 @@ struct EpisodeListViewModelTests {
         let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached))
         await viewModel.start()
         await viewModel.refresh()
-        #expect(viewModel.refreshError == DataError.offline.userMessage)
+        try #require(viewModel.refreshError == DataError.offline.userMessage)
 
         await viewModel.loadNextPage()
 
@@ -191,13 +191,13 @@ struct EpisodeListViewModelTests {
     }
 
     @Test("Pull-to-refresh starts the list again from a fresh page 1")
-    func refreshStartsFromFirstPage() async {
+    func refreshStartsFromFirstPage() async throws {
         let api = threePageAPI()
         let viewModel = makeViewModel(api: api)
         await viewModel.start()
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
-        #expect(viewModel.episodes.count == 40)
+        try #require(viewModel.episodes.count == 40)
 
         await viewModel.refresh()
 
@@ -215,7 +215,7 @@ struct EpisodeListViewModelTests {
         let viewModel = makeViewModel(api: api, store: store)
         await viewModel.start()
         await viewModel.refresh()
-        #expect(viewModel.refreshError != nil)
+        try #require(viewModel.refreshError != nil)
 
         let newer = EpisodeSnapshot(episodes: [.make(id: 2)], refreshedAt: fixedDate.addingTimeInterval(60))
         try await store.save(newer)
@@ -235,8 +235,8 @@ struct EpisodeListViewModelTests {
         let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { currentDate })
         await viewModel.start()
         for _ in 0..<3 { await viewModel.loadNextPage() }
-        #expect(viewModel.episodes.count == 45)
-        #expect(viewModel.lastRefreshed == fixedDate)
+        try #require(viewModel.episodes.count == 45)
+        try #require(viewModel.lastRefreshed == fixedDate)
 
         currentDate = fixedDate.addingTimeInterval(7200)
         await viewModel.refreshIfNeeded()
@@ -288,14 +288,14 @@ struct EpisodeListViewModelTests {
     }
 
     @Test("Returning to the app rebuilds the list only when it replaced rows the user had loaded")
-    func listIdentityOnReturn() async {
+    func listIdentityOnReturn() async throws {
         let repository = DefaultEpisodeRepository(api: threePageAPI(), store: .temporary(), now: { fixedDate })
         var currentDate = fixedDate
         let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { currentDate })
         await viewModel.start()
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
-        #expect(viewModel.episodes.count == 40)
+        try #require(viewModel.episodes.count == 40)
 
         // Back within the hour: nothing changes.
         await viewModel.refreshIfNeeded()
