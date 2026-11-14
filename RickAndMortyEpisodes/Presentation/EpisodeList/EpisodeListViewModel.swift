@@ -26,6 +26,11 @@ final class EpisodeListViewModel {
     var isRefreshing: Bool { activeRefreshCount > 0 }
     /// Shown as a banner when a refresh fails but older content is still on screen.
     private(set) var refreshError: String?
+    /// The list's identity in the view. It changes when returning to the app replaced the list
+    /// with a shorter one, so rows the user had scrolled to are gone; SwiftUI then builds a
+    /// new list that starts at the top, like a fresh launch, instead of jumping to wherever
+    /// the shorter list ends. Pull-to-refresh and page loads don't change it.
+    private(set) var listIdentity = 0
 
     private var pageError: String?
     private var isLoadingPage = false
@@ -91,12 +96,16 @@ final class EpisodeListViewModel {
     /// when it returns to the foreground.
     func refreshIfNeeded() async {
         guard hasCheckedCache else { return }
+        let rowsBefore = episodes.count
         if let snapshot = await repository.currentSnapshot(),
            snapshot.refreshedAt > (lastRefreshed ?? .distantPast) {
             apply(snapshot)
         }
         if isStale {
             await refresh()
+        }
+        if episodes.count < rowsBefore {
+            listIdentity += 1
         }
     }
 
