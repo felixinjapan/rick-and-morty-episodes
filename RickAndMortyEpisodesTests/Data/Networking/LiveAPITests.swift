@@ -37,7 +37,7 @@ struct LiveAPITests {
         let pilot = try #require(page.episodes.first)
         #expect(pilot.name == "Pilot")
         #expect(pilot.code == "S01E01")
-        #expect(pilot.formattedAirDate == "02/12/2013")
+        #expect(pilot.airDate == Date(timeIntervalSince1970: 1_385_942_400))   // 2 December 2013, GMT
         #expect(pilot.characterIDs.prefix(2) == [1, 2])
     }
 
@@ -74,7 +74,7 @@ struct LiveAPITests {
         }
         #expect(episodes.map(\.id) == Array(1...51))
         #expect(episodes.allSatisfy { !$0.characterIDs.isEmpty })
-        #expect(episodes.allSatisfy { $0.formattedAirDate.wholeMatch(of: /\d{2}\/\d{2}\/\d{4}/) != nil })
+        #expect(episodes.allSatisfy { $0.airDate != nil })
     }
 
     @Test("Builds the expected request URLs")
