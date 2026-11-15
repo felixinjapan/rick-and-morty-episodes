@@ -12,5 +12,7 @@ protocol EpisodeRepository: Sendable {
     func loadNextPage(after current: EpisodeSnapshot?) async throws -> EpisodeSnapshot
 
     /// Fetches page 1 and saves it as the new start of the list: one request however many pages exist.
+    /// The cached pages after it stay while the catalogue is the same size; if it grew, the list ends
+    /// at the last whole page and the new episodes load as the user scrolls.
     func refreshFirstPage() async throws -> EpisodeSnapshot
 }

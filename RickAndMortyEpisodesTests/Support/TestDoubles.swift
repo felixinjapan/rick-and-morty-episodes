@@ -92,8 +92,9 @@ extension Episode {
 }
 
 extension EpisodePage {
-    static func make(ids: ClosedRange<Int>, hasNextPage: Bool) -> EpisodePage {
-        EpisodePage(episodes: ids.map(Episode.make), hasNextPage: hasNextPage)
+    /// `totalCount` is the three-page catalogue of `makeThreePageAPI`.
+    static func make(ids: ClosedRange<Int>, hasNextPage: Bool, totalCount: Int = 45) -> EpisodePage {
+        EpisodePage(episodes: ids.map(Episode.make), hasNextPage: hasNextPage, totalCount: totalCount)
     }
 }
 

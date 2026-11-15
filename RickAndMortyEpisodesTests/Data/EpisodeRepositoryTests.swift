@@ -4,19 +4,64 @@ import Testing
 
 @Suite("Episode repository")
 struct EpisodeRepositoryTests {
-    @Test("Refresh fetches only the first page and saves it as the start of the list")
-    func refreshFetchesFirstPage() async throws {
+    @Test("Refresh makes one request and saves a fresh page 1 with the cached pages after it")
+    func refreshKeepsCachedPagesWhenCatalogueIsUnchanged() async throws {
         let api = makeThreePageAPI()
-        let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), refreshedAt: fixedDate)
+        await api.setPage(1, .success(.make(ids: 101...120, hasNextPage: true)))
+        let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
         let store = try await FileEpisodeStore.makeTemporary(containing: previous)
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate.addingTimeInterval(60) })
 
         let snapshot = try await repository.refreshFirstPage()
 
         #expect(await api.requestedPages == [1])
+        #expect(snapshot.episodes.map(\.id) == Array(101...120) + Array(21...45))
+        #expect(snapshot.nextPage == nil)
+        #expect(snapshot.refreshedAt == fixedDate.addingTimeInterval(60))
+        #expect(try await store.load() == snapshot)
+    }
+
+    @Test("A bigger catalogue keeps the whole cached pages and loads the rest on scroll")
+    func refreshWhenCatalogueGrew() async throws {
+        let api = makeThreePageAPI()
+        await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true, totalCount: 46)))
+        let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
+        let store = try await FileEpisodeStore.makeTemporary(containing: previous)
+        let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate.addingTimeInterval(60) })
+
+        let snapshot = try await repository.refreshFirstPage()
+
+        // The last cached page had 5 of 20 places filled, so the new episode lands on it: load it again.
+        #expect(snapshot.episodes.map(\.id) == Array(1...40))
+        #expect(snapshot.nextPage == 3)
+        #expect(snapshot.totalCount == 46)
+    }
+
+    @Test("A smaller catalogue keeps only the new page 1")
+    func refreshWhenCatalogueShrank() async throws {
+        let api = makeThreePageAPI()
+        await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true, totalCount: 44)))
+        let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
+        let repository = DefaultEpisodeRepository(
+            api: api, store: try await FileEpisodeStore.makeTemporary(containing: previous)
+        )
+
+        let snapshot = try await repository.refreshFirstPage()
+
         #expect(snapshot.episodes.map(\.id) == Array(1...20))
         #expect(snapshot.nextPage == 2)
-        #expect(snapshot.refreshedAt == fixedDate.addingTimeInterval(60))
+    }
+
+    @Test("A refresh in a new process reads the saved list first, so the cached pages survive")
+    func refreshBeforeAnythingWasLoaded() async throws {
+        let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
+        let store = try await FileEpisodeStore.makeTemporary(containing: previous)
+        // Nothing has called `loadCurrentSnapshot()`, like the background task launching the app.
+        let repository = DefaultEpisodeRepository(api: makeThreePageAPI(), store: store, now: { fixedDate.addingTimeInterval(60) })
+
+        let snapshot = try await repository.refreshFirstPage()
+
+        #expect(snapshot.episodes.map(\.id) == Array(1...45))
         #expect(try await store.load() == snapshot)
     }
 

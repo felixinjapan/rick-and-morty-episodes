@@ -28,7 +28,7 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.footer == .loading(page: 2))
         // Each loaded page is saved, and "Last updated" is the time page 1 was fetched.
         #expect(try await store.load() == EpisodeSnapshot(
-            episodes: viewModel.episodes, nextPage: 2, refreshedAt: fixedDate
+            episodes: viewModel.episodes, nextPage: 2, totalCount: 45, refreshedAt: fixedDate
         ))
         #expect(viewModel.lastRefreshedAt == fixedDate)
 
@@ -37,7 +37,7 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.episodes.map(\.id) == Array(1...45))
         #expect(viewModel.footer == .endReached(count: 45))
         #expect(try await store.load() == EpisodeSnapshot(
-            episodes: viewModel.episodes, nextPage: nil, refreshedAt: fixedDate
+            episodes: viewModel.episodes, nextPage: nil, totalCount: 45, refreshedAt: fixedDate
         ))
     }
 
@@ -155,9 +155,10 @@ struct EpisodeListViewModelTests {
         #expect(await api.requestedPages == [2])
     }
 
-    @Test("Stale cached content is shown, then refreshed from page 1")
+    @Test("Stale cached content is shown, then page 1 is refreshed and the cached pages after it stay")
     func staleCache() async throws {
         let api = makeThreePageAPI()
+        await api.setPage(1, .success(.make(ids: 101...120, hasNextPage: true)))
         let cached = EpisodeSnapshot(episodes: (1...45).map(Episode.make), refreshedAt: fixedDate)
         let viewModel = makeViewModel(
             api: api, store: try await .makeTemporary(containing: cached), now: fixedDate.addingTimeInterval(7200)
@@ -165,8 +166,8 @@ struct EpisodeListViewModelTests {
 
         await viewModel.start()
 
-        #expect(viewModel.episodes.map(\.id) == Array(1...20))
-        #expect(viewModel.footer == .loading(page: 2))
+        #expect(viewModel.episodes.map(\.id) == Array(101...120) + Array(21...45))
+        #expect(viewModel.footer == .endReached(count: 45))
         #expect(viewModel.refreshErrorMessage == nil)
         #expect(await api.requestedPages == [1])
     }
@@ -209,8 +210,8 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.refreshErrorMessage == DataError.offline.userMessage)
     }
 
-    @Test("Pull-to-refresh starts the list again from a fresh page 1")
-    func refreshStartsFromFirstPage() async throws {
+    @Test("Pull-to-refresh fetches a fresh page 1 and keeps the pages already loaded")
+    func refreshKeepsLoadedPages() async throws {
         let api = makeThreePageAPI()
         let viewModel = makeViewModel(api: api)
         await viewModel.start()
@@ -220,8 +221,8 @@ struct EpisodeListViewModelTests {
 
         await viewModel.refresh()
 
-        #expect(viewModel.episodes.map(\.id) == Array(1...20))
-        #expect(viewModel.footer == .loading(page: 2))
+        #expect(viewModel.episodes.map(\.id) == Array(1...40))
+        #expect(viewModel.footer == .loading(page: 3))
         #expect(await api.requestedPages == [1, 2, 1])
     }
 
@@ -308,7 +309,8 @@ struct EpisodeListViewModelTests {
 
     @Test("Returning to the app rebuilds the list only when it replaced rows the user had loaded")
     func listIdentityOnReturn() async throws {
-        let repository = DefaultEpisodeRepository(api: makeThreePageAPI(), store: .makeTemporary(), now: { fixedDate })
+        let api = makeThreePageAPI()
+        let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary(), now: { fixedDate })
         var currentDate = fixedDate
         let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { currentDate })
         await viewModel.start()
@@ -320,7 +322,9 @@ struct EpisodeListViewModelTests {
         await viewModel.refreshIfNeeded()
         #expect(viewModel.listIdentity == 0)
 
-        // Back after two hours: a fresh page 1 replaces the 40 loaded rows.
+        // Back after two hours, with fewer episodes than before: only the fresh page 1 is kept,
+        // and it replaces the 40 loaded rows. (A catalogue of the same size keeps loaded rows.)
+        await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true, totalCount: 44)))
         currentDate = fixedDate.addingTimeInterval(7200)
         await viewModel.refreshIfNeeded()
         #expect(viewModel.episodes.count == 20)

@@ -58,6 +58,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         let snapshot = EpisodeSnapshot(
             episodes: (current?.episodes ?? []) + loaded.episodes,
             nextPage: loaded.hasNextPage ? page + 1 : nil,
+            totalCount: loaded.totalCount,
             // "Last updated" and staleness refer to when page 1 was fetched.
             refreshedAt: current?.refreshedAt ?? now()
         )
@@ -66,18 +67,18 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         return snapshot
     }
 
-    /// See `EpisodeRepository`. Pages beyond page 1 leave the cache and load again on scroll.
-    /// Overlapping refreshes aren't merged: each saves a valid first page and the store writes
+    /// See `EpisodeRepository`. Cached pages after page 1 stay unless the catalogue shrank, and
+    /// pages for newly added episodes load on scroll (see `EpisodeSnapshot.refreshed`).
+    /// Overlapping refreshes aren't merged: each saves a valid list and the store writes
     /// them one at a time.
     func refreshFirstPage() async throws -> EpisodeSnapshot {
+        // Read the saved list first: in a new process (the background task) memory is still empty,
+        // and refreshing without it would save a list that has lost its cached pages.
+        _ = await loadCurrentSnapshot()
         let firstPage = try await translatingErrors(logger: logger) { try await api.episodes(page: 1) }
         // Saved even if cancelled now: the page is valid and the write is small, so the request
-        // isn't wasted.
-        let snapshot = EpisodeSnapshot(
-            episodes: firstPage.episodes,
-            nextPage: firstPage.hasNextPage ? 2 : nil,
-            refreshedAt: now()
-        )
+        // isn't wasted. `latest` is read after the request, so a page loaded meanwhile is kept.
+        let snapshot = EpisodeSnapshot.refreshed(latest, with: firstPage, at: now())
         latest = snapshot
         await persist(snapshot)
         return snapshot

@@ -5,7 +5,8 @@ import Foundation
 struct AppConfiguration: Sendable {
     var apiBaseURL: URL
     /// How long fetched episodes count as fresh: the foreground staleness check and the earliest
-    /// background refresh both use it, so they can't drift apart.
+    /// background refresh both use it, so they can't drift apart. The catalogue rarely changes and a
+    /// refresh is one request that also reports whether it grew, so half a day is enough.
     var freshnessInterval: TimeInterval
     /// Short timeouts suit a small JSON API; the 60 s default would leave a spinner up too long.
     var requestTimeout: TimeInterval
@@ -13,7 +14,7 @@ struct AppConfiguration: Sendable {
 
     static let production = AppConfiguration(
         apiBaseURL: URL(string: "https://rickandmortyapi.com/api")!,
-        freshnessInterval: 60 * 60,
+        freshnessInterval: 12 * 60 * 60,
         requestTimeout: 15,
         resourceTimeout: 30
     )
