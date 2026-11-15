@@ -1,11 +1,9 @@
 import Foundation
 import Observation
 
-/// State and behaviour of the episode list: incremental paging, cached content,
-/// pull-to-refresh and the "last updated" timestamp.
-///
-/// Main-actor isolated because SwiftUI reads it. Being on one actor also makes the
-/// "is a page already loading?" check-and-set atomic, which prevents duplicate page requests.
+/// State of the episode list: paging, cached content, pull-to-refresh and "last updated".
+/// Main-actor isolated because SwiftUI reads it; that also makes the "is a page already loading?"
+/// check-and-set atomic, so duplicate page requests can't happen.
 @MainActor
 @Observable
 final class EpisodeListViewModel {
@@ -26,10 +24,9 @@ final class EpisodeListViewModel {
     var isRefreshing: Bool { activeRefreshCount > 0 }
     /// Shown as a banner when a refresh fails but older content is still on screen.
     private(set) var refreshError: String?
-    /// The list's identity in the view. It changes when returning to the app replaced the list
-    /// with a shorter one, so rows the user had scrolled to are gone; SwiftUI then builds a
-    /// new list that starts at the top, like a fresh launch, instead of jumping to wherever
-    /// the shorter list ends. Pull-to-refresh and page loads don't change it.
+    /// Changes when returning to the app replaced loaded rows with a shorter list. The view uses it
+    /// as the list's `.id`, so SwiftUI rebuilds the list from the top instead of landing mid-list.
+    /// Page loads and pull-to-refresh don't change it.
     private(set) var listIdentity = 0
 
     private var pageError: String?
@@ -37,9 +34,8 @@ final class EpisodeListViewModel {
     private var hasStarted = false
     private var hasCheckedCache = false
     private var activeRefreshCount = 0
-    /// Incremented whenever the whole list is replaced. A page request started before that
-    /// ignores its outcome: the repository has already dropped the late page, and its error
-    /// or its "loading finished" belongs to the old list, not the one on screen.
+    /// Incremented whenever the whole list is replaced. A page request that started earlier ignores
+    /// its outcome: its error or "finished" belongs to the old list.
     private var listGeneration = 0
 
     private let repository: any EpisodeRepository
@@ -56,8 +52,7 @@ final class EpisodeListViewModel {
         self.now = now
     }
 
-    /// A loading error while no episodes are on screen. The view shows it full screen
-    /// instead of in the footer row.
+    /// A load error while no episodes are on screen; the view shows it full screen.
     var emptyListError: String? {
         episodes.isEmpty ? pageError : nil
     }
@@ -76,8 +71,8 @@ final class EpisodeListViewModel {
 
     // MARK: - Lifecycle
 
-    /// Shows cached content immediately if there is any, then refreshes it if it's stale.
-    /// Without a cache, the footer's `.loading(page: 1)` state starts incremental loading.
+    /// Shows the cached list at once, then refreshes it if stale. Without a cache, the footer's
+    /// `.loading(page: 1)` starts the paging.
     func start() async {
         guard !hasStarted else { return }
         hasStarted = true
@@ -92,12 +87,10 @@ final class EpisodeListViewModel {
         }
     }
 
-    /// Brings the list up to date: shows a newer snapshot saved by a background refresh,
-    /// then refreshes from the network if the data is still stale. The app calls this
-    /// when it returns to the foreground.
+    /// Applies a newer snapshot (for example from the background task), then refreshes if the data
+    /// is still stale. The app calls this when it becomes active.
     func refreshIfNeeded() async {
-        // A refresh already running (e.g. the stale-cache refresh at launch) will bring the
-        // list up to date; starting another would only repeat the same request.
+        // A running refresh (e.g. at launch) will update the list; another would repeat its request.
         guard hasCheckedCache, !isRefreshing else { return }
         let rowsBefore = episodes.count
         if let snapshot = await repository.currentSnapshot(),
@@ -122,9 +115,8 @@ final class EpisodeListViewModel {
         let current = snapshot
         let repository = self.repository
 
-        // The results belong to the view model, not to the footer view that triggered the load.
-        // Running the request in its own task means scrolling the footer off screen
-        // (which cancels the view's `.task`) doesn't cancel and restart the request.
+        // Its own task, so scrolling the footer away (which cancels the view's `.task`) doesn't
+        // cancel the request. The result belongs to the view model, not the view.
         let result = await Task { try await repository.loadNextPage(after: current) }.result
 
         guard generation == listGeneration else { return }
@@ -141,8 +133,8 @@ final class EpisodeListViewModel {
 
     // MARK: - Refresh
 
-    /// Starts the list again from a freshly fetched page 1; deeper pages load again as the
-    /// user scrolls. Used by pull-to-refresh and when cached data is stale.
+    /// Restarts the list from a fresh page 1; deeper pages load again on scroll. Used by
+    /// pull-to-refresh and for stale data.
     func refresh() async {
         activeRefreshCount += 1
         defer { activeRefreshCount -= 1 }
@@ -151,7 +143,7 @@ final class EpisodeListViewModel {
             let snapshot = try await repository.refreshFirstPage()
             apply(snapshot)
         } catch is CancellationError {
-            // The pull-to-refresh gesture or view went away; nothing to report.
+            // The gesture or view went away; nothing to report.
         } catch {
             if episodes.isEmpty {
                 pageError = error.userMessage
@@ -169,8 +161,8 @@ final class EpisodeListViewModel {
     }
 
     private func apply(_ snapshot: EpisodeSnapshot) {
-        // Only a newer fetch of page 1 makes the data fresh. A page added to the same list
-        // doesn't, so a refresh error stays on screen until then.
+        // Only a new fetch of page 1 makes the data fresh; a page added to the same list doesn't,
+        // so a refresh error stays until then.
         if snapshot.refreshedAt != lastRefreshed {
             refreshError = nil
         }

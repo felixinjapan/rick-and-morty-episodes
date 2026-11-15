@@ -18,8 +18,7 @@ final class CharacterDetailViewModel {
     private(set) var state: State = .loading
     /// Set after a successful export; drives the confirmation sheet.
     var exportedFile: ExportedFile?
-    /// Set when an export fails; drives the "Export Failed" alert, which sets it back to `nil`
-    /// when dismissed.
+    /// Set when an export fails; drives the "Export Failed" alert, which resets it on dismissal.
     var exportErrorMessage: String?
 
     let characterID: Int
@@ -37,8 +36,7 @@ final class CharacterDetailViewModel {
     }
 
     func load() async {
-        // Keep a loaded character on screen while it reloads: going back to `.loading` would
-        // tear down the list, and its scroll position, for data that is already there.
+        // Keep a loaded character on screen while it reloads, so the list keeps its scroll position.
         if character == nil {
             state = .loading
         }
