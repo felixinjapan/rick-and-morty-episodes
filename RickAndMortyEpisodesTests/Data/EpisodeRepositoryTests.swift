@@ -148,4 +148,8 @@ private struct CancelsAfterResponseAPI: RickAndMortyAPI {
     func character(id: Int) async throws -> CharacterDetails {
         throw APIError.http(statusCode: 404)
     }
+
+    func portrait(from url: URL) async throws -> Data {
+        throw APIError.http(statusCode: 404)
+    }
 }

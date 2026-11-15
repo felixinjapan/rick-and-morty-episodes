@@ -86,6 +86,34 @@ struct LiveAPITests {
         #expect(recordedURLs.urls.first??.absoluteString == "https://rickandmortyapi.com/api/episode?page=2")
     }
 
+    @Test("A portrait is downloaded from the URL it is given, as an image")
+    func portraitDownload() async throws {
+        let recordedURLs = RecordedURLs()
+        let url = try #require(URL(string: "https://rickandmortyapi.com/api/character/avatar/1.jpeg"))
+        let api = makeAPI(body: RecordedResponses.portrait) { recordedURLs.append($0.url) }
+
+        let data = try await api.portrait(from: url)
+
+        #expect(data == RecordedResponses.portrait)
+        #expect(recordedURLs.urls == [url])
+    }
+
+    @Test("A portrait response that is not an image is rejected, so it is never saved")
+    func portraitMustBeAnImage() async throws {
+        let url = try #require(URL(string: "https://rickandmortyapi.com/api/character/avatar/1.jpeg"))
+        await #expect(throws: APIError.decoding) {
+            try await makeAPI(body: Data("<html>Not found</html>".utf8)).portrait(from: url)
+        }
+    }
+
+    @Test("A failed portrait download is an HTTP error", arguments: [404, 503])
+    func portraitHTTPErrors(status: Int) async throws {
+        let url = try #require(URL(string: "https://rickandmortyapi.com/api/character/avatar/1.jpeg"))
+        await #expect(throws: APIError.http(statusCode: status)) {
+            try await makeAPI(status: status).portrait(from: url)
+        }
+    }
+
     @Test("Non-2xx responses become HTTP errors", arguments: [404, 429, 500])
     func httpErrors(status: Int) async {
         await #expect(throws: APIError.http(statusCode: status)) {

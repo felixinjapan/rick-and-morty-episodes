@@ -1,8 +1,8 @@
 import Foundation
 import os
 
-/// Character details from the API, saved on disk once the user has opened them, so opening the same
-/// character again makes no request and works offline. Only opened characters are saved; nothing is
+/// Character details and portraits from the API, saved on disk once the user has opened them, so
+/// opening the same character again makes no request and works offline. Only opened characters are saved; nothing is
 /// downloaded ahead of time. An actor because the cache is mutable state shared by screens.
 ///
 /// Saved details are used while the catalogue is the same size as when they were saved and they are
@@ -11,6 +11,7 @@ import os
 actor DefaultCharacterRepository: CharacterRepository {
     private let api: any RickAndMortyAPI
     private let store: FileCharacterStore
+    private let portraits: PortraitStore
     /// The catalogue size now, or `nil` if unknown.
     private let catalogueCount: @Sendable () async -> Int?
     private let maxAge: TimeInterval
@@ -22,12 +23,14 @@ actor DefaultCharacterRepository: CharacterRepository {
     init(
         api: any RickAndMortyAPI,
         store: FileCharacterStore,
+        portraits: PortraitStore,
         catalogueCount: @escaping @Sendable () async -> Int?,
         maxAge: TimeInterval,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.api = api
         self.store = store
+        self.portraits = portraits
         self.catalogueCount = catalogueCount
         self.maxAge = maxAge
         self.now = now
@@ -52,6 +55,24 @@ actor DefaultCharacterRepository: CharacterRepository {
             logger.info("Serving saved character \(id) after: \(String(describing: error), privacy: .public)")
             return saved.details
         }
+    }
+
+    /// Saved portraits are never dropped or refetched: the image URL names the character, so the
+    /// image behind it doesn't change.
+    func portrait(for character: CharacterDetails) async throws -> Data {
+        guard let url = character.imageURL else { throw DataError.notFound }
+        do {
+            if let saved = try await portraits.load(for: url) { return saved }
+        } catch {
+            logger.error("Failed to read saved portrait \(character.id): \(error.localizedDescription, privacy: .public)")
+        }
+        let data = try await translatingErrors(logger: logger) { try await api.portrait(from: url) }
+        do {
+            try await portraits.save(data, for: url)
+        } catch {
+            logger.error("Failed to save portrait \(character.id): \(error.localizedDescription, privacy: .public)")
+        }
+        return data
     }
 
     private func isFresh(_ saved: StoredCharacter, catalogueCount current: Int?) -> Bool {

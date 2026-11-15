@@ -2,8 +2,11 @@ import SwiftUI
 
 struct CharacterDetailView: View {
     @State private var viewModel: CharacterDetailViewModel
+    /// For the portrait, which loads separately from the details.
+    private let repository: any CharacterRepository
 
     init(characterID: Int, repository: any CharacterRepository, exporter: any CharacterExporting) {
+        self.repository = repository
         _viewModel = State(initialValue: CharacterDetailViewModel(
             characterID: characterID, repository: repository, exporter: exporter
         ))
@@ -49,18 +52,19 @@ struct CharacterDetailView: View {
                     .buttonStyle(.bordered)
             }
         case .loaded(let character):
-            CharacterDetailContent(character: character)
+            CharacterDetailContent(character: character, repository: repository)
         }
     }
 }
 
 private struct CharacterDetailContent: View {
     let character: CharacterDetails
+    let repository: any CharacterRepository
 
     var body: some View {
         List {
             Section {
-                CharacterPortrait(character: character)
+                CharacterPortrait(character: character, repository: repository)
                     .listRowBackground(Color.clear)
             }
 

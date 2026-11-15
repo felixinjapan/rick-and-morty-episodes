@@ -65,8 +65,9 @@ final class EpisodeFlowUITests: XCTestCase {
         let name = element(containing: "Rick Sanchez", identifier: "characterDetail.name")
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Earth (C-137)").exists)
-        XCTAssertTrue(app.images["characterDetail.portraitUnavailable"].exists)
+        XCTAssertTrue(app.images["characterDetail.portrait"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.progressIndicators["characterDetail.portraitLoading"].exists)
+        XCTAssertFalse(app.images["characterDetail.portraitUnavailable"].exists)
 
         // The episode count row can be below the image on small screens, and List only
         // creates cells that are on screen.
@@ -83,14 +84,18 @@ final class EpisodeFlowUITests: XCTestCase {
         openCharacter(1)
         XCTAssertTrue(element(containing: "Rick Sanchez", identifier: "characterDetail.name").waitForExistence(timeout: 5))
 
+        XCTAssertTrue(app.images["characterDetail.portrait"].waitForExistence(timeout: 5))
+
         // Relaunch without resetting the cache and with every request failing: Rick was opened, so
-        // his details come from disk; Morty was not, so there is nothing to show.
+        // his details and portrait come from disk; Morty was not, so there is nothing to show.
         app.terminate()
         app.launchArguments = ["-uiTesting", "-networkUnavailable"]
         app.launch()
 
         openCharacter(1)
         XCTAssertTrue(element(containing: "Rick Sanchez", identifier: "characterDetail.name").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.images["characterDetail.portrait"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.images["characterDetail.portraitUnavailable"].exists)
 
         app.navigationBars.buttons.firstMatch.tap()
         let morty = app.buttons["character.link.2"]
