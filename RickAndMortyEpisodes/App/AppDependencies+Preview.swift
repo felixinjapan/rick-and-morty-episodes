@@ -7,7 +7,7 @@ extension AppDependencies {
     static func makePreviewRepositories(networkUnavailable: Bool = false) -> Repositories {
         let api: any RickAndMortyAPI = networkUnavailable ? UnavailableRickAndMortyAPI() : RecordedRickAndMortyAPI()
         return Repositories(
-            episodes: DefaultEpisodeRepository(api: api, store: .preview()),
+            episodes: DefaultEpisodeRepository(api: api, store: .makePreview()),
             characters: DefaultCharacterRepository(api: api)
         )
     }

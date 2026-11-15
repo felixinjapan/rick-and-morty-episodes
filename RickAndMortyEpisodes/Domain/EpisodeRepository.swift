@@ -5,7 +5,7 @@ import Foundation
 /// Saving is best effort: a failed write is logged, not thrown, so a returned list may not be on disk.
 protocol EpisodeRepository: Sendable {
     /// The saved list or the one last loaded, whichever is newer; `nil` if there is neither.
-    func currentSnapshot() async -> EpisodeSnapshot?
+    func loadCurrentSnapshot() async -> EpisodeSnapshot?
 
     /// Loads the page after `current` (page 1 if `nil`), appends it, saves and returns the list.
     /// If a refresh replaced the list meanwhile, the page is dropped and the newer list returned.

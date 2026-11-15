@@ -6,8 +6,8 @@ import Testing
 @Suite("Episode list view model")
 struct EpisodeListViewModelTests {
     private func makeViewModel(
-        api: StubAPI = threePageAPI(),
-        store: FileEpisodeStore = .temporary(),
+        api: StubAPI = makeThreePageAPI(),
+        store: FileEpisodeStore = .makeTemporary(),
         now: Date = fixedDate
     ) -> EpisodeListViewModel {
         // One clock for both, so a fetch made "later" is stamped later.
@@ -17,7 +17,7 @@ struct EpisodeListViewModelTests {
 
     @Test("Without a cache, pages load one at a time until the end is reached")
     func pagesUntilEnd() async throws {
-        let store = FileEpisodeStore.temporary()
+        let store = FileEpisodeStore.makeTemporary()
         let viewModel = makeViewModel(store: store)
 
         await viewModel.start()
@@ -30,7 +30,7 @@ struct EpisodeListViewModelTests {
         #expect(try await store.load() == EpisodeSnapshot(
             episodes: viewModel.episodes, nextPage: 2, refreshedAt: fixedDate
         ))
-        #expect(viewModel.lastRefreshed == fixedDate)
+        #expect(viewModel.lastRefreshedAt == fixedDate)
 
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
@@ -43,7 +43,7 @@ struct EpisodeListViewModelTests {
 
     @Test("Reaching the end doesn't trigger more requests")
     func noRequestsAfterEnd() async {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let viewModel = makeViewModel(api: api)
         await viewModel.start()
         for _ in 0..<5 { await viewModel.loadNextPage() }
@@ -52,7 +52,7 @@ struct EpisodeListViewModelTests {
 
     @Test("A second trigger while a page is loading is ignored", .timeLimit(.minutes(1)))
     func duplicateTriggersAreIgnored() async {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let gate = Gate()
         await api.holdPage(1, until: gate)
         let viewModel = makeViewModel(api: api)
@@ -71,7 +71,7 @@ struct EpisodeListViewModelTests {
 
     @Test("A failed page shows an error and can be retried")
     func pageFailureAndRetry() async {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         await api.setPage(2, .failure(APIError.offline))
         let viewModel = makeViewModel(api: api)
         await viewModel.start()
@@ -80,7 +80,7 @@ struct EpisodeListViewModelTests {
 
         #expect(viewModel.footer == .failed(message: DataError.offline.userMessage))
         #expect(viewModel.episodes.count == 20)
-        #expect(viewModel.emptyListError == nil)
+        #expect(viewModel.emptyListErrorMessage == nil)
 
         await api.setPage(2, .success(.make(ids: 21...40, hasNextPage: true)))
         await viewModel.loadNextPage()
@@ -90,7 +90,7 @@ struct EpisodeListViewModelTests {
 
     @Test("A cancelled page load shows no error and can be loaded again")
     func cancelledPageShowsNoError() async {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         await api.setPage(2, .failure(CancellationError()))
         let viewModel = makeViewModel(api: api)
         await viewModel.start()
@@ -99,7 +99,7 @@ struct EpisodeListViewModelTests {
 
         // Cancellation is not a failure: no message, and the page can still be loaded.
         #expect(viewModel.footer == .loading(page: 2))
-        #expect(viewModel.emptyListError == nil)
+        #expect(viewModel.emptyListErrorMessage == nil)
         #expect(viewModel.episodes.count == 20)
 
         await api.setPage(2, .success(.make(ids: 21...40, hasNextPage: true)))
@@ -109,43 +109,43 @@ struct EpisodeListViewModelTests {
 
     @Test("A failed first page is shown full screen instead of in the footer, and can be retried")
     func firstPageFailureAndRetry() async {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         await api.setPage(1, .failure(APIError.offline))
         let viewModel = makeViewModel(api: api)
         await viewModel.start()
         await viewModel.loadNextPage()
 
-        #expect(viewModel.emptyListError == DataError.offline.userMessage)
+        #expect(viewModel.emptyListErrorMessage == DataError.offline.userMessage)
         #expect(viewModel.footer == .none)
 
         await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true)))
         await viewModel.loadNextPage()
-        #expect(viewModel.emptyListError == nil)
+        #expect(viewModel.emptyListErrorMessage == nil)
         #expect(viewModel.episodes.count == 20)
         #expect(viewModel.footer == .loading(page: 2))
     }
 
     @Test("Fresh cached content is shown at once, without network requests")
     func freshCache() async throws {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let cached = EpisodeSnapshot(episodes: [.make(id: 1), .make(id: 2)], refreshedAt: fixedDate)
         let viewModel = makeViewModel(
-            api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(60)
+            api: api, store: try await .makeTemporary(containing: cached), now: fixedDate.addingTimeInterval(60)
         )
 
         await viewModel.start()
 
         #expect(viewModel.episodes.map(\.id) == [1, 2])
         #expect(viewModel.footer == .endReached(count: 2))
-        #expect(viewModel.lastRefreshed == fixedDate)
+        #expect(viewModel.lastRefreshedAt == fixedDate)
         #expect(await api.requestedPages.isEmpty)
     }
 
     @Test("A partly loaded cache continues paging where it stopped")
     func partialCacheContinuesPaging() async throws {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let cached = EpisodeSnapshot(episodes: (1...20).map(Episode.make), nextPage: 2, refreshedAt: fixedDate)
-        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached))
+        let viewModel = makeViewModel(api: api, store: try await .makeTemporary(containing: cached))
 
         await viewModel.start()
         #expect(viewModel.footer == .loading(page: 2))
@@ -157,17 +157,17 @@ struct EpisodeListViewModelTests {
 
     @Test("Stale cached content is shown, then refreshed from page 1")
     func staleCache() async throws {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let cached = EpisodeSnapshot(episodes: (1...45).map(Episode.make), refreshedAt: fixedDate)
         let viewModel = makeViewModel(
-            api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(7200)
+            api: api, store: try await .makeTemporary(containing: cached), now: fixedDate.addingTimeInterval(7200)
         )
 
         await viewModel.start()
 
         #expect(viewModel.episodes.map(\.id) == Array(1...20))
         #expect(viewModel.footer == .loading(page: 2))
-        #expect(viewModel.refreshError == nil)
+        #expect(viewModel.refreshErrorMessage == nil)
         #expect(await api.requestedPages == [1])
     }
 
@@ -176,42 +176,42 @@ struct EpisodeListViewModelTests {
         let api = StubAPI(pages: [1: .failure(APIError.offline)])
         let cached = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
         let viewModel = makeViewModel(
-            api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(60)
+            api: api, store: try await .makeTemporary(containing: cached), now: fixedDate.addingTimeInterval(60)
         )
 
         await viewModel.start()
         await viewModel.refresh()
 
         #expect(viewModel.episodes.map(\.id) == [1])
-        #expect(viewModel.refreshError == DataError.offline.userMessage)
+        #expect(viewModel.refreshErrorMessage == DataError.offline.userMessage)
         #expect(viewModel.footer == .endReached(count: 1))
 
         // Back online: pulling again replaces the list and removes the banner.
         await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true)))
         await viewModel.refresh()
         #expect(viewModel.episodes.count == 20)
-        #expect(viewModel.refreshError == nil)
+        #expect(viewModel.refreshErrorMessage == nil)
     }
 
     @Test("Loading another page keeps the refresh error while the list is still old")
     func pageLoadKeepsRefreshError() async throws {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         await api.setPage(1, .failure(APIError.offline))
         let cached = EpisodeSnapshot(episodes: (1...20).map(Episode.make), nextPage: 2, refreshedAt: fixedDate)
-        let viewModel = makeViewModel(api: api, store: try await .temporary(containing: cached))
+        let viewModel = makeViewModel(api: api, store: try await .makeTemporary(containing: cached))
         await viewModel.start()
         await viewModel.refresh()
-        try #require(viewModel.refreshError == DataError.offline.userMessage)
+        try #require(viewModel.refreshErrorMessage == DataError.offline.userMessage)
 
         await viewModel.loadNextPage()
 
         #expect(viewModel.episodes.count == 40)
-        #expect(viewModel.refreshError == DataError.offline.userMessage)
+        #expect(viewModel.refreshErrorMessage == DataError.offline.userMessage)
     }
 
     @Test("Pull-to-refresh starts the list again from a fresh page 1")
     func refreshStartsFromFirstPage() async throws {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let viewModel = makeViewModel(api: api)
         await viewModel.start()
         await viewModel.loadNextPage()
@@ -228,34 +228,34 @@ struct EpisodeListViewModelTests {
     @Test("A fresh background snapshot clears an earlier refresh error")
     func foregroundSnapshotClearsRefreshError() async throws {
         let api = StubAPI(pages: [1: .failure(APIError.offline)])
-        let store = try await FileEpisodeStore.temporary(
+        let store = try await FileEpisodeStore.makeTemporary(
             containing: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
         )
         let viewModel = makeViewModel(api: api, store: store)
         await viewModel.start()
         await viewModel.refresh()
-        try #require(viewModel.refreshError != nil)
+        try #require(viewModel.refreshErrorMessage != nil)
 
         let newer = EpisodeSnapshot(episodes: [.make(id: 2)], refreshedAt: fixedDate.addingTimeInterval(60))
         try await store.save(newer)
         await viewModel.refreshIfNeeded()
 
         #expect(viewModel.episodes == newer.episodes)
-        #expect(viewModel.lastRefreshed == newer.refreshedAt)
-        #expect(viewModel.refreshError == nil)
+        #expect(viewModel.lastRefreshedAt == newer.refreshedAt)
+        #expect(viewModel.refreshErrorMessage == nil)
         #expect(await api.requestedPages == [1])
     }
 
     @Test("A cache write failure does not disable future foreground refreshes")
     func cacheWriteFailureKeepsRefreshing() async throws {
-        let api = threePageAPI()
-        let repository = DefaultEpisodeRepository(api: api, store: try .unwritable(), now: { fixedDate })
+        let api = makeThreePageAPI()
+        let repository = DefaultEpisodeRepository(api: api, store: try .makeUnwritable(), now: { fixedDate })
         var currentDate = fixedDate
         let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { currentDate })
         await viewModel.start()
         for _ in 0..<3 { await viewModel.loadNextPage() }
         try #require(viewModel.episodes.count == 45)
-        try #require(viewModel.lastRefreshed == fixedDate)
+        try #require(viewModel.lastRefreshedAt == fixedDate)
 
         currentDate = fixedDate.addingTimeInterval(7200)
         await viewModel.refreshIfNeeded()
@@ -265,10 +265,10 @@ struct EpisodeListViewModelTests {
     // Waits for a request in a loop; the time limit turns a regression into a failure, not a hang.
     @Test("Cancelling the final page's footer does not discard the completed cache", .timeLimit(.minutes(1)))
     func cancelledFinalPageStillPersists() async throws {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let gate = Gate()
         await api.holdPage(3, until: gate)
-        let store = FileEpisodeStore.temporary()
+        let store = FileEpisodeStore.makeTemporary()
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
         let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { fixedDate })
         await viewModel.start()
@@ -282,17 +282,17 @@ struct EpisodeListViewModelTests {
 
         #expect(viewModel.episodes.count == 45)
         #expect(try await store.load()?.episodes.count == 45)
-        #expect(viewModel.lastRefreshed == fixedDate)
+        #expect(viewModel.lastRefreshedAt == fixedDate)
     }
 
     @Test("Returning to the app while a refresh is running doesn't start another", .timeLimit(.minutes(1)))
     func noDuplicateRefreshOnReturn() async throws {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let gate = Gate()
         await api.holdPage(1, until: gate)
         let cached = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
         let viewModel = makeViewModel(
-            api: api, store: try await .temporary(containing: cached), now: fixedDate.addingTimeInterval(7200)
+            api: api, store: try await .makeTemporary(containing: cached), now: fixedDate.addingTimeInterval(7200)
         )
 
         // Launch with a stale cache starts a refresh; the app becomes active while it runs.
@@ -308,7 +308,7 @@ struct EpisodeListViewModelTests {
 
     @Test("Returning to the app rebuilds the list only when it replaced rows the user had loaded")
     func listIdentityOnReturn() async throws {
-        let repository = DefaultEpisodeRepository(api: threePageAPI(), store: .temporary(), now: { fixedDate })
+        let repository = DefaultEpisodeRepository(api: makeThreePageAPI(), store: .makeTemporary(), now: { fixedDate })
         var currentDate = fixedDate
         let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { currentDate })
         await viewModel.start()
@@ -338,10 +338,10 @@ struct EpisodeListViewModelTests {
 
     @Test("The refresh indicator stays visible until every overlapping refresh finishes", .timeLimit(.minutes(1)))
     func overlappingRefreshIndicator() async {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let slowGate = Gate()
         await api.holdPage(1, until: slowGate)
-        let repository = DefaultEpisodeRepository(api: api, store: .temporary())
+        let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary())
         let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600)
 
         let slow = Task { await viewModel.refresh() }
