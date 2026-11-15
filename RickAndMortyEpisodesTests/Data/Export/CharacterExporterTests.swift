@@ -29,16 +29,33 @@ struct CharacterExporterTests {
         #expect(CharacterExporter.fileName(for: character) == expected)
     }
 
-    @Test("Exporting writes a readable file, and re-exporting replaces it")
+    @Test("Exporting writes a readable file")
     func writesFile() throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let exporter = CharacterExporter(directory: directory)
 
-        let url = try exporter.export(.rick)
-        _ = try exporter.export(.rick)
+        let url = try CharacterExporter(directory: directory).export(.rick)
 
         #expect(try String(contentsOf: url, encoding: .utf8) == CharacterExporter.text(for: .rick))
+    }
+
+    @Test("Exporting a character again with changed details replaces the file")
+    func reExportReplacesFile() throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let exporter = CharacterExporter(directory: directory)
+        let changed = CharacterDetails(
+            id: CharacterDetails.rick.id, name: CharacterDetails.rick.name, status: .dead,
+            species: CharacterDetails.rick.species, originName: CharacterDetails.rick.originName,
+            episodeCount: CharacterDetails.rick.episodeCount + 1, imageURL: CharacterDetails.rick.imageURL
+        )
+
+        let first = try exporter.export(.rick)
+        let second = try exporter.export(changed)
+
+        #expect(second == first)
+        #expect(try String(contentsOf: second, encoding: .utf8) == CharacterExporter.text(for: changed))
+        #expect(CharacterExporter.text(for: changed) != CharacterExporter.text(for: .rick))
         #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path(percentEncoded: false)).count == 1)
     }
 }
