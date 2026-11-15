@@ -1,8 +1,7 @@
 import XCTest
 
-/// End-to-end user journeys. The app runs with `-uiTesting`, which serves real API
-/// responses recorded in the app (51 episodes over 3 pages) so the tests never touch the network,
-/// and `-resetCache`, so every test starts without cached episodes.
+/// End-to-end user journeys. The app runs with `-uiTesting` (stub data, 51 episodes over 3 pages,
+/// so the tests never touch the network) and `-resetCache` (every test starts without a cache).
 @MainActor
 final class EpisodeFlowUITests: XCTestCase {
     private var app: XCUIApplication!

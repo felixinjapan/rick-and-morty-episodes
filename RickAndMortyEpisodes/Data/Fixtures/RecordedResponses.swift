@@ -1,11 +1,9 @@
 #if DEBUG
 import Foundation
 
-/// Real responses recorded from rickandmortyapi.com (all 51 episodes and the 826 characters
-/// they reference), stored in `StubData/`. Used by UI tests and previews so they
-/// run without the network.
-///
-/// The folder is listed in `DEVELOPMENT_ASSET_PATHS`, so it is left out of archived builds.
+/// Stub data: real responses saved from rickandmortyapi.com (all 51 episodes and the 826 characters
+/// they reference), kept in `StubData/` so UI tests and previews run without the network.
+/// The folder is in `DEVELOPMENT_ASSET_PATHS`, so archives leave it out.
 enum RecordedResponses {
     static func data(named name: String) throws -> Data {
         guard let url = Bundle.main.url(forResource: name, withExtension: "json") else {
@@ -14,7 +12,7 @@ enum RecordedResponses {
         return try Data(contentsOf: url)
     }
 
-    /// One character from the recorded batch response, as `/character/{id}` would return it.
+    /// One character from the saved batch response, as `/character/{id}` would return it.
     static func character(id: Int) throws -> Data? {
         let all = try JSONSerialization.jsonObject(with: data(named: "characters")) as? [[String: Any]]
         guard let match = all?.first(where: { $0["id"] as? Int == id }) else { return nil }
@@ -23,8 +21,8 @@ enum RecordedResponses {
 }
 
 extension HTTPTransport {
-    /// Answers requests from the recorded responses, like the real server would:
-    /// `/episode?page=N` and `/character/{id}`, and 404 for anything that wasn't recorded.
+    /// Answers from the stub data like the real server: `/episode?page=N` and `/character/{id}`,
+    /// and 404 for anything else.
     static let recorded = HTTPTransport { request in
         guard let url = request.url else { throw URLError(.badURL) }
         let path = url.pathComponents
