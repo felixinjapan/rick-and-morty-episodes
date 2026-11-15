@@ -87,7 +87,7 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 | `BGAppRefreshTask` via `.backgroundTask` | Native; cancelled automatically when time runs out | Silent push (needs a server) |
 | Foreground refresh when data is over 1 h old | iOS doesn't guarantee background tasks run | Relying on `BGTaskScheduler` alone |
 | Plain-text export in `Documents/Exports` plus a share sheet | Any reader opens it, and Files shows it | `fileExporter`: the user picks a folder, so nothing is stored automatically |
-| `AsyncImage` on the system HTTP cache | One image per screen | Nuke or Kingfisher for image-heavy lists |
+| `AsyncImage` and the system HTTP cache (automatic on iOS 27+) | One image per screen | Nuke or Kingfisher for image-heavy lists |
 | Swift Testing for unit tests, XCUITest for UI tests | Current tooling; UI automation still needs XCTest | – |
 
 ## Background refresh
