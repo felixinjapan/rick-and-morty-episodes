@@ -1,14 +1,11 @@
 import Foundation
 
-/// Values that are product or environment decisions, defined in one place.
-///
-/// Only the App layer reads it. The composition root passes the values down, so features
-/// and data code receive plain parameters and stay testable with their own values.
+/// Product and environment values, defined in one place. Only the App layer reads them and
+/// passes them down as plain parameters.
 struct AppConfiguration: Sendable {
-    /// Base URL of the Rick and Morty API.
     var apiBaseURL: URL
-    /// How long fetched episodes count as fresh. Used both for the foreground refresh check
-    /// and as the earliest time for the next background refresh, so the two can't drift apart.
+    /// How long fetched episodes count as fresh: the foreground staleness check and the earliest
+    /// background refresh both use it, so they can't drift apart.
     var freshnessInterval: TimeInterval
     /// Short timeouts suit a small JSON API; the 60 s default would leave a spinner up too long.
     var requestTimeout: TimeInterval
@@ -21,7 +18,6 @@ struct AppConfiguration: Sendable {
         resourceTimeout: 30
     )
 
-    /// The configuration the app runs with. A staging environment would be chosen here,
-    /// for example from the build configuration.
+    /// The configuration the app runs with; a staging environment would be chosen here.
     static let current = production
 }

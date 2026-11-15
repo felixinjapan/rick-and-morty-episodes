@@ -1,8 +1,7 @@
 import Foundation
 
-/// What can go wrong when loading episodes or characters, in terms the app cares about.
-/// The Data layer translates network and storage errors into these cases, and the
-/// presentation layer decides how to word them for the user.
+/// What can go wrong when loading data. The Data layer translates network errors into these
+/// cases; the Presentation layer words them for the user.
 enum DataError: Error, Equatable {
     /// No internet connection.
     case offline
