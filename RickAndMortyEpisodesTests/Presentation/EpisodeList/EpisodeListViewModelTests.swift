@@ -88,6 +88,25 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.footer == .loading(page: 3))
     }
 
+    @Test("A cancelled page load shows no error and can be loaded again")
+    func cancelledPageShowsNoError() async {
+        let api = threePageAPI()
+        await api.setPage(2, .failure(CancellationError()))
+        let viewModel = makeViewModel(api: api)
+        await viewModel.start()
+        await viewModel.loadNextPage()
+        await viewModel.loadNextPage()
+
+        // Cancellation is not a failure: no message, and the page can still be loaded.
+        #expect(viewModel.footer == .loading(page: 2))
+        #expect(viewModel.emptyListError == nil)
+        #expect(viewModel.episodes.count == 20)
+
+        await api.setPage(2, .success(.make(ids: 21...40, hasNextPage: true)))
+        await viewModel.loadNextPage()
+        #expect(viewModel.episodes.count == 40)
+    }
+
     @Test("A failed first page is shown full screen instead of in the footer, and can be retried")
     func firstPageFailureAndRetry() async {
         let api = threePageAPI()

@@ -127,6 +127,8 @@ final class EpisodeListViewModel {
             // The repository appended the page and saved the list.
             apply(list)
         case .failure(let error):
+            // A cancelled request is not a failure: show nothing; the page loads again on the next trigger.
+            guard !(error is CancellationError) else { return }
             pageError = error.userMessage
         }
     }
