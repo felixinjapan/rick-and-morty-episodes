@@ -46,7 +46,7 @@ Domain/        Episode, CharacterDetails, DataError,
                                     ▲ implemented by
                                     │
 Data/          DefaultEpisodeRepository (actor)  ◀── App/BackgroundRefresh (BGAppRefreshTask)
-               DefaultCharacterRepository (actor, in-memory cache)
+               DefaultCharacterRepository (actor, file cache)
                   │                       │
                   ▼                       ▼
                Networking/             Persistence/
@@ -69,8 +69,10 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   page 1 stay; if it grew, whole cached pages stay and the new ones load on scroll; if it shrank, only
   page 1 is kept. A page that arrives after a refresh is dropped. Overlapping refreshes aren't merged:
   each saves a valid list and the store writes one at a time.
-- **`DefaultCharacterRepository`** keeps character details in memory for the session. Both repositories
-  share one API client.
+- **`DefaultCharacterRepository`** saves each character the user opens as its own file, so opening it
+  again makes no request and works offline. Saved details are used while the catalogue is the same size
+  as when they were saved and they are under 30 days old; otherwise they are fetched again, and still
+  served if that fails. Nothing is downloaded ahead. Both repositories share one API client.
 - **Errors** have one vocabulary per layer: `APIError` (network) → `DataError` (domain) → wording in
   `Presentation/Shared/ErrorMessages.swift`. Cancellation passes through, so it is never shown as an error.
 - **Networking** maps DTOs to domain entities. The air date is parsed there (`en_US_POSIX`, GMT); an
@@ -86,6 +88,7 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 |---|---|---|
 | Refresh fetches page 1 only, and its total tells whether the cached pages are still valid | One request however many pages exist; fits a background task's short time. Episodes are only added at the end, so an unchanged total means the cached pages are current | Refetch every page: the cost grows with the catalogue and a task may run out of time. Replace the list with page 1: loses the offline tail on every refresh |
 | JSON file cache in an actor | About 50 records, always read and written whole; atomic writes, easy to test | SwiftData or Core Data: no benefit at this size |
+| Save only the characters the user opened, one file each | The catalogue rarely changes, so there is no reason to download 826 characters for three screens; one file per character means a save rewrites nothing else | Prefetch everything: wasteful. One shared file: rewritten on every open |
 | `BGAppRefreshTask` via `.backgroundTask` | Native; cancelled automatically when time runs out | Silent push (needs a server) |
 | Foreground refresh when data is over 12 h old | iOS doesn't guarantee background tasks run; the catalogue rarely changes and a refresh is one request | Relying on `BGTaskScheduler` alone |
 | Plain-text export in `Documents/Exports` plus a share sheet | Any reader opens it, and Files shows it | `fileExporter`: the user picks a folder, so nothing is stored automatically |
@@ -113,7 +116,7 @@ e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWith
 ## Known limitations and next steps
 
 - Offline, the list reaches only as far as the user has scrolled before; pages never loaded aren't cached.
-- Character details are cached in memory only.
+- Only characters the user has opened work offline; nothing is downloaded ahead of time.
 - No automatic retry with backoff and no `NWPathMonitor`; the user retries, and offline is inferred from failed requests.
 - The `dd/MM/yyyy` format is fixed, as the assignment requires. English only; the string catalog is ready for more languages.
 - Background refresh hasn't been observed on a physical device (the Simulator can't run it); the logic is unit-tested.
