@@ -11,7 +11,7 @@ struct EpisodeListView: View {
         NavigationStack {
             Group {
                 // With no episodes to show, the error replaces the list instead of covering it.
-                if let message = viewModel.emptyListError {
+                if let message = viewModel.emptyListErrorMessage {
                     ContentUnavailableView {
                         Label(.episodeListLoadErrorTitle, systemImage: "exclamationmark.triangle")
                     } description: {
@@ -35,9 +35,9 @@ struct EpisodeListView: View {
             .toolbar {
                 // A status item in the bottom toolbar (as in Mail) instead of a floating label,
                 // so the system bar keeps it legible and it never covers list rows.
-                if viewModel.lastRefreshed != nil || viewModel.isRefreshing {
+                if viewModel.lastRefreshedAt != nil || viewModel.isRefreshing {
                     ToolbarItem(placement: .status) {
-                        LastUpdatedLabel(date: viewModel.lastRefreshed, isRefreshing: viewModel.isRefreshing)
+                        LastUpdatedLabel(date: viewModel.lastRefreshedAt, isRefreshing: viewModel.isRefreshing)
                     }
                 }
             }
@@ -47,8 +47,8 @@ struct EpisodeListView: View {
 
     private var episodeList: some View {
         List {
-            if let refreshError = viewModel.refreshError {
-                RefreshErrorBanner(message: refreshError)
+            if let refreshErrorMessage = viewModel.refreshErrorMessage {
+                RefreshErrorBanner(message: refreshErrorMessage)
             }
 
             ForEach(viewModel.episodes) { episode in

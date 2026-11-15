@@ -26,7 +26,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
     /// The saved list or the one last loaded, whichever is newer. At launch it reads the file;
     /// afterwards memory is normally current, because the background task uses this instance.
     /// An unreadable cache is logged and treated as no cache.
-    func currentSnapshot() async -> EpisodeSnapshot? {
+    func loadCurrentSnapshot() async -> EpisodeSnapshot? {
         do {
             if let saved = try await store.load(), saved.refreshedAt > (latest?.refreshedAt ?? .distantPast) {
                 latest = saved

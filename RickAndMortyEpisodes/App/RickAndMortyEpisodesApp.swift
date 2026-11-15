@@ -6,12 +6,12 @@ struct RickAndMortyEpisodesApp: App {
     private let repositories: AppDependencies.Repositories
     private let exporter = AppDependencies.makeExporter()
     /// Owned here rather than by the view, so the app's lifecycle handler can reach it.
-    @State private var episodeList: EpisodeListViewModel
+    @State private var episodeListViewModel: EpisodeListViewModel
 
     init() {
         let repositories = AppDependencies.makeRepositories()
         self.repositories = repositories
-        _episodeList = State(initialValue: EpisodeListViewModel(
+        _episodeListViewModel = State(initialValue: EpisodeListViewModel(
             repository: repositories.episodes,
             staleInterval: AppConfiguration.current.freshnessInterval
         ))
@@ -19,14 +19,14 @@ struct RickAndMortyEpisodesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            EpisodeListView(viewModel: episodeList, characterRepository: repositories.characters, exporter: exporter)
+            EpisodeListView(viewModel: episodeListViewModel, characterRepository: repositories.characters, exporter: exporter)
         }
         .onChange(of: scenePhase) { _, newPhase in
             // The app's whole lifecycle handling in one place.
             switch newPhase {
             case .active:
                 // Picks up data a background refresh saved, and refreshes if it's stale.
-                Task { await episodeList.refreshIfNeeded() }
+                Task { await episodeListViewModel.refreshIfNeeded() }
             case .background:
                 BackgroundRefresh.schedule()
             default:

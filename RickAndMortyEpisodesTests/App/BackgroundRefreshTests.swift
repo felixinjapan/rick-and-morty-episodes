@@ -7,10 +7,10 @@ import Testing
 struct BackgroundRefreshTests {
     @Test("Schedules the next run before refreshing, then saves page 1", .timeLimit(.minutes(1)))
     func schedulesFirstThenRefreshes() async throws {
-        let api = threePageAPI()
+        let api = makeThreePageAPI()
         let gate = Gate()
         await api.holdPage(1, until: gate)
-        let store = FileEpisodeStore.temporary()
+        let store = FileEpisodeStore.makeTemporary()
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
         let scheduleCount = OSAllocatedUnfairLock(initialState: 0)
 
@@ -29,7 +29,7 @@ struct BackgroundRefreshTests {
     @Test("Still schedules the next run when the refresh fails")
     func schedulesEvenWhenRefreshFails() async {
         let api = StubAPI(pages: [1: .failure(APIError.offline)])
-        let repository = DefaultEpisodeRepository(api: api, store: .temporary())
+        let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary())
         let scheduleCount = OSAllocatedUnfairLock(initialState: 0)
 
         await BackgroundRefresh.perform(using: repository, scheduleNext: { scheduleCount.withLock { $0 += 1 } })

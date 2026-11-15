@@ -20,16 +20,16 @@ final class EpisodeListViewModel {
     private var snapshot: EpisodeSnapshot?
     var episodes: [Episode] { snapshot?.episodes ?? [] }
     /// When page 1 was last fetched.
-    var lastRefreshed: Date? { snapshot?.refreshedAt }
+    var lastRefreshedAt: Date? { snapshot?.refreshedAt }
     var isRefreshing: Bool { activeRefreshCount > 0 }
     /// Shown as a banner when a refresh fails but older content is still on screen.
-    private(set) var refreshError: String?
+    private(set) var refreshErrorMessage: String?
     /// Changes when returning to the app replaced loaded rows with a shorter list. The view uses it
     /// as the list's `.id`, so SwiftUI rebuilds the list from the top instead of landing mid-list.
     /// Page loads and pull-to-refresh don't change it.
     private(set) var listIdentity = 0
 
-    private var pageError: String?
+    private var pageErrorMessage: String?
     private var isLoadingPage = false
     private var hasStarted = false
     private var hasCheckedCache = false
@@ -53,8 +53,8 @@ final class EpisodeListViewModel {
     }
 
     /// A load error while no episodes are on screen; the view shows it full screen.
-    var emptyListError: String? {
-        episodes.isEmpty ? pageError : nil
+    var emptyListErrorMessage: String? {
+        episodes.isEmpty ? pageErrorMessage : nil
     }
 
     /// The page to load next: page 1 when there is no list yet, `nil` once it is complete.
@@ -63,8 +63,8 @@ final class EpisodeListViewModel {
     }
 
     var footer: Footer {
-        guard hasCheckedCache, emptyListError == nil else { return .none }
-        if let pageError { return .failed(message: pageError) }
+        guard hasCheckedCache, emptyListErrorMessage == nil else { return .none }
+        if let pageErrorMessage { return .failed(message: pageErrorMessage) }
         if let nextPage { return .loading(page: nextPage) }
         return .endReached(count: episodes.count)
     }
@@ -77,7 +77,7 @@ final class EpisodeListViewModel {
         guard !hasStarted else { return }
         hasStarted = true
 
-        if let snapshot = await repository.currentSnapshot() {
+        if let snapshot = await repository.loadCurrentSnapshot() {
             apply(snapshot)
         }
         hasCheckedCache = true
@@ -93,8 +93,8 @@ final class EpisodeListViewModel {
         // A running refresh (e.g. at launch) will update the list; another would repeat its request.
         guard hasCheckedCache, !isRefreshing else { return }
         let rowsBefore = episodes.count
-        if let snapshot = await repository.currentSnapshot(),
-           snapshot.refreshedAt > (lastRefreshed ?? .distantPast) {
+        if let snapshot = await repository.loadCurrentSnapshot(),
+           snapshot.refreshedAt > (lastRefreshedAt ?? .distantPast) {
             apply(snapshot)
         }
         if isStale {
@@ -110,7 +110,7 @@ final class EpisodeListViewModel {
     func loadNextPage() async {
         guard !isLoadingPage, nextPage != nil else { return }
         isLoadingPage = true
-        pageError = nil
+        pageErrorMessage = nil
         let generation = listGeneration
         let current = snapshot
         let repository = self.repository
@@ -129,7 +129,7 @@ final class EpisodeListViewModel {
         case .failure(let error):
             // A cancelled request is not a failure: show nothing; the page loads again on the next trigger.
             guard !(error is CancellationError) else { return }
-            pageError = error.userMessage
+            pageErrorMessage = error.userMessage
         }
     }
 
@@ -148,9 +148,9 @@ final class EpisodeListViewModel {
             // The gesture or view went away; nothing to report.
         } catch {
             if episodes.isEmpty {
-                pageError = error.userMessage
+                pageErrorMessage = error.userMessage
             } else {
-                refreshError = error.userMessage
+                refreshErrorMessage = error.userMessage
             }
         }
     }
@@ -158,19 +158,19 @@ final class EpisodeListViewModel {
     // MARK: - Private
 
     private var isStale: Bool {
-        guard let lastRefreshed else { return false }
-        return now().timeIntervalSince(lastRefreshed) > staleInterval
+        guard let lastRefreshedAt else { return false }
+        return now().timeIntervalSince(lastRefreshedAt) > staleInterval
     }
 
     private func apply(_ snapshot: EpisodeSnapshot) {
         // Only a new fetch of page 1 makes the data fresh; a page added to the same list doesn't,
         // so a refresh error stays until then.
-        if snapshot.refreshedAt != lastRefreshed {
-            refreshError = nil
+        if snapshot.refreshedAt != lastRefreshedAt {
+            refreshErrorMessage = nil
         }
         listGeneration += 1
         self.snapshot = snapshot
-        pageError = nil
+        pageErrorMessage = nil
         isLoadingPage = false
     }
 }

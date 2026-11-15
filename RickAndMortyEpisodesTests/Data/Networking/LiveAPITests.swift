@@ -6,7 +6,7 @@ import Testing
 /// instead of the network.
 @Suite("Live API client")
 struct LiveAPITests {
-    private func api(
+    private func makeAPI(
         status: Int = 200,
         body: Data = Data(),
         onRequest: @escaping @Sendable (URLRequest) -> Void = { _ in }
@@ -18,7 +18,7 @@ struct LiveAPITests {
         })
     }
 
-    private func failingAPI(_ error: URLError.Code) -> LiveRickAndMortyAPI {
+    private func makeFailingAPI(_ error: URLError.Code) -> LiveRickAndMortyAPI {
         LiveRickAndMortyAPI(
             baseURL: AppConfiguration.production.apiBaseURL,
             transport: HTTPTransport { _ in throw URLError(error) }
@@ -80,7 +80,7 @@ struct LiveAPITests {
     @Test("Builds the expected request URLs")
     func requestURLs() async throws {
         let recordedURLs = RecordedURLs()
-        let api = api(body: try RecordedResponses.data(named: "episodes-page-1")) { recordedURLs.append($0.url) }
+        let api = makeAPI(body: try RecordedResponses.data(named: "episodes-page-1")) { recordedURLs.append($0.url) }
         _ = try await api.episodes(page: 2)
         #expect(recordedURLs.urls.first??.absoluteString == "https://rickandmortyapi.com/api/episode?page=2")
     }
@@ -88,7 +88,7 @@ struct LiveAPITests {
     @Test("Non-2xx responses become HTTP errors", arguments: [404, 429, 500])
     func httpErrors(status: Int) async {
         await #expect(throws: APIError.http(statusCode: status)) {
-            try await api(status: status).character(id: 1)
+            try await makeAPI(status: status).character(id: 1)
         }
     }
 
@@ -99,31 +99,31 @@ struct LiveAPITests {
                 {"id": 1, "name": "Pilot", "air_date": null, "episode": "S01E01", "characters": []}
             ]}
             """
-        let page = try await api(body: Data(json.utf8)).episodes(page: 1)
+        let page = try await makeAPI(body: Data(json.utf8)).episodes(page: 1)
         #expect(page.episodes.map(\.airDate) == [nil])
     }
 
     @Test("Malformed JSON becomes a decoding error")
     func malformedJSON() async {
         await #expect(throws: APIError.decoding) {
-            try await api(body: Data("{\"unexpected\": true}".utf8)).episodes(page: 1)
+            try await makeAPI(body: Data("{\"unexpected\": true}".utf8)).episodes(page: 1)
         }
     }
 
     @Test("Connectivity failures are classified")
     func transportErrors() async {
         await #expect(throws: APIError.offline) {
-            try await failingAPI(.notConnectedToInternet).episodes(page: 1)
+            try await makeFailingAPI(.notConnectedToInternet).episodes(page: 1)
         }
         await #expect(throws: APIError.timedOut) {
-            try await failingAPI(.timedOut).episodes(page: 1)
+            try await makeFailingAPI(.timedOut).episodes(page: 1)
         }
     }
 
     @Test("A cancelled request surfaces as CancellationError, not as a user-facing error")
     func cancellation() async {
         await #expect(throws: CancellationError.self) {
-            try await failingAPI(.cancelled).episodes(page: 1)
+            try await makeFailingAPI(.cancelled).episodes(page: 1)
         }
     }
 }

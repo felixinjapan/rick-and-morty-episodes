@@ -62,18 +62,18 @@ actor Gate {
 
 extension FileEpisodeStore {
     /// A real store in its own temporary folder, so tests don't share state.
-    static func temporary() -> FileEpisodeStore {
+    static func makeTemporary() -> FileEpisodeStore {
         FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "\(UUID().uuidString)/episodes-cache.json"))
     }
 
-    static func temporary(containing snapshot: EpisodeSnapshot) async throws -> FileEpisodeStore {
-        let store = temporary()
+    static func makeTemporary(containing snapshot: EpisodeSnapshot) async throws -> FileEpisodeStore {
+        let store = makeTemporary()
         try await store.save(snapshot)
         return store
     }
 
     /// A store whose saves fail, because a file sits where its folder should be.
-    static func unwritable() throws -> FileEpisodeStore {
+    static func makeUnwritable() throws -> FileEpisodeStore {
         let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
         try Data().write(to: blocker)
         return FileEpisodeStore(fileURL: blocker.appending(path: "episodes-cache.json"))
@@ -112,7 +112,7 @@ extension CharacterDetails {
 let fixedDate = Date(timeIntervalSince1970: 1_700_000_000)
 
 /// Three pages (20 + 20 + 5 episodes), like the real API's shape.
-func threePageAPI() -> StubAPI {
+func makeThreePageAPI() -> StubAPI {
     StubAPI(pages: [
         1: .success(.make(ids: 1...20, hasNextPage: true)),
         2: .success(.make(ids: 21...40, hasNextPage: true)),
