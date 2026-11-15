@@ -1,19 +1,14 @@
 import Foundation
 import os
 
-/// The app's `EpisodeRepository`: the single source of truth for the episode list.
-/// Decides what comes from the network and what comes from the cache, and is shared by the
-/// UI and background refresh.
-///
-/// An actor because it holds mutable state (the latest list) that is reached from
-/// the main actor and from the background task at the same time.
+/// The single source of truth for the episode list, shared by the UI and the background task.
+/// An actor because both reach its mutable state (`latest`) at the same time.
 actor DefaultEpisodeRepository: EpisodeRepository {
     private let api: any RickAndMortyAPI
     private let store: FileEpisodeStore
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultEpisodeRepository")
-    /// The list as last loaded, refreshed or read from disk. A page is only appended to
-    /// this list, so a page that arrives after a refresh can't overwrite the newer list.
+    /// The list as last loaded, refreshed or read from disk.
     private var latest: EpisodeSnapshot?
 
     init(
@@ -28,11 +23,9 @@ actor DefaultEpisodeRepository: EpisodeRepository {
 
     // MARK: - Episodes
 
-    /// The list to show: the saved one or the one last loaded, whichever is newer. At launch
-    /// this reads the cache from disk. After that the in-memory list is normally current,
-    /// because the background refresh runs through this same instance; reading the small file
-    /// again is a cheap safeguard.
-    /// A corrupt cache isn't fatal: the app falls back to loading from the network.
+    /// The saved list or the one last loaded, whichever is newer. At launch it reads the file;
+    /// afterwards memory is normally current, because the background task uses this instance.
+    /// An unreadable cache is logged and treated as no cache.
     func currentSnapshot() async -> EpisodeSnapshot? {
         do {
             if let saved = try await store.load(), saved.refreshedAt > (latest?.refreshedAt ?? .distantPast) {
@@ -44,9 +37,8 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         return latest
     }
 
-    /// Loads the page after `current` (page 1 when `current` is `nil`), appends it, saves
-    /// the result and returns it. Each page is saved as it arrives, so the list reopens
-    /// where the user left it.
+    /// See `EpisodeRepository`. Each page is saved as it arrives, so the list reopens where the
+    /// user left it.
     func loadNextPage(after current: EpisodeSnapshot?) async throws -> EpisodeSnapshot {
         let page: Int
         if let current {
@@ -58,8 +50,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
 
         let loaded = try await translatingErrors(logger: logger) { try await api.episodes(page: page) }
 
-        // A refresh replaced the list while this page was loading: drop the page and
-        // return the newer list, instead of saving the old one over it.
+        // A refresh replaced the list while this page loaded: drop the page, don't save over it.
         if latest != current, let latest {
             return latest
         }
@@ -67,7 +58,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         let snapshot = EpisodeSnapshot(
             episodes: (current?.episodes ?? []) + loaded.episodes,
             nextPage: loaded.hasNextPage ? page + 1 : nil,
-            // "Last updated" and the staleness check refer to when page 1 was fetched.
+            // "Last updated" and staleness refer to when page 1 was fetched.
             refreshedAt: current?.refreshedAt ?? now()
         )
         latest = snapshot
@@ -75,16 +66,13 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         return snapshot
     }
 
-    /// Fetches page 1 and saves it as the new start of the list. Pages the user had loaded
-    /// beyond it are dropped from the cache; they load again as the user scrolls.
-    ///
-    /// One request however many pages the API has, so it also fits easily in the short
-    /// time a background task gets. Overlapping refreshes are not merged: each saves a
-    /// valid first page, and the store writes them one at a time.
+    /// See `EpisodeRepository`. Pages beyond page 1 leave the cache and load again on scroll.
+    /// Overlapping refreshes aren't merged: each saves a valid first page and the store writes
+    /// them one at a time.
     func refreshFirstPage() async throws -> EpisodeSnapshot {
         let firstPage = try await translatingErrors(logger: logger) { try await api.episodes(page: 1) }
-        // Saved even if cancellation arrives now: the page is valid, and saving it is one
-        // small atomic write, so the request isn't wasted.
+        // Saved even if cancelled now: the page is valid and the write is small, so the request
+        // isn't wasted.
         let snapshot = EpisodeSnapshot(
             episodes: firstPage.episodes,
             nextPage: firstPage.hasNextPage ? 2 : nil,
@@ -95,8 +83,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         return snapshot
     }
 
-    /// Saves the list. A failed save only means it won't be available offline, so it is
-    /// logged rather than reported to the user.
+    /// A failed save only costs offline availability, so it is logged, not shown to the user.
     private func persist(_ snapshot: EpisodeSnapshot) async {
         do {
             try await store.save(snapshot)

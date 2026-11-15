@@ -1,14 +1,10 @@
 import Foundation
 
-/// Persists the episode list as one JSON file.
+/// Saves the episode list as one JSON file. About 50 records, always read and written whole,
+/// so a database would add nothing.
 ///
-/// The data is ~50 records that are always read and written as a whole, with no queries
-/// or relationships, so a database (SwiftData/Core Data) would add complexity without benefit.
-/// The actor serialises access so concurrent saves (pull-to-refresh and background refresh)
-/// can't interleave, and `.atomic` writes mean a crash never leaves a half-written file.
-///
-/// There is no protocol in front of it: tests point it at a temporary folder, so they
-/// exercise real encoding and file I/O instead of a fake.
+/// An actor, so concurrent saves can't interleave; `.atomic` writes never leave half a file.
+/// No protocol: tests use a temporary folder and exercise real file I/O.
 actor FileEpisodeStore {
     static let defaultFileName = "episodes-cache.json"
 
@@ -18,8 +14,7 @@ actor FileEpisodeStore {
         self.fileURL = fileURL
     }
 
-    /// Application Support, not Documents: Documents is visible in the Files app
-    /// (it holds exports), while the cache is an internal detail.
+    /// Application Support, not Documents: Documents is shown in the Files app and holds the exports.
     static func makeDefault() -> FileEpisodeStore {
         let directory = URL.applicationSupportDirectory
         return FileEpisodeStore(fileURL: directory.appending(path: defaultFileName))
@@ -28,12 +23,10 @@ actor FileEpisodeStore {
     /// The saved list, or `nil` if there is none or it was written in another format version.
     /// Throws if the file exists but can't be read.
     func load() throws -> EpisodeSnapshot? {
-        // `path(percentEncoded: false)`: the default `path()` percent-encodes, so
-        // "Application Support" would become "Application%20Support" and never be found.
+        // `path()` percent-encodes ("Application%20Support"), so the file would never be found.
         guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return nil }
         let data = try Data(contentsOf: fileURL)
-        // Read the version first: a file from an older or newer format is not an error, just
-        // not usable, so the app reloads from the network and overwrites it.
+        // Read the version first: another format version is not an error, it counts as no cache.
         struct VersionOnly: Decodable { let version: Int? }
         let version = try JSONDecoder().decode(VersionOnly.self, from: data).version
         guard version == CachedEpisodeSnapshot.currentVersion else { return nil }
@@ -46,11 +39,10 @@ actor FileEpisodeStore {
             withIntermediateDirectories: true
         )
         let data = try JSONEncoder().encode(CachedEpisodeSnapshot(snapshot))
-        // `.completeFileProtectionUntilFirstUserAuthentication`: background refresh must be able
-        // to write while the device is locked, which `.completeFileProtection` would prevent.
+        // Not `.completeFileProtection`: the background task must be able to write while the device is locked.
         try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
 
-        // The cache can be re-downloaded, so keep it out of iCloud backups.
+        // The cache can be downloaded again, so keep it out of backups.
         var url = fileURL
         var values = URLResourceValues()
         values.isExcludedFromBackup = true

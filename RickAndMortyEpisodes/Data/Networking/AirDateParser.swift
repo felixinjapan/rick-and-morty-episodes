@@ -1,17 +1,13 @@
 import Foundation
 
-/// Reads the API's air date ("December 2, 2013").
-///
-/// Uses a fixed `en_US_POSIX` locale: the API always sends English month names, and parsing
-/// with the device locale would fail on, for example, a Japanese-locale device. Parses in GMT;
-/// the display side formats in GMT too, so the day can't shift across time zones.
+/// Reads the API's air date ("December 2, 2013"). The fixed `en_US_POSIX` locale matches the API's
+/// English month names on any device; GMT matches `AirDateFormatter`, so the day can't shift.
 enum AirDateParser {
     private static let strategy = Date.ParseStrategy(
         format: "\(month: .wide) \(day: .defaultDigits), \(year: .defaultDigits)",
         locale: Locale(identifier: "en_US_POSIX"),
         timeZone: .gmt,
-        // Lenient parsing (the default) would also accept input that isn't in the API's format,
-        // e.g. "2013-12-02", and produce a wrong date instead of none.
+        // Not lenient: lenient parsing accepts e.g. "2013-12-02" and returns a wrong date.
         isLenient: false
     )
 

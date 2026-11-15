@@ -1,8 +1,7 @@
 import os
 
-/// Runs a call to a data source and rethrows its failure as a `DataError`, so nothing
-/// above the Data layer depends on HTTP or URL-loading errors. Cancellation passes through
-/// unchanged. Used by every repository; runs on the calling repository's actor.
+/// Runs a call to a data source and rethrows its failure as a `DataError`, so nothing above the
+/// Data layer sees HTTP or URL-loading errors. Cancellation passes through. Runs on the caller's actor.
 func translatingErrors<T>(
     isolation: isolated (any Actor)? = #isolation,
     logger: Logger,

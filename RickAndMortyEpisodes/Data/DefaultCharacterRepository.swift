@@ -1,10 +1,8 @@
 import Foundation
 import os
 
-/// The app's `CharacterRepository`: character details from the API, kept in memory for the
-/// session so going back and forth between screens doesn't re-download them.
-///
-/// An actor because the cache is mutable state that more than one screen can reach.
+/// Character details from the API, kept in memory for the session so revisiting a screen doesn't
+/// download them again. An actor because the cache is mutable state shared by screens.
 actor DefaultCharacterRepository: CharacterRepository {
     private let api: any RickAndMortyAPI
     private let logger = Logger(category: "DefaultCharacterRepository")
