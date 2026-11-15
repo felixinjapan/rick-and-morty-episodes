@@ -135,8 +135,8 @@ final class EpisodeListViewModel {
 
     // MARK: - Refresh
 
-    /// Restarts the list from a fresh page 1; deeper pages load again on scroll. Used by
-    /// pull-to-refresh and for stale data.
+    /// Fetches a fresh page 1. The cached pages after it stay unless the catalogue changed (see
+    /// `EpisodeRepository`). Used by pull-to-refresh and for stale data.
     func refresh() async {
         activeRefreshCount += 1
         defer { activeRefreshCount -= 1 }

@@ -64,16 +64,18 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   about JSON, HTTP, files or SwiftUI. There are no use-case classes: with three screens they would only
   forward calls.
 - **`DefaultEpisodeRepository`** is the single source of truth for the list, shared by the UI and the
-  background task, so it is an actor. It appends and saves each page as it loads; a refresh fetches
-  page 1 only and saves it as the new start of the list. A page that arrives after a refresh is dropped.
-  Overlapping refreshes aren't merged: each saves a valid page 1 and the store writes one at a time.
+  background task, so it is an actor. It appends and saves each page as it loads. A refresh fetches
+  page 1, which also reports how many episodes exist: if the total is unchanged the cached pages after
+  page 1 stay; if it grew, whole cached pages stay and the new ones load on scroll; if it shrank, only
+  page 1 is kept. A page that arrives after a refresh is dropped. Overlapping refreshes aren't merged:
+  each saves a valid list and the store writes one at a time.
 - **`DefaultCharacterRepository`** keeps character details in memory for the session. Both repositories
   share one API client.
 - **Errors** have one vocabulary per layer: `APIError` (network) → `DataError` (domain) → wording in
   `Presentation/Shared/ErrorMessages.swift`. Cancellation passes through, so it is never shown as an error.
 - **Networking** maps DTOs to domain entities. The air date is parsed there (`en_US_POSIX`, GMT); an
   unreadable one becomes `nil` for that episode only ("Unknown air date"). Presentation formats it as `dd/MM/yyyy`.
-- **Configuration** (API URL, the 1-hour freshness interval for the foreground check and background
+- **Configuration** (API URL, the 12-hour freshness interval for the foreground check and background
   scheduling, timeouts) lives in `AppConfiguration`, read only by the App layer.
 - **Dependency injection** is by initialiser, wired in `AppDependencies`. Protocols sit at layer boundaries
   and at the network (so tests control it); the file store has none, because tests give it a temporary folder.
@@ -82,10 +84,10 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 
 | Decision | Why | Alternative considered |
 |---|---|---|
-| Refresh fetches page 1 only; deeper pages load as the user scrolls | One request however many pages exist; fits a background task's short time | Refetch every page: the cache is always complete, but the cost grows with the catalogue and a task may run out of time. Or fetch only new pages: more logic |
+| Refresh fetches page 1 only, and its total tells whether the cached pages are still valid | One request however many pages exist; fits a background task's short time. Episodes are only added at the end, so an unchanged total means the cached pages are current | Refetch every page: the cost grows with the catalogue and a task may run out of time. Replace the list with page 1: loses the offline tail on every refresh |
 | JSON file cache in an actor | About 50 records, always read and written whole; atomic writes, easy to test | SwiftData or Core Data: no benefit at this size |
 | `BGAppRefreshTask` via `.backgroundTask` | Native; cancelled automatically when time runs out | Silent push (needs a server) |
-| Foreground refresh when data is over 1 h old | iOS doesn't guarantee background tasks run | Relying on `BGTaskScheduler` alone |
+| Foreground refresh when data is over 12 h old | iOS doesn't guarantee background tasks run; the catalogue rarely changes and a refresh is one request | Relying on `BGTaskScheduler` alone |
 | Plain-text export in `Documents/Exports` plus a share sheet | Any reader opens it, and Files shows it | `fileExporter`: the user picks a folder, so nothing is stored automatically |
 | `AsyncImage` and the system HTTP cache (automatic on iOS 27+) | One image per screen | Nuke or Kingfisher for image-heavy lists |
 | Swift Testing for unit tests, XCUITest for UI tests | Current tooling; UI automation still needs XCTest | – |
@@ -96,11 +98,11 @@ The brief asks to refresh the list in the background. The app covers both readin
 
 - **App in the background:** a `BGAppRefreshTask` saves a fresh page 1, so the list is current the next
   time the app opens. iOS decides when, and whether, it runs; the foreground refresh is what keeps data fresh.
-- **App open:** the cached list shows at once, and data over 1 h old refreshes quietly at launch and on
+- **App open:** the cached list shows at once, and data over 12 h old refreshes quietly at launch and on
   return ("Updating…" status, no full-screen loader). Network, decoding and file work run off the main thread in actors.
 
 All lifecycle handling is one `scenePhase` switch in `RickAndMortyEpisodesApp`: going to the background
-schedules the task (no sooner than 1 h); becoming active calls `refreshIfNeeded()` on the list view model,
+schedules the task (no sooner than 12 h); becoming active calls `refreshIfNeeded()` on the list view model,
 which the app owns for that reason. To trigger the task on a device, pause in the debugger after
 backgrounding the app and run:
 
@@ -110,7 +112,7 @@ e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWith
 
 ## Known limitations and next steps
 
-- After a refresh the offline cache holds only page 1 (20 of 51 episodes) until the user scrolls again.
+- Offline, the list reaches only as far as the user has scrolled before; pages never loaded aren't cached.
 - Character details are cached in memory only.
 - No automatic retry with backoff and no `NWPathMonitor`; the user retries, and offline is inferred from failed requests.
 - The `dd/MM/yyyy` format is fixed, as the assignment requires. English only; the string catalog is ready for more languages.

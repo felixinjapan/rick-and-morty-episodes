@@ -3,7 +3,7 @@ import Foundation
 /// The cache file's format, separate from the domain types so changing them can't change what is
 /// on disk. Bump `currentVersion` when it changes; another version counts as no cache.
 struct CachedEpisodeSnapshot: Codable {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     struct CachedEpisode: Codable {
         let id: Int
@@ -16,6 +16,7 @@ struct CachedEpisodeSnapshot: Codable {
     let version: Int
     let episodes: [CachedEpisode]
     let nextPage: Int?
+    let totalCount: Int
     let refreshedAt: Date
 }
 
@@ -26,6 +27,7 @@ extension CachedEpisodeSnapshot {
             CachedEpisode(id: $0.id, name: $0.name, airDate: $0.airDate, code: $0.code, characterIDs: $0.characterIDs)
         }
         nextPage = snapshot.nextPage
+        totalCount = snapshot.totalCount
         refreshedAt = snapshot.refreshedAt
     }
 
@@ -35,6 +37,7 @@ extension CachedEpisodeSnapshot {
                 Episode(id: $0.id, name: $0.name, airDate: $0.airDate, code: $0.code, characterIDs: $0.characterIDs)
             },
             nextPage: nextPage,
+            totalCount: totalCount,
             refreshedAt: refreshedAt
         )
     }

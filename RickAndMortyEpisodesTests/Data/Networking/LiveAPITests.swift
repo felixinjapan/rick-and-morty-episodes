@@ -33,6 +33,7 @@ struct LiveAPITests {
 
         #expect(page.episodes.count == 20)
         #expect(page.hasNextPage)
+        #expect(page.totalCount == 51)
 
         let pilot = try #require(page.episodes.first)
         #expect(pilot.name == "Pilot")
@@ -95,7 +96,7 @@ struct LiveAPITests {
     @Test("A missing air date affects only that episode, not the whole page")
     func nullAirDate() async throws {
         let json = """
-            {"info": {"next": null}, "results": [
+            {"info": {"count": 1, "next": null}, "results": [
                 {"id": 1, "name": "Pilot", "air_date": null, "episode": "S01E01", "characters": []}
             ]}
             """
