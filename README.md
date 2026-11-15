@@ -72,8 +72,9 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 - **`DefaultCharacterRepository`** saves each character the user opens as its own file, and its portrait
   as an image file, so opening it again makes no request and works offline. Saved details are used while
   the catalogue is the same size as when they were saved and they are under 30 days old; otherwise they
-  are fetched again, and still served if that fails. Portraits are kept for good (the avatar URL names
-  the character). Nothing is downloaded ahead. Both repositories share one API client.
+  are fetched again, and still served if that fails, except when the server says the character no
+  longer exists (404). Portraits are kept for good (the avatar URL names the character); a saved one
+  that isn't a readable image is downloaded again. Nothing is downloaded ahead. Both repositories share one API client.
 - **Errors** have one vocabulary per layer: `APIError` (network) → `DataError` (domain) → wording in
   `Presentation/Shared/ErrorMessages.swift`. Cancellation passes through, so it is never shown as an error.
 - **Networking** maps DTOs to domain entities. The air date is parsed there (`en_US_POSIX`, GMT); an

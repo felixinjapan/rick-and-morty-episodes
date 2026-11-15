@@ -49,6 +49,14 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.descendants(matching: .any)["episodeList.loadError"].exists)
+
+        // The whole list was saved, not only its first rows: scroll to the end with no network.
+        let offlineEnd = app.staticTexts["episodeList.endOfList"]
+        for _ in 0..<20 where !offlineEnd.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(offlineEnd.waitForExistence(timeout: 5))
+        XCTAssertEqual(offlineEnd.label, "You've reached the end. 51 episodes")
     }
 
     func testEpisodeToCharacterDetailToExport() {
@@ -101,9 +109,11 @@ final class EpisodeFlowUITests: XCTestCase {
         let morty = app.buttons["character.link.2"]
         XCTAssertTrue(morty.waitForExistence(timeout: 5))
         morty.tap()
-        let export = app.buttons["characterDetail.export"]
-        XCTAssertTrue(export.waitForExistence(timeout: 5))
-        XCTAssertFalse(export.isEnabled)
+        // Loading has finished with the failure screen and its Retry button, not just not-yet-loaded.
+        XCTAssertTrue(app.descendants(matching: .any)["characterDetail.loadError"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["characterDetail.retry"].exists)
+        XCTAssertFalse(app.progressIndicators.firstMatch.exists)
+        XCTAssertFalse(app.buttons["characterDetail.export"].isEnabled)
         XCTAssertFalse(app.descendants(matching: .any)["characterDetail.name"].exists)
     }
 

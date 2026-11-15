@@ -45,11 +45,13 @@ struct CharacterDetailView: View {
         case .failed(let message):
             ContentUnavailableView {
                 Label(.characterDetailLoadErrorTitle, systemImage: "exclamationmark.triangle")
+                    .accessibilityIdentifier("characterDetail.loadError")
             } description: {
                 Text(message)
             } actions: {
                 Button(.commonRetry) { Task { await viewModel.load() } }
                     .buttonStyle(.bordered)
+                    .accessibilityIdentifier("characterDetail.retry")
             }
         case .loaded(let character):
             CharacterDetailContent(character: character, repository: repository)
