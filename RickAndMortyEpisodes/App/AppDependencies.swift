@@ -1,7 +1,6 @@
 import Foundation
 
-/// Composition root: the one place where concrete implementations are chosen.
-/// Everything below it receives its dependencies through initialisers.
+/// The composition root: the only place that chooses concrete implementations.
 enum AppDependencies {
     struct Repositories {
         let episodes: any EpisodeRepository
@@ -20,9 +19,8 @@ enum AppDependencies {
         )
     }
 
-    /// Exports go to Documents/Exports. Documents is exposed in the Files app
-    /// (`UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace`), so a file can be opened
-    /// from Files › On My iPhone › Episodes, or handed to another app through the share sheet.
+    /// Exports go to `Documents/Exports`, which the Files app shows (`UIFileSharingEnabled`,
+    /// `LSSupportsOpeningDocumentsInPlace`); the share sheet can hand them to other apps.
     static func makeExporter() -> CharacterExporter {
         CharacterExporter(directory: URL.documentsDirectory.appending(path: "Exports", directoryHint: .isDirectory))
     }
@@ -32,10 +30,8 @@ enum AppDependencies {
         arguments: [String]
     ) -> (any RickAndMortyAPI, FileEpisodeStore) {
         #if DEBUG
-        // UI tests launch with `-uiTesting`: recorded API responses, so they're deterministic and
-        // never touch the network. The real file store is used (in a separate folder whose name
-        // contains a space, like "Application Support") so relaunching from the cache is tested
-        // too; `-resetCache` starts from an empty cache.
+        // `-uiTesting` uses stub data and a separate cache file, so UI tests never touch the network.
+        // The cache folder's name contains a space, like "Application Support"; `-resetCache` empties it.
         if arguments.contains("-uiTesting") {
             let cacheURL = URL.temporaryDirectory
                 .appending(path: "UI Testing")
@@ -43,7 +39,7 @@ enum AppDependencies {
             if arguments.contains("-resetCache") {
                 try? FileManager.default.removeItem(at: cacheURL)
             }
-            // `-networkUnavailable`: every request fails, so anything on screen came from the cache.
+            // `-networkUnavailable` fails every request, so anything on screen came from the cache.
             let api: any RickAndMortyAPI = arguments.contains("-networkUnavailable")
                 ? UnavailableRickAndMortyAPI()
                 : RecordedRickAndMortyAPI()

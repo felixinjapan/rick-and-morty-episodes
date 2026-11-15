@@ -1,12 +1,10 @@
 import BackgroundTasks
 import os
 
-/// Keeps the episode cache fresh while the app is in the background using a `BGAppRefreshTask`.
+/// Refreshes the episode cache in the background with a `BGAppRefreshTask`.
 ///
-/// iOS decides when, and whether, the task runs, based on how the user uses the app,
-/// battery and network. `earliestBeginDate` is only a lower bound. The foreground path
-/// (refresh on launch/foreground when stale) is what guarantees reasonably fresh data;
-/// this task is an optimisation on top of it.
+/// iOS decides when, and whether, the task runs; `earliestBeginDate` is only a lower bound.
+/// The foreground refresh of stale data is what keeps the list fresh; this is an extra.
 enum BackgroundRefresh {
     /// Must match `BGTaskSchedulerPermittedIdentifiers` in Info.plist.
     static let taskIdentifier = "dev.felixinjapan.RickAndMortyEpisodes.refresh"
@@ -26,10 +24,9 @@ enum BackgroundRefresh {
         }
     }
 
-    /// Runs when iOS launches the task. SwiftUI's `.backgroundTask` modifier cancels this
-    /// async function when the system's time runs out. A request still in flight then fails
-    /// and nothing is saved; a page that already arrived is still saved (one small atomic write).
-    /// `scheduleNext` is replaceable so tests can check the order without `BGTaskScheduler`.
+    /// Runs when iOS launches the task; SwiftUI cancels it when time runs out. A request still in
+    /// flight then fails and saves nothing, but a page that already arrived is saved.
+    /// `scheduleNext` is injectable so tests don't need `BGTaskScheduler`.
     static func perform(
         using repository: any EpisodeRepository,
         scheduleNext: () -> Void = { BackgroundRefresh.schedule() }
