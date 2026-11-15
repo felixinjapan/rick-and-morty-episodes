@@ -36,6 +36,9 @@ enum BackgroundRefresh {
         do {
             let snapshot = try await repository.refreshFirstPage()
             logger.info("Background refresh saved \(snapshot.episodes.count) episodes")
+        } catch is CancellationError {
+            // The system's time ran out: expected, not a failure.
+            logger.info("Background refresh cancelled")
         } catch {
             logger.error("Background refresh failed: \(String(describing: error), privacy: .public)")
         }
