@@ -167,7 +167,7 @@ private func episodeListPreview(_ repositories: AppDependencies.Repositories) ->
             staleInterval: AppConfiguration.current.freshnessInterval
         ),
         characterRepository: repositories.characters,
-        exporter: CharacterExporter.preview
+        exporter: AppDependencies.makePreviewExporter()
     )
 }
 #endif

@@ -95,7 +95,7 @@ private struct CharacterDetailContent: View {
         CharacterDetailView(
             characterID: 1,
             repository: AppDependencies.makePreviewRepositories().characters,
-            exporter: CharacterExporter.preview
+            exporter: AppDependencies.makePreviewExporter()
         )
     }
 }
@@ -105,7 +105,7 @@ private struct CharacterDetailContent: View {
         CharacterDetailView(
             characterID: 1,
             repository: AppDependencies.makePreviewRepositories(networkUnavailable: true).characters,
-            exporter: CharacterExporter.preview
+            exporter: AppDependencies.makePreviewExporter()
         )
     }
 }
