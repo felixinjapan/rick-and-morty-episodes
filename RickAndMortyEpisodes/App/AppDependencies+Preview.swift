@@ -6,9 +6,15 @@ extension AppDependencies {
     /// or a network where every request fails, and a fresh cache each time.
     static func makePreviewRepositories(networkUnavailable: Bool = false) -> Repositories {
         let api: any RickAndMortyAPI = networkUnavailable ? UnavailableRickAndMortyAPI() : RecordedRickAndMortyAPI()
+        let episodes = DefaultEpisodeRepository(api: api, store: .makePreview())
         return Repositories(
-            episodes: DefaultEpisodeRepository(api: api, store: .makePreview()),
-            characters: DefaultCharacterRepository(api: api)
+            episodes: episodes,
+            characters: DefaultCharacterRepository(
+                api: api,
+                store: .makePreview(),
+                catalogueCount: { await episodes.loadCurrentSnapshot()?.totalCount },
+                maxAge: AppConfiguration.current.characterMaxAge
+            )
         )
     }
 

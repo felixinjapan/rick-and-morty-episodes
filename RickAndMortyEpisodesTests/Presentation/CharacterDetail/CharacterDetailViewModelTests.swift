@@ -9,7 +9,7 @@ struct CharacterDetailViewModelTests {
     func loadAndExport() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let repository = DefaultCharacterRepository(api: StubAPI(characters: [1: .success(.rick)]))
+        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(characters: [1: .success(.rick)]))
         let viewModel = CharacterDetailViewModel(
             characterID: 1, repository: repository, exporter: CharacterExporter(directory: directory)
         )
@@ -24,7 +24,7 @@ struct CharacterDetailViewModelTests {
 
     @Test("A failed load shows an error and export stays unavailable")
     func loadFailure() async {
-        let repository = DefaultCharacterRepository(api: StubAPI())
+        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI())
         let viewModel = CharacterDetailViewModel(
             characterID: 99999, repository: repository,
             exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
@@ -43,7 +43,7 @@ struct CharacterDetailViewModelTests {
         let blocker = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try Data().write(to: blocker)
         defer { try? FileManager.default.removeItem(at: blocker) }
-        let repository = DefaultCharacterRepository(api: StubAPI(characters: [1: .success(.rick)]))
+        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(characters: [1: .success(.rick)]))
         let viewModel = CharacterDetailViewModel(
             characterID: 1, repository: repository,
             exporter: CharacterExporter(directory: blocker.appending(path: "Exports"))

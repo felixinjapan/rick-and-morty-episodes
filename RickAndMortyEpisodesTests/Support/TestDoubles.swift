@@ -21,6 +21,10 @@ actor StubAPI: RickAndMortyAPI {
         pages[page] = result
     }
 
+    func setCharacter(_ id: Int, _ result: Result<CharacterDetails, any Error>) {
+        characters[id] = result
+    }
+
     /// Holds requests for `page` until the gate opens, to control timing in concurrency tests.
     func holdPage(_ page: Int, until gate: Gate) {
         pageGates[page] = gate
@@ -77,6 +81,34 @@ extension FileEpisodeStore {
         let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
         try Data().write(to: blocker)
         return FileEpisodeStore(fileURL: blocker.appending(path: "episodes-cache.json"))
+    }
+}
+
+extension FileCharacterStore {
+    /// A real store in its own temporary folder, so tests don't share state.
+    static func makeTemporary() -> FileCharacterStore {
+        FileCharacterStore(directory: .temporaryDirectory.appending(path: "\(UUID().uuidString)/characters"))
+    }
+
+    /// A store whose saves fail, because a file sits where its folder should be.
+    static func makeUnwritable() throws -> FileCharacterStore {
+        let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data().write(to: blocker)
+        return FileCharacterStore(directory: blocker.appending(path: "characters"))
+    }
+}
+
+extension DefaultCharacterRepository {
+    /// Over a temporary store, with the catalogue size unknown and a fixed clock, so saved details
+    /// stay valid until a test makes them old.
+    static func makeTemporary(
+        api: any RickAndMortyAPI,
+        store: FileCharacterStore = .makeTemporary(),
+        catalogueCount: @escaping @Sendable () async -> Int? = { nil },
+        maxAge: TimeInterval = 3600,
+        now: @escaping @Sendable () -> Date = { fixedDate }
+    ) -> DefaultCharacterRepository {
+        DefaultCharacterRepository(api: api, store: store, catalogueCount: catalogueCount, maxAge: maxAge, now: now)
     }
 }
 

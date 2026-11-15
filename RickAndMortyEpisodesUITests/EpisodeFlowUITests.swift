@@ -79,6 +79,37 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(app.buttons["export.share"].exists)
     }
 
+    func testOpenedCharacterStaysAvailableOffline() {
+        openCharacter(1)
+        XCTAssertTrue(element(containing: "Rick Sanchez", identifier: "characterDetail.name").waitForExistence(timeout: 5))
+
+        // Relaunch without resetting the cache and with every request failing: Rick was opened, so
+        // his details come from disk; Morty was not, so there is nothing to show.
+        app.terminate()
+        app.launchArguments = ["-uiTesting", "-networkUnavailable"]
+        app.launch()
+
+        openCharacter(1)
+        XCTAssertTrue(element(containing: "Rick Sanchez", identifier: "characterDetail.name").waitForExistence(timeout: 5))
+
+        app.navigationBars.buttons.firstMatch.tap()
+        let morty = app.buttons["character.link.2"]
+        XCTAssertTrue(morty.waitForExistence(timeout: 5))
+        morty.tap()
+        let export = app.buttons["characterDetail.export"]
+        XCTAssertTrue(export.waitForExistence(timeout: 5))
+        XCTAssertFalse(export.isEnabled)
+        XCTAssertFalse(app.descendants(matching: .any)["characterDetail.name"].exists)
+    }
+
+    private func openCharacter(_ id: Int) {
+        let episode = app.buttons["episode.row.1"]
+        if episode.waitForExistence(timeout: 5) { episode.tap() }
+        let character = app.buttons["character.link.\(id)"]
+        XCTAssertTrue(character.waitForExistence(timeout: 5))
+        character.tap()
+    }
+
     /// `LabeledContent` may expose its label and value as one accessibility element
     /// ("Origin, Earth (C-137)"), so match on containment rather than the exact text.
     private func element(containing text: String, identifier: String? = nil) -> XCUIElement {
