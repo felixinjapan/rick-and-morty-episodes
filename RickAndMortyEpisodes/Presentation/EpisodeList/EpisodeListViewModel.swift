@@ -97,7 +97,8 @@ final class EpisodeListViewModel {
            snapshot.refreshedAt > (lastRefreshedAt ?? .distantPast) {
             apply(snapshot)
         }
-        if isStale {
+        // Recheck: another check may have started a refresh while this one read the cache.
+        if isStale, !isRefreshing {
             await refresh()
         }
         if episodes.count < rowsBefore {
