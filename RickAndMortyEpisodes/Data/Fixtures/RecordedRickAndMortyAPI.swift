@@ -1,10 +1,10 @@
 #if DEBUG
 import Foundation
 
-/// The real API client running on recorded data.
+/// The real API client running on stub data.
 struct RecordedRickAndMortyAPI: RickAndMortyAPI {
-    /// The recorded transport answers by path (`/episode`, `/character/{id}`), so the host is
-    /// never contacted; `.invalid` is a reserved domain that can't resolve.
+    /// The `.recorded` transport answers by path, so the host is never contacted;
+    /// `.invalid` is a reserved domain that can't resolve.
     private let client = LiveRickAndMortyAPI(
         baseURL: URL(string: "https://recorded.invalid/api")!, transport: .recorded
     )

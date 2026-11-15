@@ -2,8 +2,8 @@ import Foundation
 import Testing
 @testable import RickAndMortyEpisodes
 
-/// Tests decoding against real recorded API responses and HTTP error mapping,
-/// using closure transports instead of the network.
+/// Tests decoding against the stub data and HTTP error mapping, using closure transports
+/// instead of the network.
 @Suite("Live API client")
 struct LiveAPITests {
     private func api(
