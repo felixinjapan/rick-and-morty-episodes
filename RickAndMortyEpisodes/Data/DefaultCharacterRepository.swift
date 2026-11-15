@@ -62,7 +62,11 @@ actor DefaultCharacterRepository: CharacterRepository {
     func portrait(for character: CharacterDetails) async throws -> Data {
         guard let url = character.imageURL else { throw DataError.notFound }
         do {
-            if let saved = try await portraits.load(for: url) { return saved }
+            if let saved = try await portraits.load(for: url) {
+                if ImageValidation.isImage(saved) { return saved }
+                // Downloaded again below, and the new file replaces the damaged one.
+                logger.error("Saved portrait \(character.id) is not a readable image")
+            }
         } catch {
             logger.error("Failed to read saved portrait \(character.id): \(error.localizedDescription, privacy: .public)")
         }

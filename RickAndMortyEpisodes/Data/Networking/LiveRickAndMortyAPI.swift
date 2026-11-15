@@ -1,5 +1,4 @@
 import Foundation
-import ImageIO
 import os
 
 /// The real API client: builds requests, sends them through an `HTTPTransport`, checks
@@ -36,7 +35,7 @@ struct LiveRickAndMortyAPI: RickAndMortyAPI {
         request.setValue("image/*", forHTTPHeaderField: "Accept")
         let data = try await send(request)
         // It will be saved on disk, so make sure it is an image and not, say, an error page.
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetCount(source) > 0 else {
+        guard ImageValidation.isImage(data) else {
             Self.logger.error("The portrait from \(url, privacy: .public) is not an image")
             throw APIError.decoding
         }
