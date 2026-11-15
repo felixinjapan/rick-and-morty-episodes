@@ -12,6 +12,7 @@ extension AppDependencies {
             characters: DefaultCharacterRepository(
                 api: api,
                 store: .makePreview(),
+                portraits: .makePreview(),
                 catalogueCount: { await episodes.loadCurrentSnapshot()?.totalCount },
                 maxAge: AppConfiguration.current.characterMaxAge
             )

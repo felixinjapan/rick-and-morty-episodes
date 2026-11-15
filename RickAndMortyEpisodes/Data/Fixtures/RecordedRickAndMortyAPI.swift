@@ -14,17 +14,13 @@ struct RecordedRickAndMortyAPI: RickAndMortyAPI {
     }
 
     func character(id: Int) async throws -> CharacterDetails {
-        let character = try await client.character(id: id)
-        // Avatars are served by the API's server; leave them out so tests and previews make no requests.
-        return CharacterDetails(
-            id: character.id,
-            name: character.name,
-            status: character.status,
-            species: character.species,
-            originName: character.originName,
-            episodeCount: character.episodeCount,
-            imageURL: nil
-        )
+        try await client.character(id: id)
+    }
+
+    /// Avatars are served by the API's server; the transport answers with a small generated image
+    /// instead, so tests and previews make no requests.
+    func portrait(from url: URL) async throws -> Data {
+        try await client.portrait(from: url)
     }
 }
 #endif

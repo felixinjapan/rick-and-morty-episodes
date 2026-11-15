@@ -12,6 +12,9 @@ enum RecordedResponses {
         return try Data(contentsOf: url)
     }
 
+    /// A small solid-colour image that stands in for every avatar.
+    static let portrait = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGPQmtuPFTEMLQkAT3dVgRdrT9YAAAAASUVORK5CYII=")!
+
     /// One character from the saved batch response, as `/character/{id}` would return it.
     static func character(id: Int) throws -> Data? {
         let all = try JSONSerialization.jsonObject(with: data(named: "characters")) as? [[String: Any]]
@@ -21,8 +24,8 @@ enum RecordedResponses {
 }
 
 extension HTTPTransport {
-    /// Answers from the stub data like the real server: `/episode?page=N` and `/character/{id}`,
-    /// and 404 for anything else.
+    /// Answers from the stub data like the real server: `/episode?page=N`, `/character/{id}` and
+    /// `/character/avatar/{id}.jpeg` (one generated image), and 404 for anything else.
     static let recorded = HTTPTransport { request in
         guard let url = request.url else { throw URLError(.badURL) }
         let path = url.pathComponents
@@ -32,6 +35,8 @@ extension HTTPTransport {
         var body: Data?
         if path.last == "episode", let page {
             body = try? RecordedResponses.data(named: "episodes-page-\(page)")
+        } else if path.dropLast().last == "avatar" {
+            body = RecordedResponses.portrait
         } else if path.dropLast().last == "character", let id = Int(path.last ?? "") {
             body = try RecordedResponses.character(id: id)
         }

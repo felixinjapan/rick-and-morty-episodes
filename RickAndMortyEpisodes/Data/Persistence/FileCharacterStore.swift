@@ -32,7 +32,7 @@ actor FileCharacterStore {
     }
 
     func save(_ character: StoredCharacter) throws {
-        try createDirectoryIfNeeded()
+        try CacheDirectory.prepare(directory)
         let data = try JSONEncoder().encode(CachedCharacter(character))
         try data.write(
             to: fileURL(for: character.details.id),
@@ -42,15 +42,5 @@ actor FileCharacterStore {
 
     private func fileURL(for id: Int) -> URL {
         directory.appending(path: "\(id).json")
-    }
-
-    private func createDirectoryIfNeeded() throws {
-        guard !FileManager.default.fileExists(atPath: directory.path(percentEncoded: false)) else { return }
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        // The files can be downloaded again, so keep them out of backups. Set on the folder once.
-        var url = directory
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = true
-        try? url.setResourceValues(values)
     }
 }

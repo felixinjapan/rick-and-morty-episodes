@@ -29,8 +29,8 @@ xcodebuild test -project RickAndMortyEpisodes.xcodeproj -scheme RickAndMortyEpis
 Debug builds include `StubData/`: saved API responses (51 episodes, 826 characters) served through
 the real `LiveRickAndMortyAPI` on a different `HTTPTransport`, so URL building, status handling and
 decoding run as in production. UI tests launch with `-uiTesting` and never use the network
-(`-resetCache` starts without a cache, `-networkUnavailable` fails every request). Character images are
-left out, because the API's server hosts them. The folder is excluded from archives (`DEVELOPMENT_ASSET_PATHS`).
+(`-resetCache` starts without a cache, `-networkUnavailable` fails every request). Avatars are answered
+with one small generated image, so no request leaves the device. The folder is excluded from archives (`DEVELOPMENT_ASSET_PATHS`).
 
 ## Architecture
 
@@ -69,10 +69,11 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
   page 1 stay; if it grew, whole cached pages stay and the new ones load on scroll; if it shrank, only
   page 1 is kept. A page that arrives after a refresh is dropped. Overlapping refreshes aren't merged:
   each saves a valid list and the store writes one at a time.
-- **`DefaultCharacterRepository`** saves each character the user opens as its own file, so opening it
-  again makes no request and works offline. Saved details are used while the catalogue is the same size
-  as when they were saved and they are under 30 days old; otherwise they are fetched again, and still
-  served if that fails. Nothing is downloaded ahead. Both repositories share one API client.
+- **`DefaultCharacterRepository`** saves each character the user opens as its own file, and its portrait
+  as an image file, so opening it again makes no request and works offline. Saved details are used while
+  the catalogue is the same size as when they were saved and they are under 30 days old; otherwise they
+  are fetched again, and still served if that fails. Portraits are kept for good (the avatar URL names
+  the character). Nothing is downloaded ahead. Both repositories share one API client.
 - **Errors** have one vocabulary per layer: `APIError` (network) → `DataError` (domain) → wording in
   `Presentation/Shared/ErrorMessages.swift`. Cancellation passes through, so it is never shown as an error.
 - **Networking** maps DTOs to domain entities. The air date is parsed there (`en_US_POSIX`, GMT); an
@@ -92,7 +93,7 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 | `BGAppRefreshTask` via `.backgroundTask` | Native; cancelled automatically when time runs out | Silent push (needs a server) |
 | Foreground refresh when data is over 12 h old | iOS doesn't guarantee background tasks run; the catalogue rarely changes and a refresh is one request | Relying on `BGTaskScheduler` alone |
 | Plain-text export in `Documents/Exports` plus a share sheet | Any reader opens it, and Files shows it | `fileExporter`: the user picks a folder, so nothing is stored automatically |
-| `AsyncImage` and the system HTTP cache (automatic on iOS 27+) | One image per screen | Nuke or Kingfisher for image-heavy lists |
+| Portraits saved as files by URL and drawn by a small view | `AsyncImage` can't save to disk, so an opened character would lose its photo offline; the avatar URL names the character, so the image never changes | `AsyncImage` and `URLCache`: depends on the server's cache headers. Nuke or Kingfisher: worth it for image-heavy lists, not for one image per screen |
 | Swift Testing for unit tests, XCUITest for UI tests | Current tooling; UI automation still needs XCTest | – |
 
 ## Background refresh

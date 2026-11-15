@@ -5,16 +5,20 @@ import Foundation
 actor StubAPI: RickAndMortyAPI {
     private var pages: [Int: Result<EpisodePage, any Error>]
     private var characters: [Int: Result<CharacterDetails, any Error>]
+    private var portraits: [URL: Result<Data, any Error>]
     private var pageGates: [Int: Gate] = [:]
     private(set) var requestedPages: [Int] = []
     private(set) var requestedCharacters: [Int] = []
+    private(set) var requestedPortraits: [URL] = []
 
     init(
         pages: [Int: Result<EpisodePage, any Error>] = [:],
-        characters: [Int: Result<CharacterDetails, any Error>] = [:]
+        characters: [Int: Result<CharacterDetails, any Error>] = [:],
+        portraits: [URL: Result<Data, any Error>] = [:]
     ) {
         self.pages = pages
         self.characters = characters
+        self.portraits = portraits
     }
 
     func setPage(_ page: Int, _ result: Result<EpisodePage, any Error>) {
@@ -23,6 +27,10 @@ actor StubAPI: RickAndMortyAPI {
 
     func setCharacter(_ id: Int, _ result: Result<CharacterDetails, any Error>) {
         characters[id] = result
+    }
+
+    func setPortrait(_ url: URL, _ result: Result<Data, any Error>) {
+        portraits[url] = result
     }
 
     /// Holds requests for `page` until the gate opens, to control timing in concurrency tests.
@@ -43,6 +51,12 @@ actor StubAPI: RickAndMortyAPI {
     func character(id: Int) async throws -> CharacterDetails {
         requestedCharacters.append(id)
         guard let result = characters[id] else { throw APIError.http(statusCode: 404) }
+        return try result.get()
+    }
+
+    func portrait(from url: URL) async throws -> Data {
+        requestedPortraits.append(url)
+        guard let result = portraits[url] else { throw APIError.http(statusCode: 404) }
         return try result.get()
     }
 }
@@ -98,17 +112,34 @@ extension FileCharacterStore {
     }
 }
 
+extension PortraitStore {
+    /// A real store in its own temporary folder, so tests don't share state.
+    static func makeTemporary() -> PortraitStore {
+        PortraitStore(directory: .temporaryDirectory.appending(path: "\(UUID().uuidString)/portraits"))
+    }
+
+    /// A store whose saves fail, because a file sits where its folder should be.
+    static func makeUnwritable() throws -> PortraitStore {
+        let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data().write(to: blocker)
+        return PortraitStore(directory: blocker.appending(path: "portraits"))
+    }
+}
+
 extension DefaultCharacterRepository {
     /// Over a temporary store, with the catalogue size unknown and a fixed clock, so saved details
     /// stay valid until a test makes them old.
     static func makeTemporary(
         api: any RickAndMortyAPI,
         store: FileCharacterStore = .makeTemporary(),
+        portraits: PortraitStore = .makeTemporary(),
         catalogueCount: @escaping @Sendable () async -> Int? = { nil },
         maxAge: TimeInterval = 3600,
         now: @escaping @Sendable () -> Date = { fixedDate }
     ) -> DefaultCharacterRepository {
-        DefaultCharacterRepository(api: api, store: store, catalogueCount: catalogueCount, maxAge: maxAge, now: now)
+        DefaultCharacterRepository(
+            api: api, store: store, portraits: portraits, catalogueCount: catalogueCount, maxAge: maxAge, now: now
+        )
     }
 }
 

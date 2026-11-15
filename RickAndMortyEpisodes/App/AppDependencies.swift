@@ -20,6 +20,7 @@ enum AppDependencies {
             characters: DefaultCharacterRepository(
                 api: sources.api,
                 store: sources.characterStore,
+                portraits: sources.portraitStore,
                 catalogueCount: { await episodes.loadCurrentSnapshot()?.totalCount },
                 maxAge: configuration.characterMaxAge
             )
@@ -36,6 +37,7 @@ enum AppDependencies {
         let api: any RickAndMortyAPI
         let episodeStore: FileEpisodeStore
         let characterStore: FileCharacterStore
+        let portraitStore: PortraitStore
     }
 
     private static func makeDataSources(
@@ -49,9 +51,11 @@ enum AppDependencies {
             let folder = URL.temporaryDirectory.appending(path: "UI Testing")
             let cacheURL = folder.appending(path: FileEpisodeStore.defaultFileName)
             let charactersURL = folder.appending(path: "characters", directoryHint: .isDirectory)
+            let portraitsURL = folder.appending(path: "portraits", directoryHint: .isDirectory)
             if arguments.contains("-resetCache") {
                 try? FileManager.default.removeItem(at: cacheURL)
                 try? FileManager.default.removeItem(at: charactersURL)
+                try? FileManager.default.removeItem(at: portraitsURL)
             }
             // `-networkUnavailable` fails every request, so anything on screen came from the cache.
             let api: any RickAndMortyAPI = arguments.contains("-networkUnavailable")
@@ -59,7 +63,8 @@ enum AppDependencies {
                 : RecordedRickAndMortyAPI()
             return DataSources(
                 api: api, episodeStore: FileEpisodeStore(fileURL: cacheURL),
-                characterStore: FileCharacterStore(directory: charactersURL)
+                characterStore: FileCharacterStore(directory: charactersURL),
+                portraitStore: PortraitStore(directory: portraitsURL)
             )
         }
         #endif
@@ -71,6 +76,8 @@ enum AppDependencies {
                 resourceTimeout: configuration.resourceTimeout
             ))
         )
-        return DataSources(api: api, episodeStore: .makeDefault(), characterStore: .makeDefault())
+        return DataSources(
+            api: api, episodeStore: .makeDefault(), characterStore: .makeDefault(), portraitStore: .makeDefault()
+        )
     }
 }

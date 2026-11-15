@@ -145,6 +145,89 @@ struct CharacterRepositoryTests {
         await #expect(throws: CancellationError.self) { try await repository.character(id: 1) }
     }
 
+    // MARK: - Portraits
+
+    private static let avatar = URL(string: "https://rickandmortyapi.com/api/character/avatar/1.jpeg")!
+
+    @Test("A portrait is downloaded once and then read from disk")
+    func portraitDownloadedOnce() async throws {
+        let api = StubAPI(portraits: [Self.avatar: .success(RecordedResponses.portrait)])
+        let repository = DefaultCharacterRepository.makeTemporary(api: api)
+
+        let first = try await repository.portrait(for: .rick)
+        let second = try await repository.portrait(for: .rick)
+
+        #expect(first == RecordedResponses.portrait)
+        #expect(second == first)
+        #expect(await api.requestedPortraits == [Self.avatar])
+    }
+
+    @Test("A portrait seen in an earlier session is read from disk, with no request")
+    func portraitSavedAcrossSessions() async throws {
+        let portraits = PortraitStore.makeTemporary()
+        let first = DefaultCharacterRepository.makeTemporary(
+            api: StubAPI(portraits: [Self.avatar: .success(RecordedResponses.portrait)]), portraits: portraits
+        )
+        _ = try await first.portrait(for: .rick)
+
+        let api = StubAPI()
+        let second = DefaultCharacterRepository.makeTemporary(api: api, portraits: portraits)
+
+        #expect(try await second.portrait(for: .rick) == RecordedResponses.portrait)
+        #expect(await api.requestedPortraits.isEmpty)
+    }
+
+    @Test("A saved portrait is kept when the catalogue changes and the network is gone")
+    func portraitSurvivesCatalogueChange() async throws {
+        let size = OSAllocatedUnfairLock<Int?>(initialState: 45)
+        let portraits = PortraitStore.makeTemporary()
+        let online = DefaultCharacterRepository.makeTemporary(
+            api: StubAPI(portraits: [Self.avatar: .success(RecordedResponses.portrait)]),
+            portraits: portraits, catalogueCount: { size.withLock { $0 } }
+        )
+        _ = try await online.portrait(for: .rick)
+
+        size.withLock { $0 = 46 }
+        let offline = DefaultCharacterRepository.makeTemporary(
+            api: StubAPI(portraits: [Self.avatar: .failure(APIError.offline)]),
+            portraits: portraits, catalogueCount: { size.withLock { $0 } }
+        )
+
+        #expect(try await offline.portrait(for: .rick) == RecordedResponses.portrait)
+    }
+
+    @Test("A portrait that was never seen fails when offline", arguments: apiToDomainErrors)
+    func portraitErrorTranslation(apiError: APIError, expected: DataError) async {
+        let repository = DefaultCharacterRepository.makeTemporary(
+            api: StubAPI(portraits: [Self.avatar: .failure(apiError)])
+        )
+        await #expect(throws: expected) { try await repository.portrait(for: .rick) }
+    }
+
+    @Test("A character without an image URL has no portrait")
+    func noImageURL() async {
+        let withoutImage = CharacterDetails(
+            id: 9, name: "X", status: .alive, species: "Alien", originName: "Y", episodeCount: 1, imageURL: nil
+        )
+        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI())
+        await #expect(throws: DataError.notFound) { try await repository.portrait(for: withoutImage) }
+    }
+
+    @Test("A failed portrait save doesn't fail the load")
+    func portraitSaveFailureIsIgnored() async throws {
+        let api = StubAPI(portraits: [Self.avatar: .success(RecordedResponses.portrait)])
+        let repository = DefaultCharacterRepository.makeTemporary(api: api, portraits: try .makeUnwritable())
+
+        #expect(try await repository.portrait(for: .rick) == RecordedResponses.portrait)
+    }
+
+    @Test("A cancelled portrait download is not answered with anything")
+    func portraitCancellation() async {
+        let api = StubAPI(portraits: [Self.avatar: .failure(CancellationError())])
+        let repository = DefaultCharacterRepository.makeTemporary(api: api)
+        await #expect(throws: CancellationError.self) { try await repository.portrait(for: .rick) }
+    }
+
     @Test("A failed save doesn't fail the load")
     func saveFailureIsIgnored() async throws {
         let api = StubAPI(characters: [1: .success(.rick)])
