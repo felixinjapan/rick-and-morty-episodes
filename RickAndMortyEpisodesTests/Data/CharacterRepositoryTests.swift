@@ -196,6 +196,29 @@ struct CharacterRepositoryTests {
         #expect(try await offline.portrait(for: .rick) == RecordedResponses.portrait)
     }
 
+    @Test("A saved portrait that is not a readable image is downloaded again and replaced")
+    func damagedPortraitIsReplaced() async throws {
+        let portraits = PortraitStore.makeTemporary()
+        try await portraits.save(Data("damaged".utf8), for: Self.avatar)
+        let api = StubAPI(portraits: [Self.avatar: .success(RecordedResponses.portrait)])
+        let repository = DefaultCharacterRepository.makeTemporary(api: api, portraits: portraits)
+
+        #expect(try await repository.portrait(for: .rick) == RecordedResponses.portrait)
+
+        #expect(await api.requestedPortraits == [Self.avatar])
+        #expect(try await portraits.load(for: Self.avatar) == RecordedResponses.portrait)
+    }
+
+    @Test("A damaged saved portrait with no network fails, so the view shows its placeholder")
+    func damagedPortraitOffline() async throws {
+        let portraits = PortraitStore.makeTemporary()
+        try await portraits.save(Data("damaged".utf8), for: Self.avatar)
+        let api = StubAPI(portraits: [Self.avatar: .failure(APIError.offline)])
+        let repository = DefaultCharacterRepository.makeTemporary(api: api, portraits: portraits)
+
+        await #expect(throws: DataError.offline) { try await repository.portrait(for: .rick) }
+    }
+
     @Test("A portrait that was never seen fails when offline", arguments: apiToDomainErrors)
     func portraitErrorTranslation(apiError: APIError, expected: DataError) async {
         let repository = DefaultCharacterRepository.makeTemporary(
