@@ -4,37 +4,24 @@ import SwiftUI
 struct RickAndMortyEpisodesApp: App {
     @Environment(\.scenePhase) private var scenePhase
     private let repositories: AppDependencies.Repositories
-    private let exporter = AppDependencies.makeExporter()
-    /// Owned here rather than by the view, so the app's lifecycle handler can reach it.
-    @State private var episodeListViewModel: EpisodeListViewModel
+    @State private var coordinator: AppCoordinator
 
     init() {
         let repositories = AppDependencies.makeRepositories()
         self.repositories = repositories
-        _episodeListViewModel = State(initialValue: EpisodeListViewModel(
-            repository: repositories.episodes,
-            staleInterval: AppConfiguration.current.freshnessInterval
+        _coordinator = State(initialValue: AppCoordinator(
+            repositories: repositories,
+            exporter: AppDependencies.makeExporter(),
+            freshnessInterval: AppConfiguration.current.freshnessInterval
         ))
     }
 
     var body: some Scene {
         WindowGroup {
-            EpisodeListView(viewModel: episodeListViewModel) { route in
-                // The list view only knows the route; what the character screen needs is wired here.
-                CharacterDetailView(characterID: route.id, repository: repositories.characters, exporter: exporter)
-            }
+            coordinator.rootView
         }
         .onChange(of: scenePhase) { _, newPhase in
-            // The app's whole lifecycle handling in one place.
-            switch newPhase {
-            case .active:
-                // Picks up data a background refresh saved, and refreshes if it's stale.
-                Task { await episodeListViewModel.refreshIfNeeded() }
-            case .background:
-                BackgroundRefresh.schedule()
-            default:
-                break
-            }
+            Task { await coordinator.handle(newPhase) }
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.taskIdentifier)) { [episodes = repositories.episodes] in
             await BackgroundRefresh.perform(using: episodes)
