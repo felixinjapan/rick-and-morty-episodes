@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct EpisodeListView: View {
-    /// Owned by the app, which also forwards foreground events to it (see `RickAndMortyEpisodesApp`).
+    /// Owned by AppCoordinator, which also forwards foreground refreshes to this instance.
     let viewModel: EpisodeListViewModel
     /// Builds the character screen for a route. The composition root supplies it, so this view knows
     /// the route but not what the character screen depends on.

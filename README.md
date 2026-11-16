@@ -54,6 +54,8 @@ Data/          DefaultEpisodeRepository (actor)  ◀── App/BackgroundRefresh
                └ LiveRickAndMortyAPI (URLSession via HTTPTransport)
 
 App/           AppDependencies: the composition root that picks the concrete types
+               RickAndMortyEpisodesApp: owns the coordinator and registers background tasks
+               AppCoordinator: owns the list view model, builds the root view and routes scene events
 Support/       Cross-cutting helpers that belong to no layer (logging)
 ```
 
@@ -106,10 +108,15 @@ The brief asks to refresh the list in the background. The app covers both readin
 - **App open:** the cached list shows at once, and data over 12 h old refreshes quietly at launch and on
   return ("Updating…" status, no full-screen loader). Network, decoding and file work run off the main thread in actors.
 
-All lifecycle handling is one `scenePhase` switch in `RickAndMortyEpisodesApp`: going to the background
-schedules the task (no sooner than 12 h); becoming active calls `refreshIfNeeded()` on the list view model,
-which the app owns for that reason. To trigger the task on a device, pause in the debugger after
-backgrounding the app and run:
+`RickAndMortyEpisodesApp` creates and retains `AppCoordinator`, passing repositories, the exporter and
+the freshness interval. The coordinator creates and owns the list view model and builds the root view,
+injecting that same instance into `EpisodeListView` and wiring the character detail destination.
+The app forwards `scenePhase` changes to the coordinator:
+going to the background schedules the task (no sooner than 12 h); becoming active checks for a newer
+cached snapshot and stale data. Inactive transitions do nothing. Freshness and UI state stay in the
+view model; background execution stays in `BackgroundRefresh`, registered through the app's
+`.backgroundTask` modifier. To trigger the task on a device, pause in the debugger after backgrounding
+the app and run:
 
 ```
 e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"dev.felixinjapan.RickAndMortyEpisodes.refresh"]
