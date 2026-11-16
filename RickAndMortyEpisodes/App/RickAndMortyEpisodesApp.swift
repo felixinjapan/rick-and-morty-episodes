@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Selects dependencies, owns the coordinator, and registers background refresh.
 @main
 struct RickAndMortyEpisodesApp: App {
     @Environment(\.scenePhase) private var scenePhase
