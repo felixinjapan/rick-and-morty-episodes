@@ -19,7 +19,10 @@ struct RickAndMortyEpisodesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            EpisodeListView(viewModel: episodeListViewModel, characterRepository: repositories.characters, exporter: exporter)
+            EpisodeListView(viewModel: episodeListViewModel) { route in
+                // The list view only knows the route; what the character screen needs is wired here.
+                CharacterDetailView(characterID: route.id, repository: repositories.characters, exporter: exporter)
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             // The app's whole lifecycle handling in one place.
