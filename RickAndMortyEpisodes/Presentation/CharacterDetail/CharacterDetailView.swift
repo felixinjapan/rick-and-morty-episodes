@@ -100,7 +100,7 @@ private struct CharacterDetailContent: View {
     NavigationStack {
         CharacterDetailView(
             characterID: 1,
-            repository: AppDependencies.makePreviewRepositories().characters,
+            repository: AppDependencies.makePreviewRepositories(configuration: .production).characters,
             exporter: AppDependencies.makePreviewExporter()
         )
     }
@@ -110,7 +110,7 @@ private struct CharacterDetailContent: View {
     NavigationStack {
         CharacterDetailView(
             characterID: 1,
-            repository: AppDependencies.makePreviewRepositories(networkUnavailable: true).characters,
+            repository: AppDependencies.makePreviewRepositories(configuration: .production, networkUnavailable: true).characters,
             exporter: AppDependencies.makePreviewExporter()
         )
     }

@@ -1,7 +1,6 @@
 import Foundation
 
-/// Product and environment values, defined in one place. Only the App layer reads them and
-/// passes them down as plain parameters.
+/// Product and environment values selected by the composition root and passed into dependencies.
 struct AppConfiguration: Sendable {
     var apiBaseURL: URL
     /// How long fetched episodes count as fresh: the foreground staleness check and the earliest
@@ -15,6 +14,7 @@ struct AppConfiguration: Sendable {
     var requestTimeout: TimeInterval
     var resourceTimeout: TimeInterval
 
+    /// A preset value, explicitly selected at app and preview entry points.
     static let production = AppConfiguration(
         apiBaseURL: URL(string: "https://rickandmortyapi.com/api")!,
         freshnessInterval: 12 * 60 * 60,
@@ -22,7 +22,4 @@ struct AppConfiguration: Sendable {
         requestTimeout: 15,
         resourceTimeout: 30
     )
-
-    /// The configuration the app runs with; a staging environment would be chosen here.
-    static let current = production
 }

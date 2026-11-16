@@ -5,6 +5,17 @@ import Testing
 
 @Suite("Background refresh")
 struct BackgroundRefreshTests {
+    @Test("Scheduling uses the supplied interval")
+    func schedulesWithInjectedInterval() {
+        var submissions = 0
+        BackgroundRefresh.schedule(minimumInterval: 90, now: fixedDate) { request in
+            submissions += 1
+            #expect(request.identifier == BackgroundRefresh.taskIdentifier)
+            #expect(request.earliestBeginDate == fixedDate.addingTimeInterval(90))
+        }
+        #expect(submissions == 1)
+    }
+
     @Test("Schedules the next run before refreshing, then saves page 1", .timeLimit(.minutes(1)))
     func schedulesFirstThenRefreshes() async throws {
         let api = makeThreePageAPI()

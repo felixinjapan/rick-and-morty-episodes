@@ -8,16 +8,19 @@ import os
 enum BackgroundRefresh {
     /// Must match `BGTaskSchedulerPermittedIdentifiers` in Info.plist.
     static let taskIdentifier = "dev.felixinjapan.RickAndMortyEpisodes.refresh"
-    static let minimumInterval = AppConfiguration.current.freshnessInterval
 
     private static let logger = Logger(category: "BackgroundRefresh")
 
-    static func schedule() {
+    static func schedule(
+        minimumInterval: TimeInterval,
+        now: Date = .now,
+        submit: (BGAppRefreshTaskRequest) throws -> Void = { try BGTaskScheduler.shared.submit($0) }
+    ) {
         let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
-        request.earliestBeginDate = Date(timeIntervalSinceNow: minimumInterval)
+        request.earliestBeginDate = now.addingTimeInterval(minimumInterval)
         do {
             // Submitting again replaces the pending request for this identifier.
-            try BGTaskScheduler.shared.submit(request)
+            try submit(request)
         } catch {
             // Expected in the Simulator and when Background App Refresh is turned off.
             logger.notice("Background refresh not scheduled: \(error.localizedDescription, privacy: .public)")
@@ -26,10 +29,10 @@ enum BackgroundRefresh {
 
     /// Runs when iOS launches the task; SwiftUI cancels it when time runs out. A request still in
     /// flight then fails and saves nothing, but a page that already arrived is saved.
-    /// `scheduleNext` is injectable so tests don't need `BGTaskScheduler`.
+    /// The composition root supplies scheduling with the same interval as foreground refresh.
     static func perform(
         using repository: any EpisodeRepository,
-        scheduleNext: () -> Void = { BackgroundRefresh.schedule() }
+        scheduleNext: () -> Void
     ) async {
         // Schedule the next run first, so one failure doesn't stop future refreshes.
         scheduleNext()
