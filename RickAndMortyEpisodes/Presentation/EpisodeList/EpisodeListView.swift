@@ -3,9 +3,9 @@ import SwiftUI
 struct EpisodeListView: View {
     /// Owned by the app, which also forwards foreground events to it (see `RickAndMortyEpisodesApp`).
     let viewModel: EpisodeListViewModel
-    /// Passed on to the character screen this list navigates to.
-    let characterRepository: any CharacterRepository
-    let exporter: any CharacterExporting
+    /// Builds the character screen for a route. The composition root supplies it, so this view knows
+    /// the route but not what the character screen depends on.
+    let makeCharacterDetail: (CharacterRoute) -> CharacterDetailView
 
     var body: some View {
         NavigationStack {
@@ -30,7 +30,7 @@ struct EpisodeListView: View {
                 EpisodeCharactersView(episode: episode)
             }
             .navigationDestination(for: CharacterRoute.self) { route in
-                CharacterDetailView(characterID: route.id, repository: characterRepository, exporter: exporter)
+                makeCharacterDetail(route)
             }
             .toolbar {
                 // A status item in the bottom toolbar (as in Mail) instead of a floating label,
@@ -166,8 +166,13 @@ private func episodeListPreview(_ repositories: AppDependencies.Repositories) ->
             repository: repositories.episodes,
             staleInterval: AppConfiguration.current.freshnessInterval
         ),
-        characterRepository: repositories.characters,
-        exporter: AppDependencies.makePreviewExporter()
+        makeCharacterDetail: { route in
+            CharacterDetailView(
+                characterID: route.id,
+                repository: repositories.characters,
+                exporter: AppDependencies.makePreviewExporter()
+            )
+        }
     )
 }
 #endif
