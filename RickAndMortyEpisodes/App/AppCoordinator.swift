@@ -34,6 +34,7 @@ final class AppCoordinator {
     func handle(_ phase: ScenePhase) async {
         switch phase {
         case .active:
+            // Adopt newer cached data and refresh using the injected freshness interval.
             await episodeListViewModel.refreshIfNeeded()
         case .background:
             scheduleBackgroundRefresh()
