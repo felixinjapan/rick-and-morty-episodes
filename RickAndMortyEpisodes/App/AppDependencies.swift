@@ -10,7 +10,7 @@ enum AppDependencies {
     /// Both repositories share one API client. The character repository asks the episode repository
     /// how big the catalogue is, to tell whether saved character details are out of date.
     static func makeRepositories(
-        configuration: AppConfiguration = .current,
+        configuration: AppConfiguration,
         arguments: [String] = ProcessInfo.processInfo.arguments
     ) -> Repositories {
         let sources = makeDataSources(configuration: configuration, arguments: arguments)

@@ -152,19 +152,23 @@ private struct LastUpdatedLabel: View {
 
 #if DEBUG
 #Preview("Loaded") {
-    episodeListPreview(AppDependencies.makePreviewRepositories())
+    episodeListPreview()
 }
 
 #Preview("Offline") {
-    episodeListPreview(AppDependencies.makePreviewRepositories(networkUnavailable: true))
+    episodeListPreview(networkUnavailable: true)
 }
 
 @MainActor
-private func episodeListPreview(_ repositories: AppDependencies.Repositories) -> some View {
-    EpisodeListView(
+private func episodeListPreview(networkUnavailable: Bool = false) -> some View {
+    let configuration = AppConfiguration.production
+    let repositories = AppDependencies.makePreviewRepositories(
+        configuration: configuration, networkUnavailable: networkUnavailable
+    )
+    return EpisodeListView(
         viewModel: EpisodeListViewModel(
             repository: repositories.episodes,
-            staleInterval: AppConfiguration.current.freshnessInterval
+            staleInterval: configuration.freshnessInterval
         ),
         makeCharacterDetail: { route in
             CharacterDetailView(

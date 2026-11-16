@@ -82,7 +82,10 @@ Support/       Cross-cutting helpers that belong to no layer (logging)
 - **Networking** maps DTOs to domain entities. The air date is parsed there (`en_US_POSIX`, GMT); an
   unreadable one becomes `nil` for that episode only ("Unknown air date"). Presentation formats it as `dd/MM/yyyy`.
 - **Configuration** (API URL, the 12-hour freshness interval for the foreground check and background
-  scheduling, timeouts) lives in `AppConfiguration`, read only by the App layer.
+  scheduling, timeouts) is an `AppConfiguration` value selected in the app entry point. Repository
+  factories require it explicitly. Foreground refresh and both background scheduling paths receive
+  the same interval; consumers never look up a global current configuration. Previews select their
+  configuration at their own entry points.
 - **Dependency injection** is by initialiser, wired in `AppDependencies`. Protocols sit at layer boundaries
   and at the network (so tests control it); the file store has none, because tests give it a temporary folder.
 

@@ -4,7 +4,10 @@ import Foundation
 extension AppDependencies {
     /// Dependencies for SwiftUI previews, so Presentation doesn't pick Data types itself: stub data,
     /// or a network where every request fails, and a fresh cache each time.
-    static func makePreviewRepositories(networkUnavailable: Bool = false) -> Repositories {
+    static func makePreviewRepositories(
+        configuration: AppConfiguration,
+        networkUnavailable: Bool = false
+    ) -> Repositories {
         let api: any RickAndMortyAPI = networkUnavailable ? UnavailableRickAndMortyAPI() : RecordedRickAndMortyAPI()
         let episodes = DefaultEpisodeRepository(api: api, store: .makePreview())
         return Repositories(
@@ -14,7 +17,7 @@ extension AppDependencies {
                 store: .makePreview(),
                 portraits: .makePreview(),
                 catalogueCount: { await episodes.loadCurrentSnapshot()?.totalCount },
-                maxAge: AppConfiguration.current.characterMaxAge
+                maxAge: configuration.characterMaxAge
             )
         )
     }

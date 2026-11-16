@@ -14,7 +14,7 @@ final class AppCoordinator {
         repositories: AppDependencies.Repositories,
         exporter: any CharacterExporting,
         freshnessInterval: TimeInterval,
-        scheduleBackgroundRefresh: @escaping @MainActor () -> Void = { BackgroundRefresh.schedule() }
+        scheduleBackgroundRefresh: @escaping @MainActor () -> Void
     ) {
         episodeListViewModel = EpisodeListViewModel(
             repository: repositories.episodes,
