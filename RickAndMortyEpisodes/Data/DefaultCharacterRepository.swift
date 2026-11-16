@@ -1,13 +1,12 @@
 import Foundation
 import os
 
-/// Character details and portraits from the API, saved on disk once the user has opened them, so
-/// opening the same character again makes no request and works offline. Only opened characters are saved; nothing is
-/// downloaded ahead of time. An actor because the cache is mutable state shared by screens.
+/// Saves opened characters and their portraits on disk; nothing is downloaded ahead of time.
+/// Actor isolation protects the in-memory character cache shared by screens.
 ///
-/// Saved details are used while the catalogue is the same size as when they were saved and they are
-/// younger than `maxAge`. Otherwise they are fetched again; if that fails they are still served, so a
-/// character the user has opened never turns into an error screen just because the data is old.
+/// Fresh saved details avoid a request. Details older than `maxAge` or saved under a different
+/// catalogue size are fetched again. A failed fetch serves saved details except for not-found
+/// responses and cancellation, which propagate to the caller.
 actor DefaultCharacterRepository: CharacterRepository {
     private let api: any RickAndMortyAPI
     private let store: FileCharacterStore
@@ -57,8 +56,8 @@ actor DefaultCharacterRepository: CharacterRepository {
         }
     }
 
-    /// Saved portraits are never dropped or refetched: the image URL names the character, so the
-    /// image behind it doesn't change.
+    /// Reuses a readable saved portrait without an age limit. A missing, unreadable, or invalid
+    /// file is downloaded again; a successful download replaces it. Fetch failures propagate.
     func portrait(for character: CharacterDetails) async throws -> Data {
         guard let url = character.imageURL else { throw DataError.notFound }
         do {
