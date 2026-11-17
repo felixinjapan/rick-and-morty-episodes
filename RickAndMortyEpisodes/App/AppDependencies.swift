@@ -53,14 +53,12 @@ enum AppDependencies {
             let charactersURL = folder.appending(path: "characters", directoryHint: .isDirectory)
             let portraitsURL = folder.appending(path: "portraits", directoryHint: .isDirectory)
             if arguments.contains("-resetCache") {
-                try? FileManager.default.removeItem(at: cacheURL)
-                try? FileManager.default.removeItem(at: charactersURL)
-                try? FileManager.default.removeItem(at: portraitsURL)
+                try? FileManager.default.removeItem(at: folder)
             }
             // `-networkUnavailable` fails every request, so anything on screen came from the cache.
             let api: any RickAndMortyAPI = arguments.contains("-networkUnavailable")
                 ? UnavailableRickAndMortyAPI()
-                : RecordedRickAndMortyAPI()
+                : LiveRickAndMortyAPI.recorded()
             return DataSources(
                 api: api, episodeStore: FileEpisodeStore(fileURL: cacheURL),
                 characterStore: FileCharacterStore(directory: charactersURL),

@@ -8,7 +8,7 @@ extension AppDependencies {
         configuration: AppConfiguration,
         networkUnavailable: Bool = false
     ) -> Repositories {
-        let api: any RickAndMortyAPI = networkUnavailable ? UnavailableRickAndMortyAPI() : RecordedRickAndMortyAPI()
+        let api: any RickAndMortyAPI = networkUnavailable ? UnavailableRickAndMortyAPI() : LiveRickAndMortyAPI.recorded()
         let episodes = DefaultEpisodeRepository(api: api, store: .makePreview())
         return Repositories(
             episodes: episodes,

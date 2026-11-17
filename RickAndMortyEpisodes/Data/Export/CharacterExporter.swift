@@ -19,11 +19,9 @@ struct CharacterExporter: CharacterExporting {
 
     /// e.g. "Character-1-Rick-Sanchez.txt". Exporting the same character again replaces the file.
     static func fileName(for character: CharacterDetails) -> String {
-        let allowed = CharacterSet.alphanumerics
-        let words = character.name.unicodeScalars
-            .map { allowed.contains($0) ? String($0) : " " }
-            .joined()
-            .split(separator: " ")
+        let words = character.name
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
         let slug = words.isEmpty ? "Unknown" : words.joined(separator: "-")
         return "Character-\(character.id)-\(slug).txt"
     }
