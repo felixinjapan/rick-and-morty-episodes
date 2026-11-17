@@ -117,20 +117,22 @@ private struct CharacterDetailContent: View {
 
 #if DEBUG
 #Preview("Loaded") {
-    NavigationStack {
-        CharacterDetailView(
-            route: CharacterRoute(id: 1, name: nil),
-            repository: AppDependencies.makePreviewRepositories(configuration: .production).characters,
-            exporter: AppDependencies.makePreviewExporter()
-        )
-    }
+    characterDetailPreview()
 }
 
 #Preview("Offline") {
-    NavigationStack {
+    characterDetailPreview(networkUnavailable: true)
+}
+
+@MainActor
+private func characterDetailPreview(networkUnavailable: Bool = false) -> some View {
+    let repositories = AppDependencies.makePreviewRepositories(
+        configuration: .production, networkUnavailable: networkUnavailable
+    )
+    return NavigationStack {
         CharacterDetailView(
             route: CharacterRoute(id: 1, name: nil),
-            repository: AppDependencies.makePreviewRepositories(configuration: .production, networkUnavailable: true).characters,
+            repository: repositories.characters,
             exporter: AppDependencies.makePreviewExporter()
         )
     }

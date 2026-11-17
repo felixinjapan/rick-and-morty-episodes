@@ -55,14 +55,11 @@ private struct EpisodeCharacterRow: View {
         }
         .accessibilityIdentifier("character.link.\(id)")
         .task(id: id) {
-            guard character == nil else { return }
-            do {
-                let loaded = try await repository.character(id: id)
-                guard !Task.isCancelled else { return }
-                character = loaded
-            } catch {
-                // The ID stays tappable when enrichment fails or is cancelled.
-            }
+            // The ID stays tappable when details fail to load or the task is cancelled.
+            guard character == nil,
+                  let loaded = try? await repository.character(id: id),
+                  !Task.isCancelled else { return }
+            character = loaded
         }
     }
 
@@ -88,15 +85,16 @@ private struct EpisodeCharacterRow: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(character?.name ?? String(localized: .characterTitle(id)))
                     .font(.headline)
-                if character != nil {
-                    Text(.characterTitle(id))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.primary.opacity(0.7))
-                } else {
-                    Text(.episodeCharactersTapForDetails)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary.opacity(0.7))
+                Group {
+                    if character != nil {
+                        Text(.characterTitle(id))
+                            .font(.caption.monospacedDigit())
+                    } else {
+                        Text(.episodeCharactersTapForDetails)
+                            .font(.subheadline)
+                    }
                 }
+                .foregroundStyle(.primary.opacity(0.7))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)

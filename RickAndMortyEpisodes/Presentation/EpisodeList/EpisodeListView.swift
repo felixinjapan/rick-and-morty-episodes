@@ -157,19 +157,11 @@ private func episodeListPreview(networkUnavailable: Bool = false) -> some View {
     let repositories = AppDependencies.makePreviewRepositories(
         configuration: configuration, networkUnavailable: networkUnavailable
     )
-    return EpisodeListView(
-        viewModel: EpisodeListViewModel(
-            repository: repositories.episodes,
-            staleInterval: configuration.freshnessInterval
-        ),
-        characterRepository: repositories.characters,
-        makeCharacterDetail: { route in
-            CharacterDetailView(
-                route: route,
-                repository: repositories.characters,
-                exporter: AppDependencies.makePreviewExporter()
-            )
-        }
-    )
+    return AppCoordinator(
+        repositories: repositories,
+        exporter: AppDependencies.makePreviewExporter(),
+        freshnessInterval: configuration.freshnessInterval,
+        scheduleBackgroundRefresh: {}
+    ).rootView
 }
 #endif
