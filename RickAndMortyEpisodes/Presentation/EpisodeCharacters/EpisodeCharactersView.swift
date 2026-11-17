@@ -24,7 +24,7 @@ struct EpisodeCharactersView: View {
                 .padding(.vertical, 8)
             }
             .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 8, trailing: 0))
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
 
             Section {
                 ForEach(episode.characterIDs, id: \.self) { id in
