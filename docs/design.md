@@ -22,7 +22,7 @@ flowchart TD
 
 ## Opening a character
 
-`DefaultCharacterRepository.character(id:)`. Each opened character is its own file, so saving one rewrites nothing else.
+`DefaultCharacterRepository.character(id:)`. Each opened character is a SwiftData row, so saving one leaves other characters' details unchanged.
 
 ```mermaid
 flowchart TD
@@ -31,7 +31,7 @@ flowchart TD
     C -- yes --> R1[Return saved details, no request]
     B -- no --> F[Fetch from API]
     C -- no --> F
-    F -- success --> S[Save file, return details]
+    F -- success --> S[Save details, return details]
     F -- "404 not found" --> E[Show error]
     F -- "other failure<br/>(offline, timeout, server)" --> G{Saved details?}
     G -- yes --> R2[Return older saved details]

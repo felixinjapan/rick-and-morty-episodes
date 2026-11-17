@@ -2,8 +2,14 @@ import Foundation
 import SwiftData
 import os
 
-enum CacheStoreError: Error, Equatable {
+enum CacheStoreError: LocalizedError, Equatable {
     case duplicateEpisodeID(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .duplicateEpisodeID(let id): "Episode snapshot contains duplicate ID \(id)."
+        }
+    }
 }
 
 /// One shared cache for episodes and opened characters. Opening is deferred until first use so
@@ -92,7 +98,7 @@ private actor CacheStorage {
     private typealias CharacterRecord = CacheSchemaV1.CharacterRecord
 
     func loadEpisodes() throws -> EpisodeSnapshot? {
-        guard let metadata = try modelContext.fetch(FetchDescriptor<SnapshotRecord>()).first else { return nil }
+        guard let metadata = try snapshotRecord() else { return nil }
         let episodes = try modelContext.fetch(FetchDescriptor<EpisodeRecord>(sortBy: [SortDescriptor(\.position)]))
         return EpisodeSnapshot(
             episodes: episodes.map { $0.toDomain() }, nextPage: metadata.nextPage,
@@ -113,7 +119,7 @@ private actor CacheStorage {
                 }
             }
             for obsolete in existing.values { modelContext.delete(obsolete) }
-            if let metadata = try modelContext.fetch(FetchDescriptor<SnapshotRecord>()).first {
+            if let metadata = try snapshotRecord() {
                 metadata.update(snapshot)
             } else {
                 modelContext.insert(SnapshotRecord(snapshot))
@@ -133,6 +139,12 @@ private actor CacheStorage {
                 modelContext.insert(CharacterRecord(stored))
             }
         }
+    }
+
+    private func snapshotRecord() throws -> SnapshotRecord? {
+        var descriptor = FetchDescriptor<SnapshotRecord>(predicate: #Predicate { $0.key == "episodes" })
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first
     }
 
     private func characterRecord(id: Int) throws -> CharacterRecord? {
