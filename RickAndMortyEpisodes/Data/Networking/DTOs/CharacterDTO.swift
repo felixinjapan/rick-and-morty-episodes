@@ -1,7 +1,5 @@
 import Foundation
 
-/// The `GET /character/{id}` response (https://rickandmortyapi.com/documentation#character)
-/// Decodes only the fields the app uses, so new API fields can't break it.
 struct CharacterDTO: Decodable, Sendable {
     struct Origin: Decodable, Sendable {
         let name: String
@@ -15,8 +13,6 @@ struct CharacterDTO: Decodable, Sendable {
     let image: String
     let episode: [String]
 }
-
-// MARK: - Mapping to the domain
 
 extension CharacterDTO {
     func toDomain() -> CharacterDetails {
@@ -33,7 +29,6 @@ extension CharacterDTO {
 }
 
 extension CharacterStatus {
-    /// Maps the API's status text; values the app doesn't know become `.unknown`.
     init(apiValue: String) {
         switch apiValue.lowercased() {
         case "alive": self = .alive

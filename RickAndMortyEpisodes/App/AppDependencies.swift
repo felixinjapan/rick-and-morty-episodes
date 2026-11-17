@@ -1,14 +1,11 @@
 import Foundation
 
-/// The composition root: the only place that chooses concrete implementations.
 enum AppDependencies {
     struct Repositories {
         let episodes: any EpisodeRepository
         let characters: any CharacterRepository
     }
 
-    /// Both repositories share one API client. The character repository asks the episode repository
-    /// how big the catalogue is, to tell whether saved character details are out of date.
     static func makeRepositories(
         configuration: AppConfiguration,
         arguments: [String] = ProcessInfo.processInfo.arguments
@@ -55,7 +52,6 @@ enum AppDependencies {
             if arguments.contains("-resetCache") {
                 try? FileManager.default.removeItem(at: folder)
             }
-            // `-networkUnavailable` fails every request, so anything on screen came from the cache.
             let api: any RickAndMortyAPI = arguments.contains("-networkUnavailable")
                 ? UnavailableRickAndMortyAPI()
                 : LiveRickAndMortyAPI.recorded()

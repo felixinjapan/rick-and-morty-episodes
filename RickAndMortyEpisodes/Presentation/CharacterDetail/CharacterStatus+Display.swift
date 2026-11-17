@@ -1,7 +1,6 @@
 import SwiftUI
 
 extension CharacterStatus {
-    /// The status as shown to the user, from the string catalog.
     var title: LocalizedStringResource {
         switch self {
         case .alive: .characterStatusAlive
@@ -10,7 +9,6 @@ extension CharacterStatus {
         }
     }
 
-    /// The colour of the dot next to the status.
     var color: Color {
         switch self {
         case .alive: .green

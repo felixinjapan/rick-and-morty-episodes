@@ -15,7 +15,6 @@ enum RecordedResponses {
     /// A small solid-colour image that stands in for every avatar.
     static let portrait = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGPQmtuPFTEMLQkAT3dVgRdrT9YAAAAASUVORK5CYII=")!
 
-    /// One character from the saved batch response, as `/character/{id}` would return it.
     static func character(id: Int) throws -> Data? {
         let all = try JSONSerialization.jsonObject(with: data(named: "characters")) as? [[String: Any]]
         guard let match = all?.first(where: { $0["id"] as? Int == id }) else { return nil }
@@ -24,8 +23,6 @@ enum RecordedResponses {
 }
 
 extension HTTPTransport {
-    /// Answers from the stub data like the real server: `/episode?page=N`, `/character/{id}` and
-    /// `/character/avatar/{id}.jpeg` (one generated image), and 404 for anything else.
     static let recorded = HTTPTransport { request in
         guard let url = request.url else { throw URLError(.badURL) }
         let path = url.pathComponents

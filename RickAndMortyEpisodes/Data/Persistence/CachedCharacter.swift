@@ -1,8 +1,5 @@
 import Foundation
 
-/// A saved character as it is stored: the details plus what is needed to judge later whether they
-/// are still good. The file format, separate from the domain type so changing one can't change what
-/// is on disk. Bump `currentVersion` when it changes; another version counts as no cache.
 struct StoredCharacter: Sendable, Equatable {
     let details: CharacterDetails
     /// The catalogue size when the details were saved, if known. New episodes change a character's
@@ -11,6 +8,7 @@ struct StoredCharacter: Sendable, Equatable {
     let savedAt: Date
 }
 
+/// Bump `currentVersion` when changing the on-disk schema.
 struct CachedCharacter: Codable {
     static let currentVersion = 1
 

@@ -1,14 +1,12 @@
 import Foundation
 import os
 
-/// The single source of truth for the episode list, shared by the UI and the background task.
-/// An actor because both reach its mutable state (`latest`) at the same time.
+/// Shared by the UI and the background refresh task.
 actor DefaultEpisodeRepository: EpisodeRepository {
     private let api: any RickAndMortyAPI
     private let store: FileEpisodeStore
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultEpisodeRepository")
-    /// The list as last loaded, refreshed or read from disk.
     private var latest: EpisodeSnapshot?
 
     init(
@@ -21,11 +19,6 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         self.now = now
     }
 
-    // MARK: - Episodes
-
-    /// The saved list or the one last loaded, whichever is newer. At launch it reads the file;
-    /// afterwards memory is normally current, because the background task uses this instance.
-    /// An unreadable cache is logged and treated as no cache.
     func loadCurrentSnapshot() async -> EpisodeSnapshot? {
         do {
             if let saved = try await store.load(), saved.refreshedAt > (latest?.refreshedAt ?? .distantPast) {
@@ -37,8 +30,6 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         return latest
     }
 
-    /// See `EpisodeRepository`. Each page is saved as it arrives, so the list reopens where the
-    /// user left it.
     func loadNextPage(after current: EpisodeSnapshot?) async throws -> EpisodeSnapshot {
         let page: Int
         if let current {
@@ -59,7 +50,6 @@ actor DefaultEpisodeRepository: EpisodeRepository {
             episodes: (current?.episodes ?? []) + loaded.episodes,
             nextPage: loaded.hasNextPage ? page + 1 : nil,
             totalCount: loaded.totalCount,
-            // "Last updated" and staleness refer to when page 1 was fetched.
             refreshedAt: current?.refreshedAt ?? now()
         )
         latest = snapshot
@@ -67,10 +57,6 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         return snapshot
     }
 
-    /// See `EpisodeRepository`. Cached pages after page 1 stay unless the catalogue shrank, and
-    /// pages for newly added episodes load on scroll (see `EpisodeSnapshot.refreshed`).
-    /// Overlapping refreshes aren't merged: each saves a valid list and the store writes
-    /// them one at a time.
     func refreshFirstPage() async throws -> EpisodeSnapshot {
         // Read the saved list first: in a new process (the background task) memory is still empty,
         // and refreshing without it would save a list that has lost its cached pages.

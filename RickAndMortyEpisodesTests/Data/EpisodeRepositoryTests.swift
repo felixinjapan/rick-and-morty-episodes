@@ -52,7 +52,6 @@ struct EpisodeRepositoryTests {
         #expect(snapshot.nextPage == 2)
     }
 
-    // Tests that wait for a request in a loop have a time limit, so a regression fails instead of hanging.
     @Test("A page that arrives after a refresh doesn't overwrite the refreshed list", .timeLimit(.minutes(1)))
     func latePageAfterRefresh() async throws {
         let api = makeThreePageAPI()

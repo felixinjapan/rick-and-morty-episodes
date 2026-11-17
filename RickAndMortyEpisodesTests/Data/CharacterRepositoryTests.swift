@@ -45,7 +45,6 @@ struct CharacterRepositoryTests {
         )
         _ = try await first.character(id: 1)
 
-        // A new repository over the same folder, like a relaunch.
         let api = StubAPI()
         let second = DefaultCharacterRepository.makeTemporary(api: api, store: store)
 
@@ -257,7 +256,6 @@ struct CharacterRepositoryTests {
         let repository = DefaultCharacterRepository.makeTemporary(api: api, store: try .makeUnwritable())
 
         #expect(try await repository.character(id: 1) == .rick)
-        // Still answered from memory for the rest of the session.
         #expect(try await repository.character(id: 1) == .rick)
         #expect(await api.requestedCharacters == [1])
     }

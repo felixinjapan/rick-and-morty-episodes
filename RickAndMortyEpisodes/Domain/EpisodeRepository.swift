@@ -1,8 +1,7 @@
 import Foundation
 
-/// The episode list the view models need, whatever its source. `DefaultEpisodeRepository`
-/// implements it. Throws `DataError`, or `CancellationError` when the calling task is cancelled.
-/// Saving is best effort: a failed write is logged, not thrown, so a returned list may not be on disk.
+/// Load failures throw `DataError`; cancellation propagates as `CancellationError`.
+/// Saving is best effort: a returned snapshot may not have reached disk.
 protocol EpisodeRepository: Sendable {
     /// The saved list or the one last loaded, whichever is newer; `nil` if there is neither.
     func loadCurrentSnapshot() async -> EpisodeSnapshot?

@@ -1,7 +1,6 @@
 import Foundation
 
-/// The cache file's format, separate from the domain types so changing them can't change what is
-/// on disk. Bump `currentVersion` when it changes; another version counts as no cache.
+/// Bump `currentVersion` when changing the on-disk schema.
 struct CachedEpisodeSnapshot: Codable {
     static let currentVersion = 2
 

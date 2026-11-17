@@ -1,12 +1,9 @@
 import SwiftUI
 
-/// Navigation value for a character's detail page.
 struct CharacterRoute: Hashable {
     let id: Int
 }
 
-/// Lists the IDs of the characters that appear in an episode.
-/// The IDs come from the episode itself, so this screen needs no network request.
 struct EpisodeCharactersView: View {
     let episode: Episode
 
@@ -20,7 +17,6 @@ struct EpisodeCharactersView: View {
                     .accessibilityIdentifier("character.link.\(id)")
                 }
             } header: {
-                // Data and punctuation only, so nothing to translate.
                 Text(verbatim: "\(episode.code) · \(episode.formattedAirDate)")
             } footer: {
                 Text(.episodeCharactersCount(episode.characterIDs.count))

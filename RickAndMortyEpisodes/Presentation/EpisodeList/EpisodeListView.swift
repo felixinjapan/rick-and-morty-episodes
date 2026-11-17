@@ -3,14 +3,11 @@ import SwiftUI
 struct EpisodeListView: View {
     /// Owned by AppCoordinator, which also forwards foreground refreshes to this instance.
     let viewModel: EpisodeListViewModel
-    /// Builds the character screen for a route. The composition root supplies it, so this view knows
-    /// the route but not what the character screen depends on.
     let makeCharacterDetail: (CharacterRoute) -> CharacterDetailView
 
     var body: some View {
         NavigationStack {
             Group {
-                // With no episodes to show, the error replaces the list instead of covering it.
                 if let message = viewModel.emptyListErrorMessage {
                     ContentUnavailableView {
                         Label(.episodeListLoadErrorTitle, systemImage: "exclamationmark.triangle")
@@ -60,13 +57,11 @@ struct EpisodeListView: View {
 
             EpisodeListFooter(viewModel: viewModel)
         }
-        // A new identity rebuilds the list from the top (see `listIdentity`).
         .id(viewModel.listIdentity)
         .refreshable { await viewModel.refresh() }
     }
 }
 
-/// The last list row: triggers the next page, shows a paging error, or the end-of-list text.
 private struct EpisodeListFooter: View {
     let viewModel: EpisodeListViewModel
 

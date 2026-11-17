@@ -14,7 +14,6 @@ struct FileEpisodeStoreTests {
         #"{"episodes":[{"id":1,"name":"Pilot","airDate":"December 2, 2013","code":"S01E01","characterIDs":[1]}],"refreshedAt":0}"#,
         // Version 1, before the catalogue size was saved.
         #"{"version":1,"episodes":[],"refreshedAt":0}"#,
-        // A future version.
         #"{"version":99,"episodes":[],"refreshedAt":0}"#,
     ])
     func otherFormatVersion(json: String) async throws {

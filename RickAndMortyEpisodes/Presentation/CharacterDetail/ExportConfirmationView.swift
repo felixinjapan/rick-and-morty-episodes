@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// Confirms that the export file was saved and offers to share it.
 struct ExportConfirmationView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -8,7 +7,6 @@ struct ExportConfirmationView: View {
 
     var body: some View {
         NavigationStack {
-            // Scrolls so the content stays readable at the largest accessibility text sizes.
             ScrollView {
                 VStack(spacing: 20) {
                     Image(systemName: "checkmark.circle.fill")
@@ -19,7 +17,6 @@ struct ExportConfirmationView: View {
                     Text(.exportSaved)
                         .font(.title2.bold())
                         .accessibilityIdentifier("export.confirmation")
-                    // AttributedString(localized:) applies the **bold** markup in the catalog value.
                     Text(AttributedString(localized: .exportMessage(fileURL.lastPathComponent)))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
@@ -37,7 +34,6 @@ struct ExportConfirmationView: View {
             }
             .accessibilityIdentifier("export.content")
             .toolbar {
-                // The sheet only confirms a finished action, so it is dismissed with Close, not Done.
                 ToolbarItem(placement: .cancellationAction) {
                     Button(.commonClose, systemImage: "xmark") { dismiss() }
                 }

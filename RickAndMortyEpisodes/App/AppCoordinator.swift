@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// Owns the presentation objects and routes lifecycle events for the app's lifetime.
-/// Freshness rules stay in the view model; background execution stays in BackgroundRefresh.
 @MainActor
 final class AppCoordinator {
     let episodeListViewModel: EpisodeListViewModel
@@ -34,7 +32,6 @@ final class AppCoordinator {
     func handle(_ phase: ScenePhase) async {
         switch phase {
         case .active:
-            // Adopt newer cached data and refresh using the injected freshness interval.
             await episodeListViewModel.refreshIfNeeded()
         case .background:
             scheduleBackgroundRefresh()

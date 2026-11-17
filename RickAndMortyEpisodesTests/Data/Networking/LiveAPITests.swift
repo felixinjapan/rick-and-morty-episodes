@@ -2,8 +2,6 @@ import Foundation
 import Testing
 @testable import RickAndMortyEpisodes
 
-/// Tests decoding against the stub data and HTTP error mapping, using closure transports
-/// instead of the network.
 @Suite("Live API client")
 struct LiveAPITests {
     private func makeAPI(
@@ -157,7 +155,6 @@ struct LiveAPITests {
     }
 }
 
-/// Thread-safe recorder for the transport closure, which runs off the test's actor.
 private final class RecordedURLs: @unchecked Sendable {
     // @unchecked: all access goes through `lock`.
     private let lock = NSLock()

@@ -1,8 +1,6 @@
 import Foundation
 
-/// How a request failed, in HTTP and URL-loading terms. It stays in the Data layer; `toDomain()`
-/// translates it into `DataError`. Cancellation isn't a case: it surfaces as `CancellationError`,
-/// so callers can ignore it.
+/// Cancellation propagates as `CancellationError`, rather than an API error.
 enum APIError: Error, Equatable {
     case offline
     case timedOut
@@ -23,10 +21,7 @@ enum APIError: Error, Equatable {
     }
 }
 
-// MARK: - Mapping to the domain
-
 extension APIError {
-    /// This failure in the domain's terms.
     func toDomain() -> DataError {
         switch self {
         case .offline: .offline

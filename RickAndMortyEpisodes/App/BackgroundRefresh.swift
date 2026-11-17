@@ -1,10 +1,7 @@
 import BackgroundTasks
 import os
 
-/// Refreshes the episode cache in the background with a `BGAppRefreshTask`.
-///
 /// iOS decides when, and whether, the task runs; `earliestBeginDate` is only a lower bound.
-/// The foreground refresh of stale data is what keeps the list fresh; this is an extra.
 enum BackgroundRefresh {
     /// Must match `BGTaskSchedulerPermittedIdentifiers` in Info.plist.
     static let taskIdentifier = "dev.felixinjapan.RickAndMortyEpisodes.refresh"

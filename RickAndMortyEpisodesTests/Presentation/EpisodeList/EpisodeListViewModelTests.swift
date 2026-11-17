@@ -26,7 +26,6 @@ struct EpisodeListViewModelTests {
         await viewModel.loadNextPage()
         #expect(viewModel.episodes.count == 20)
         #expect(viewModel.footer == .loading(page: 2))
-        // Each loaded page is saved, and "Last updated" is the time page 1 was fetched.
         #expect(try await store.load() == EpisodeSnapshot(
             episodes: viewModel.episodes, nextPage: 2, totalCount: 45, refreshedAt: fixedDate
         ))
@@ -97,7 +96,6 @@ struct EpisodeListViewModelTests {
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
 
-        // Cancellation is not a failure: no message, and the page can still be loaded.
         #expect(viewModel.footer == .loading(page: 2))
         #expect(viewModel.emptyListErrorMessage == nil)
         #expect(viewModel.episodes.count == 20)
@@ -187,7 +185,6 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.refreshErrorMessage == DataError.offline.userMessage)
         #expect(viewModel.footer == .endReached(count: 1))
 
-        // Back online: pulling again replaces the list and removes the banner.
         await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true)))
         await viewModel.refresh()
         #expect(viewModel.episodes.count == 20)
@@ -263,7 +260,6 @@ struct EpisodeListViewModelTests {
         #expect(await api.requestedPages.filter { $0 == 1 }.count == 2)
     }
 
-    // Waits for a request in a loop; the time limit turns a regression into a failure, not a hang.
     @Test("Cancelling the final page's footer does not discard the completed cache", .timeLimit(.minutes(1)))
     func cancelledFinalPageStillPersists() async throws {
         let api = makeThreePageAPI()
@@ -318,7 +314,6 @@ struct EpisodeListViewModelTests {
         await viewModel.loadNextPage()
         try #require(viewModel.episodes.count == 40)
 
-        // Back within the hour: nothing changes.
         await viewModel.refreshIfNeeded()
         #expect(viewModel.listIdentity == 0)
 
@@ -330,11 +325,9 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.episodes.count == 20)
         #expect(viewModel.listIdentity == 1)
 
-        // Only page 1 loaded: a refresh updates it in place.
         await viewModel.refreshIfNeeded()
         #expect(viewModel.listIdentity == 1)
 
-        // Page loads and pull-to-refresh never rebuild the list.
         await viewModel.loadNextPage()
         await viewModel.refresh()
         #expect(viewModel.listIdentity == 1)

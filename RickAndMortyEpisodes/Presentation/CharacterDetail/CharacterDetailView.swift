@@ -2,7 +2,6 @@ import SwiftUI
 
 struct CharacterDetailView: View {
     @State private var viewModel: CharacterDetailViewModel
-    /// For the portrait, which loads separately from the details.
     private let repository: any CharacterRepository
 
     init(characterID: Int, repository: any CharacterRepository, exporter: any CharacterExporting) {

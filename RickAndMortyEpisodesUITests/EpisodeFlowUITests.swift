@@ -1,7 +1,5 @@
 import XCTest
 
-/// End-to-end user journeys. The app runs with `-uiTesting` (stub data, 51 episodes over 3 pages,
-/// so the tests never touch the network) and `-resetCache` (every test starts without a cache).
 @MainActor
 final class EpisodeFlowUITests: XCTestCase {
     private var app: XCUIApplication!
@@ -40,8 +38,6 @@ final class EpisodeFlowUITests: XCTestCase {
         }
         XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
 
-        // Relaunch without resetting the cache and with every request failing. Without a
-        // cache this would show the full-screen error, so the list must have come from disk.
         app.terminate()
         app.launchArguments = ["-uiTesting", "-networkUnavailable"]
         app.launch()
@@ -50,7 +46,6 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.descendants(matching: .any)["episodeList.loadError"].exists)
 
-        // The whole list was saved, not only its first rows: scroll to the end with no network.
         let offlineEnd = app.staticTexts["episodeList.endOfList"]
         for _ in 0..<20 where !offlineEnd.exists {
             app.swipeUp()
@@ -60,7 +55,6 @@ final class EpisodeFlowUITests: XCTestCase {
     }
 
     func testEpisodeToCharacterDetailToExport() {
-        // Navigation uses identifiers, so copy or language changes don't break the test.
         let pilot = app.buttons["episode.row.1"]
         XCTAssertTrue(pilot.waitForExistence(timeout: 5))
         pilot.tap()
@@ -94,8 +88,6 @@ final class EpisodeFlowUITests: XCTestCase {
 
         XCTAssertTrue(app.images["characterDetail.portrait"].waitForExistence(timeout: 5))
 
-        // Relaunch without resetting the cache and with every request failing: Rick was opened, so
-        // his details and portrait come from disk; Morty was not, so there is nothing to show.
         app.terminate()
         app.launchArguments = ["-uiTesting", "-networkUnavailable"]
         app.launch()
@@ -109,7 +101,6 @@ final class EpisodeFlowUITests: XCTestCase {
         let morty = app.buttons["character.link.2"]
         XCTAssertTrue(morty.waitForExistence(timeout: 5))
         morty.tap()
-        // Loading has finished with the failure screen and its Retry button, not just not-yet-loaded.
         XCTAssertTrue(app.descendants(matching: .any)["characterDetail.loadError"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["characterDetail.retry"].exists)
         XCTAssertFalse(app.progressIndicators.firstMatch.exists)
@@ -147,7 +138,6 @@ final class EpisodeFlowUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
 
-        // The "Last updated" status item stays fully on screen; the bottom bar caps its text size.
         let lastUpdated = app.staticTexts["episodeList.lastUpdated"]
         XCTAssertTrue(lastUpdated.waitForExistence(timeout: 5))
         XCTAssertTrue(app.frame.contains(lastUpdated.frame))
@@ -158,7 +148,6 @@ final class EpisodeFlowUITests: XCTestCase {
         character.tap()
         let export = app.buttons["characterDetail.export"]
         XCTAssertTrue(export.waitForExistence(timeout: 5))
-        // The button is there from the start but disabled until the character has loaded.
         XCTAssertTrue(export.wait(for: \.isEnabled, toEqual: true, timeout: 5))
         export.tap()
         XCTAssertTrue(app.staticTexts["export.confirmation"].waitForExistence(timeout: 5))

@@ -11,7 +11,6 @@ enum AirDateParser {
         isLenient: false
     )
 
-    /// The date, or `nil` if the value isn't in the API's format.
     static func date(from apiValue: String) -> Date? {
         try? Date(apiValue, strategy: strategy)
     }

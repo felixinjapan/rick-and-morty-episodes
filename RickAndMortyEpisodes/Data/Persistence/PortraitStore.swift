@@ -1,11 +1,6 @@
 import CryptoKit
 import Foundation
 
-/// Saves portrait images as files, one per image URL. Opened characters keep their portrait for good:
-/// the avatar URL contains the character's id, so the image doesn't change, and a refresh never
-/// drops it. A different URL is a different file.
-///
-/// An actor, so concurrent saves can't interleave; `.atomic` writes never leave half a file.
 actor PortraitStore {
     private let directory: URL
 
@@ -19,7 +14,6 @@ actor PortraitStore {
         PortraitStore(directory: URL.applicationSupportDirectory.appending(path: "portraits", directoryHint: .isDirectory))
     }
 
-    /// The saved image, or `nil` if there is none. Throws if the file exists but can't be read.
     func load(for url: URL) throws -> Data? {
         let fileURL = fileURL(for: url)
         // `path()` percent-encodes ("Application%20Support"), so the file would never be found.

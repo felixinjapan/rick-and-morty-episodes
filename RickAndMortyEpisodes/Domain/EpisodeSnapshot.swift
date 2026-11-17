@@ -1,10 +1,7 @@
 import Foundation
 
-/// The episodes loaded so far, from page 1 on. This is what the repository saves and
-/// restores; the file format itself is `CachedEpisodeSnapshot`.
 struct EpisodeSnapshot: Sendable, Equatable {
     let episodes: [Episode]
-    /// The page to load next, or `nil` once the whole list is loaded.
     let nextPage: Int?
     /// How many episodes exist in all, as the API last reported. A refresh compares it with the new
     /// value to tell whether the catalogue grew.
@@ -12,7 +9,6 @@ struct EpisodeSnapshot: Sendable, Equatable {
     /// When page 1 was fetched; drives "Last updated" and the staleness check.
     let refreshedAt: Date
 
-    /// `totalCount` defaults to the episodes held, for lists that make no claim about the catalogue.
     init(episodes: [Episode], nextPage: Int? = nil, totalCount: Int? = nil, refreshedAt: Date) {
         self.episodes = episodes
         self.nextPage = nextPage

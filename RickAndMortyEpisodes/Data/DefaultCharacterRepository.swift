@@ -1,22 +1,16 @@
 import Foundation
 import os
 
-/// Saves opened characters and their portraits on disk; nothing is downloaded ahead of time.
-/// Actor isolation protects the in-memory character cache shared by screens.
-///
-/// Fresh saved details avoid a request. Details older than `maxAge` or saved under a different
-/// catalogue size are fetched again. A failed fetch serves saved details except for not-found
-/// responses and cancellation, which propagate to the caller.
+/// Details expire by age or catalogue size. Failed fetches fall back to saved details,
+/// except for not-found responses and cancellation.
 actor DefaultCharacterRepository: CharacterRepository {
     private let api: any RickAndMortyAPI
     private let store: FileCharacterStore
     private let portraits: PortraitStore
-    /// The catalogue size now, or `nil` if unknown.
     private let catalogueCount: @Sendable () async -> Int?
     private let maxAge: TimeInterval
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultCharacterRepository")
-    /// Saved characters read or written during this session, so repeat visits skip the file.
     private var cache: [Int: StoredCharacter] = [:]
 
     init(
@@ -49,7 +43,6 @@ actor DefaultCharacterRepository: CharacterRepository {
             await persist(stored)
             return details
         } catch let error as DataError where error != .notFound {
-            // Offline, timed out or the server failed: older details beat an error screen.
             guard let saved else { throw error }
             logger.info("Serving saved character \(id) after: \(String(describing: error), privacy: .public)")
             return saved.details
@@ -63,7 +56,6 @@ actor DefaultCharacterRepository: CharacterRepository {
         do {
             if let saved = try await portraits.load(for: url) {
                 if ImageValidation.isImage(saved) { return saved }
-                // Downloaded again below, and the new file replaces the damaged one.
                 logger.error("Saved portrait \(character.id) is not a readable image")
             }
         } catch {
@@ -83,7 +75,6 @@ actor DefaultCharacterRepository: CharacterRepository {
         return sameCatalogue && now().timeIntervalSince(saved.savedAt) < maxAge
     }
 
-    /// An unreadable file is logged and treated as not saved.
     private func savedCharacter(id: Int) async -> StoredCharacter? {
         if let cached = cache[id] { return cached }
         do {

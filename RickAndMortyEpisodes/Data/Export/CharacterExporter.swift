@@ -1,11 +1,8 @@
 import Foundation
 
-/// Writes a character's details to a plain-text file in `directory`. The app passes
-/// Documents/Exports (see `AppDependencies.makeExporter()`), which the Files app shows.
 struct CharacterExporter: CharacterExporting {
     let directory: URL
 
-    /// The file contents. Kept separate from file I/O so it can be tested directly.
     static func text(for character: CharacterDetails) -> String {
         """
         Name: \(character.name)
@@ -17,7 +14,6 @@ struct CharacterExporter: CharacterExporting {
         """
     }
 
-    /// e.g. "Character-1-Rick-Sanchez.txt". Exporting the same character again replaces the file.
     static func fileName(for character: CharacterDetails) -> String {
         let words = character.name
             .components(separatedBy: CharacterSet.alphanumerics.inverted)

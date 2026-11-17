@@ -16,9 +16,7 @@ final class CharacterDetailViewModel {
     }
 
     private(set) var state: State = .loading
-    /// Set after a successful export; drives the confirmation sheet.
     var exportedFile: ExportedFile?
-    /// Set when an export fails; drives the "Export Failed" alert, which resets it on dismissal.
     var exportErrorMessage: String?
 
     let characterID: Int

@@ -39,7 +39,6 @@ struct CharacterDetailViewModelTests {
 
     @Test("A failed export shows an error and no file")
     func exportFailure() async throws {
-        // A file where the export folder should be, so creating the folder fails.
         let blocker = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try Data().write(to: blocker)
         defer { try? FileManager.default.removeItem(at: blocker) }

@@ -1,7 +1,6 @@
 import Foundation
 @testable import RickAndMortyEpisodes
 
-/// Configurable API fake that records which requests were made.
 actor StubAPI: RickAndMortyAPI {
     private var pages: [Int: Result<EpisodePage, any Error>]
     private var characters: [Int: Result<CharacterDetails, any Error>]
@@ -33,7 +32,6 @@ actor StubAPI: RickAndMortyAPI {
         portraits[url] = result
     }
 
-    /// Holds requests for `page` until the gate opens, to control timing in concurrency tests.
     func holdPage(_ page: Int, until gate: Gate) {
         pageGates[page] = gate
     }
@@ -61,7 +59,6 @@ actor StubAPI: RickAndMortyAPI {
     }
 }
 
-/// An async latch: `wait()` suspends until `open()` is called.
 actor Gate {
     private var isOpen = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
@@ -79,7 +76,6 @@ actor Gate {
 }
 
 extension FileEpisodeStore {
-    /// A real store in its own temporary folder, so tests don't share state.
     static func makeTemporary() -> FileEpisodeStore {
         FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "\(UUID().uuidString)/episodes-cache.json"))
     }
@@ -90,7 +86,6 @@ extension FileEpisodeStore {
         return store
     }
 
-    /// A store whose saves fail, because a file sits where its folder should be.
     static func makeUnwritable() throws -> FileEpisodeStore {
         let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
         try Data().write(to: blocker)
@@ -99,12 +94,10 @@ extension FileEpisodeStore {
 }
 
 extension FileCharacterStore {
-    /// A real store in its own temporary folder, so tests don't share state.
     static func makeTemporary() -> FileCharacterStore {
         FileCharacterStore(directory: .temporaryDirectory.appending(path: "\(UUID().uuidString)/characters"))
     }
 
-    /// A store whose saves fail, because a file sits where its folder should be.
     static func makeUnwritable() throws -> FileCharacterStore {
         let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
         try Data().write(to: blocker)
@@ -113,12 +106,10 @@ extension FileCharacterStore {
 }
 
 extension PortraitStore {
-    /// A real store in its own temporary folder, so tests don't share state.
     static func makeTemporary() -> PortraitStore {
         PortraitStore(directory: .temporaryDirectory.appending(path: "\(UUID().uuidString)/portraits"))
     }
 
-    /// A store whose saves fail, because a file sits where its folder should be.
     static func makeUnwritable() throws -> PortraitStore {
         let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
         try Data().write(to: blocker)
@@ -127,8 +118,6 @@ extension PortraitStore {
 }
 
 extension DefaultCharacterRepository {
-    /// Over a temporary store, with the catalogue size unknown and a fixed clock, so saved details
-    /// stay valid until a test makes them old.
     static func makeTemporary(
         api: any RickAndMortyAPI,
         store: FileCharacterStore = .makeTemporary(),
@@ -175,7 +164,6 @@ extension CharacterDetails {
 
 let fixedDate = Date(timeIntervalSince1970: 1_700_000_000)
 
-/// Three pages (20 + 20 + 5 episodes), like the real API's shape.
 func makeThreePageAPI() -> StubAPI {
     StubAPI(pages: [
         1: .success(.make(ids: 1...20, hasNextPage: true)),

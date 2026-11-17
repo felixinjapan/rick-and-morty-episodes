@@ -1,7 +1,6 @@
 import Foundation
 
 extension DataError {
-    /// The sentence shown to the user, from the string catalog.
     var message: String {
         switch self {
         case .offline: String(localized: .errorOffline)
@@ -16,8 +15,6 @@ extension DataError {
 }
 
 extension Error {
-    /// Message for the UI. The repository only throws `DataError` (or cancellation),
-    /// so anything else falls back to the generic text.
     var userMessage: String {
         ((self as? DataError) ?? .failed).message
     }

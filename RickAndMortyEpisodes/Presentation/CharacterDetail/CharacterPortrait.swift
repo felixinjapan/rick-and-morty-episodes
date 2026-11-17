@@ -38,7 +38,6 @@ struct CharacterPortrait: View {
         .task(id: character.id) { await load() }
     }
 
-    /// The repository reads a saved portrait from disk, or downloads it and saves it.
     private func load() async {
         guard character.imageURL != nil else { return }
         do {

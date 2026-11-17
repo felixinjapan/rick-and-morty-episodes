@@ -1,7 +1,5 @@
 import Foundation
 
-/// One episode in the `/episode` response (https://rickandmortyapi.com/documentation#episode)
-/// Decodes only the fields the app uses, so new API fields can't break it.
 struct EpisodeDTO: Decodable, Sendable {
     let id: Int
     let name: String
@@ -15,8 +13,6 @@ struct EpisodeDTO: Decodable, Sendable {
         case airDate = "air_date"
     }
 }
-
-// MARK: - Mapping to the domain
 
 extension EpisodeDTO {
     func toDomain() -> Episode {

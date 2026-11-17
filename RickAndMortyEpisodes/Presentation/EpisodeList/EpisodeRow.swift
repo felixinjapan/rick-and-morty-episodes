@@ -4,7 +4,6 @@ struct EpisodeRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let episode: Episode
 
-    /// At accessibility text sizes the code and date stack vertically instead of crowding one line.
     private var detailLayout: AnyLayout {
         dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
