@@ -30,7 +30,7 @@ extension EpisodeSnapshot {
         if let previous, pageSize > 0, previous.totalCount <= firstPage.totalCount {
             let unchanged = previous.totalCount == firstPage.totalCount
             let kept = unchanged ? previous.episodes.count : previous.episodes.count / pageSize * pageSize
-            episodes += previous.episodes.dropFirst(pageSize).prefix(max(0, kept - pageSize))
+            episodes += previous.episodes.prefix(kept).dropFirst(pageSize)
         }
         let isComplete = pageSize == 0 || !firstPage.hasNextPage || episodes.count >= firstPage.totalCount
         return EpisodeSnapshot(

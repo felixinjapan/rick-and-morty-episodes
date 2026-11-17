@@ -107,12 +107,12 @@ final class EpisodeListViewModel {
         let result = await Task { try await repository.loadNextPage(after: current) }.result
 
         guard generation == listGeneration else { return }
-        isLoadingPage = false
 
         switch result {
         case .success(let list):
             apply(list)
         case .failure(let error):
+            isLoadingPage = false
             guard !(error is CancellationError) else { return }
             pageErrorMessage = error.userMessage
         }
