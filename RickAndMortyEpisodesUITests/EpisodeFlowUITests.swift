@@ -34,26 +34,14 @@ final class EpisodeFlowUITests: XCTestCase {
 
     func testRelaunchShowsCachedListImmediately() {
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
-        let endOfList = app.staticTexts["episodeList.endOfList"]
-        for _ in 0..<20 where !endOfList.exists {
-            app.swipeUp()
-        }
-        XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
-
-        app.terminate()
-        app.launchArguments = ["-uiTesting", "-networkUnavailable"]
-        app.launch()
+        scrollToEndOfList()
+        relaunchOffline()
 
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.descendants(matching: .any)["episodeList.loadError"].exists)
 
-        let offlineEnd = app.staticTexts["episodeList.endOfList"]
-        for _ in 0..<20 where !offlineEnd.exists {
-            app.swipeUp()
-        }
-        XCTAssertTrue(offlineEnd.waitForExistence(timeout: 5))
-        XCTAssertEqual(offlineEnd.label, "You've reached the end. 51 episodes")
+        XCTAssertEqual(scrollToEndOfList().label, "You've reached the end. 51 episodes")
     }
 
     func testEpisodeToCharacterDetailToExport() {
@@ -95,9 +83,7 @@ final class EpisodeFlowUITests: XCTestCase {
 
         XCTAssertTrue(app.images["characterDetail.portrait"].waitForExistence(timeout: 5))
 
-        app.terminate()
-        app.launchArguments = ["-uiTesting", "-networkUnavailable"]
-        app.launch()
+        relaunchOffline()
 
         openCharacter(1)
         XCTAssertTrue(element(containing: "Rick Sanchez", identifier: "characterDetail.name").waitForExistence(timeout: 5))
@@ -115,6 +101,22 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertFalse(app.progressIndicators.firstMatch.exists)
         XCTAssertFalse(app.buttons["characterDetail.export"].isEnabled)
         XCTAssertFalse(app.descendants(matching: .any)["characterDetail.name"].exists)
+    }
+
+    private func relaunchOffline() {
+        app.terminate()
+        app.launchArguments = ["-uiTesting", "-networkUnavailable"]
+        app.launch()
+    }
+
+    @discardableResult
+    private func scrollToEndOfList() -> XCUIElement {
+        let endOfList = app.staticTexts["episodeList.endOfList"]
+        for _ in 0..<20 where !endOfList.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
+        return endOfList
     }
 
     private func openCharacter(_ id: Int, episodeID: Int = 1) {
@@ -183,10 +185,7 @@ final class EpisodeFlowUITests: XCTestCase {
         }
         XCTAssertTrue(share.isHittable)
         XCTAssertTrue(content.frame.contains(share.frame))
-        let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "Export at largest accessibility text size"
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        capture("Export at largest accessibility text size")
         share.tap()
         XCTAssertTrue(shareSheet.waitForExistence(timeout: 5), "The share sheet should open for the exported file")
     }
