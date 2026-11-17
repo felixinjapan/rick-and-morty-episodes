@@ -39,8 +39,7 @@ struct CharacterDetailViewModelTests {
 
     @Test("A failed export shows an error and no file")
     func exportFailure() async throws {
-        let blocker = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        try Data().write(to: blocker)
+        let blocker = try makeTemporaryBlockingFile()
         defer { try? FileManager.default.removeItem(at: blocker) }
         let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(characters: [1: .success(.rick)]))
         let viewModel = CharacterDetailViewModel(

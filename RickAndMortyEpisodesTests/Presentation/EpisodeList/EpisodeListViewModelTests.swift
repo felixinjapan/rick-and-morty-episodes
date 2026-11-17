@@ -345,9 +345,7 @@ struct EpisodeListViewModelTests {
         while await api.requestedPages.isEmpty { await Task.yield() }
 
         // The second refresh isn't held, so it finishes while the first is still running.
-        let openGate = Gate()
-        await openGate.open()
-        await api.holdPage(1, until: openGate)
+        await api.holdPage(1, until: nil)
         await viewModel.refresh()
         #expect(viewModel.isRefreshing)
 

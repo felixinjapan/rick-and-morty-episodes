@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Testing
 @testable import RickAndMortyEpisodes
 
@@ -78,22 +79,28 @@ struct LiveAPITests {
 
     @Test("Builds the expected request URLs")
     func requestURLs() async throws {
-        let recordedURLs = RecordedURLs()
-        let api = makeAPI(body: try RecordedResponses.data(named: "episodes-page-1")) { recordedURLs.append($0.url) }
+        let recordedURLs = OSAllocatedUnfairLock(initialState: [URL?]())
+        let api = makeAPI(body: try RecordedResponses.data(named: "episodes-page-1")) { request in
+            recordedURLs.withLock { $0.append(request.url) }
+            #expect(request.value(forHTTPHeaderField: "Accept") == "application/json")
+        }
         _ = try await api.episodes(page: 2)
-        #expect(recordedURLs.urls.first??.absoluteString == "https://rickandmortyapi.com/api/episode?page=2")
+        #expect(recordedURLs.withLock { $0.first??.absoluteString } == "https://rickandmortyapi.com/api/episode?page=2")
     }
 
     @Test("A portrait is downloaded from the URL it is given, as an image")
     func portraitDownload() async throws {
-        let recordedURLs = RecordedURLs()
+        let recordedURLs = OSAllocatedUnfairLock(initialState: [URL?]())
         let url = try #require(URL(string: "https://rickandmortyapi.com/api/character/avatar/1.jpeg"))
-        let api = makeAPI(body: RecordedResponses.portrait) { recordedURLs.append($0.url) }
+        let api = makeAPI(body: RecordedResponses.portrait) { request in
+            recordedURLs.withLock { $0.append(request.url) }
+            #expect(request.value(forHTTPHeaderField: "Accept") == "image/*")
+        }
 
         let data = try await api.portrait(from: url)
 
         #expect(data == RecordedResponses.portrait)
-        #expect(recordedURLs.urls == [url])
+        #expect(recordedURLs.withLock { $0 } == [url])
     }
 
     @Test("A portrait response that is not an image is rejected, so it is never saved")
@@ -153,13 +160,4 @@ struct LiveAPITests {
             try await makeFailingAPI(.cancelled).episodes(page: 1)
         }
     }
-}
-
-private final class RecordedURLs: @unchecked Sendable {
-    // @unchecked: all access goes through `lock`.
-    private let lock = NSLock()
-    private var storage: [URL?] = []
-
-    func append(_ url: URL?) { lock.withLock { storage.append(url) } }
-    var urls: [URL?] { lock.withLock { storage } }
 }

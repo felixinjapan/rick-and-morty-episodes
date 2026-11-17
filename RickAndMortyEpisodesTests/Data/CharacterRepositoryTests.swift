@@ -107,41 +107,34 @@ struct CharacterRepositoryTests {
         arguments: [APIError.offline, .timedOut, .http(statusCode: 503)]
     )
     func staleDetailsServedWhenFetchFails(apiError: APIError) async throws {
-        let size = OSAllocatedUnfairLock<Int?>(initialState: 45)
-        let api = StubAPI(characters: [1: .success(.rick)])
-        let repository = DefaultCharacterRepository.makeTemporary(api: api, catalogueCount: { size.withLock { $0 } })
-        _ = try await repository.character(id: 1)
-
-        size.withLock { $0 = 46 }
-        await api.setCharacter(1, .failure(apiError))
+        let repository = try await makeRepositoryWithStaleDetails(failingWith: apiError)
 
         #expect(try await repository.character(id: 1) == .rick)
     }
 
     @Test("A character the server says no longer exists is not served from old details")
     func notFoundIsNotServedFromOldDetails() async throws {
-        let size = OSAllocatedUnfairLock<Int?>(initialState: 45)
-        let api = StubAPI(characters: [1: .success(.rick)])
-        let repository = DefaultCharacterRepository.makeTemporary(api: api, catalogueCount: { size.withLock { $0 } })
-        _ = try await repository.character(id: 1)
-
-        size.withLock { $0 = 46 }
-        await api.setCharacter(1, .failure(APIError.http(statusCode: 404)))
+        let repository = try await makeRepositoryWithStaleDetails(failingWith: APIError.http(statusCode: 404))
 
         await #expect(throws: RepositoryError.notFound) { try await repository.character(id: 1) }
     }
 
     @Test("A cancelled request is not answered with old details")
     func cancellationIsNotServedFromOldDetails() async throws {
+        let repository = try await makeRepositoryWithStaleDetails(failingWith: CancellationError())
+
+        await #expect(throws: CancellationError.self) { try await repository.character(id: 1) }
+    }
+
+    private func makeRepositoryWithStaleDetails(failingWith error: any Error) async throws -> DefaultCharacterRepository {
         let size = OSAllocatedUnfairLock<Int?>(initialState: 45)
         let api = StubAPI(characters: [1: .success(.rick)])
         let repository = DefaultCharacterRepository.makeTemporary(api: api, catalogueCount: { size.withLock { $0 } })
         _ = try await repository.character(id: 1)
 
         size.withLock { $0 = 46 }
-        await api.setCharacter(1, .failure(CancellationError()))
-
-        await #expect(throws: CancellationError.self) { try await repository.character(id: 1) }
+        await api.setCharacter(1, .failure(error))
+        return repository
     }
 
     // MARK: - Portraits

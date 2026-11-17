@@ -4,7 +4,7 @@ import Foundation
 actor StubAPI: RickAndMortyAPI {
     private var pages: [Int: Result<EpisodePage, any Error>]
     private var characters: [Int: Result<CharacterDetails, any Error>]
-    private var portraits: [URL: Result<Data, any Error>]
+    private let portraits: [URL: Result<Data, any Error>]
     private var pageGates: [Int: Gate] = [:]
     private(set) var requestedPages: [Int] = []
     private(set) var requestedCharacters: [Int] = []
@@ -28,11 +28,7 @@ actor StubAPI: RickAndMortyAPI {
         characters[id] = result
     }
 
-    func setPortrait(_ url: URL, _ result: Result<Data, any Error>) {
-        portraits[url] = result
-    }
-
-    func holdPage(_ page: Int, until gate: Gate) {
+    func holdPage(_ page: Int, until gate: Gate?) {
         pageGates[page] = gate
     }
 
@@ -77,7 +73,7 @@ actor Gate {
 
 extension FileEpisodeStore {
     static func makeTemporary() -> FileEpisodeStore {
-        FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "\(UUID().uuidString)/episodes-cache.json"))
+        FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "\(UUID().uuidString)/\(defaultFileName)"))
     }
 
     static func makeTemporary(containing snapshot: EpisodeSnapshot) async throws -> FileEpisodeStore {
@@ -87,9 +83,7 @@ extension FileEpisodeStore {
     }
 
     static func makeUnwritable() throws -> FileEpisodeStore {
-        let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
-        try Data().write(to: blocker)
-        return FileEpisodeStore(fileURL: blocker.appending(path: "episodes-cache.json"))
+        try FileEpisodeStore(fileURL: makeTemporaryBlockingFile().appending(path: defaultFileName))
     }
 }
 
@@ -99,9 +93,7 @@ extension FileCharacterStore {
     }
 
     static func makeUnwritable() throws -> FileCharacterStore {
-        let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
-        try Data().write(to: blocker)
-        return FileCharacterStore(directory: blocker.appending(path: "characters"))
+        try FileCharacterStore(directory: makeTemporaryBlockingFile().appending(path: "characters"))
     }
 }
 
@@ -111,10 +103,14 @@ extension PortraitStore {
     }
 
     static func makeUnwritable() throws -> PortraitStore {
-        let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
-        try Data().write(to: blocker)
-        return PortraitStore(directory: blocker.appending(path: "portraits"))
+        try PortraitStore(directory: makeTemporaryBlockingFile().appending(path: "portraits"))
     }
+}
+
+func makeTemporaryBlockingFile() throws -> URL {
+    let url = URL.temporaryDirectory.appending(path: UUID().uuidString)
+    try Data().write(to: url)
+    return url
 }
 
 extension DefaultCharacterRepository {
