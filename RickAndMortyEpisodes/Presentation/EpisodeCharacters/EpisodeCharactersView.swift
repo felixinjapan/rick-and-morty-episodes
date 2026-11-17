@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CharacterRoute: Hashable {
     let id: Int
+    let name: String?
 }
 
 struct EpisodeCharactersView: View {
@@ -24,10 +25,7 @@ struct EpisodeCharactersView: View {
 
             Section {
                 ForEach(episode.characterIDs, id: \.self) { id in
-                    NavigationLink(value: CharacterRoute(id: id)) {
-                        EpisodeCharacterRow(id: id, repository: repository)
-                    }
-                    .accessibilityIdentifier("character.link.\(id)")
+                    EpisodeCharacterRow(id: id, repository: repository)
                 }
                 if episode.characterIDs.isEmpty {
                     ContentUnavailableView(.episodeCharactersEmpty, systemImage: "person.slash")
@@ -52,11 +50,28 @@ private struct EpisodeCharacterRow: View {
     @State private var character: CharacterDetails?
 
     var body: some View {
+        NavigationLink(value: CharacterRoute(id: id, name: character?.name)) {
+            label
+        }
+        .accessibilityIdentifier("character.link.\(id)")
+        .task(id: id) {
+            guard character == nil else { return }
+            do {
+                let loaded = try await repository.character(id: id)
+                guard !Task.isCancelled else { return }
+                character = loaded
+            } catch {
+                // The ID stays tappable when enrichment fails or is cancelled.
+            }
+        }
+    }
+
+    private var label: some View {
         let size = min(portraitSize, 80)
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 14))
-        layout {
+        return layout {
             Group {
                 if let character {
                     CharacterPortrait(character: character, repository: repository, size: size)
@@ -88,16 +103,6 @@ private struct EpisodeCharacterRow: View {
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
-        .task(id: id) {
-            guard character == nil else { return }
-            do {
-                let loaded = try await repository.character(id: id)
-                guard !Task.isCancelled else { return }
-                character = loaded
-            } catch {
-                // The ID stays tappable when enrichment fails or is cancelled.
-            }
-        }
     }
 }
 

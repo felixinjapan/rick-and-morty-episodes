@@ -2,18 +2,24 @@ import SwiftUI
 
 struct CharacterDetailView: View {
     @State private var viewModel: CharacterDetailViewModel
+    private let initialName: String?
     private let repository: any CharacterRepository
 
-    init(characterID: Int, repository: any CharacterRepository, exporter: any CharacterExporting) {
+    init(
+        route: CharacterRoute,
+        repository: any CharacterRepository,
+        exporter: any CharacterExporting
+    ) {
+        initialName = route.name
         self.repository = repository
         _viewModel = State(initialValue: CharacterDetailViewModel(
-            characterID: characterID, repository: repository, exporter: exporter
+            characterID: route.id, repository: repository, exporter: exporter
         ))
     }
 
     var body: some View {
         content
-            .navigationTitle(viewModel.character?.name ?? String(localized: .characterTitle(viewModel.characterID)))
+            .navigationTitle(viewModel.character?.name ?? initialName ?? String(localized: .characterDetailTitle))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -110,7 +116,7 @@ private struct CharacterDetailContent: View {
 #Preview("Loaded") {
     NavigationStack {
         CharacterDetailView(
-            characterID: 1,
+            route: CharacterRoute(id: 1, name: nil),
             repository: AppDependencies.makePreviewRepositories(configuration: .production).characters,
             exporter: AppDependencies.makePreviewExporter()
         )
@@ -120,7 +126,7 @@ private struct CharacterDetailContent: View {
 #Preview("Offline") {
     NavigationStack {
         CharacterDetailView(
-            characterID: 1,
+            route: CharacterRoute(id: 1, name: nil),
             repository: AppDependencies.makePreviewRepositories(configuration: .production, networkUnavailable: true).characters,
             exporter: AppDependencies.makePreviewExporter()
         )

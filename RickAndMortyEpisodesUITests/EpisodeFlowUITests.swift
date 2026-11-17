@@ -68,6 +68,7 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(characterRow(2, named: "Morty Smith").waitForExistence(timeout: 5))
         capture("Character list with names, IDs and portraits")
         character.tap()
+        XCTAssertTrue(app.navigationBars["Rick Sanchez"].waitForExistence(timeout: 5))
 
         // The name is also the navigation title, so match the heading by its identifier.
         let name = element(containing: "Rick Sanchez", identifier: "characterDetail.name")
@@ -109,6 +110,7 @@ final class EpisodeFlowUITests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
         openCharacter(46, episodeID: 2)
         XCTAssertTrue(app.descendants(matching: .any)["characterDetail.loadError"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Character"].exists)
         XCTAssertTrue(app.buttons["characterDetail.retry"].exists)
         XCTAssertFalse(app.progressIndicators.firstMatch.exists)
         XCTAssertFalse(app.buttons["characterDetail.export"].isEnabled)

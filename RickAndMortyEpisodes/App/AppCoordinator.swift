@@ -25,7 +25,7 @@ final class AppCoordinator {
 
     var rootView: some View {
         EpisodeListView(viewModel: episodeListViewModel, characterRepository: characters) { route in
-            CharacterDetailView(characterID: route.id, repository: self.characters, exporter: self.exporter)
+            CharacterDetailView(route: route, repository: self.characters, exporter: self.exporter)
         }
     }
 

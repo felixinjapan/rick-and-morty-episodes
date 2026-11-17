@@ -165,7 +165,7 @@ private func episodeListPreview(networkUnavailable: Bool = false) -> some View {
         characterRepository: repositories.characters,
         makeCharacterDetail: { route in
             CharacterDetailView(
-                characterID: route.id,
+                route: route,
                 repository: repositories.characters,
                 exporter: AppDependencies.makePreviewExporter()
             )
