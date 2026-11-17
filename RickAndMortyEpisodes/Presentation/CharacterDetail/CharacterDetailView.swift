@@ -23,8 +23,11 @@ struct CharacterDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button(.characterDetailExport) {
+                    Button {
                         viewModel.export()
+                    } label: {
+                        Label(.characterDetailExport, systemImage: "square.and.arrow.up")
+                            .labelStyle(.iconOnly)
                     }
                     .disabled(viewModel.character == nil)
                     .accessibilityIdentifier("characterDetail.export")
