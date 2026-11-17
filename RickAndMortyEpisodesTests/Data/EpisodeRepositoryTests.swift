@@ -79,7 +79,7 @@ struct EpisodeRepositoryTests {
         let store = try await FileEpisodeStore.makeTemporary(containing: previous)
         let repository = DefaultEpisodeRepository(api: api, store: store)
 
-        await #expect(throws: DataError.serverUnavailable) {
+        await #expect(throws: RepositoryError.serverUnavailable) {
             try await repository.refreshFirstPage()
         }
         #expect(try await store.load() == previous)

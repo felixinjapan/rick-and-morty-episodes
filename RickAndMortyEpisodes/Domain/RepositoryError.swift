@@ -1,6 +1,7 @@
 import Foundation
 
-enum DataError: Error, Equatable {
+/// Failures exposed by repositories when loading resources.
+enum RepositoryError: Error, Equatable {
     case offline
     case timedOut
     case notFound

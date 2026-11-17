@@ -49,7 +49,7 @@ flowchart TD
         Views[SwiftUI views] --> VM["@MainActor @Observable<br/>view models"]
     end
     subgraph Domain
-        Proto["Entities, DataError,<br/>repository and exporter protocols"]
+        Proto["Entities, RepositoryError,<br/>repository and exporter protocols"]
     end
     subgraph Data
         Repos["DefaultEpisodeRepository<br/>DefaultCharacterRepository<br/>(actors)"]
@@ -76,7 +76,7 @@ Flowcharts for the refresh and caching decisions, and a concurrency map, are in 
   previously viewed characters work offline. IDs remain tappable if a row cannot load its details.
   Saved details are reused for 30 days while the catalogue size is unchanged (or unknown); otherwise they
   are refetched and still served if that fails, except on a 404.
-- **Errors:** `APIError` → `DataError` → user wording in `Presentation/Shared/ErrorMessages.swift`.
+- **Errors:** `APIError` → `RepositoryError` → user wording in `Presentation/Shared/ErrorMessages.swift`.
   Cancellation is never shown as an error.
 - **Configuration:** `AppConfiguration` (API URL, 12 h freshness, 30-day character age, timeouts) is
   chosen in the app entry point and passed explicitly; there is no global.

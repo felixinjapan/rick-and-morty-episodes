@@ -3,7 +3,7 @@ import os
 import Testing
 @testable import RickAndMortyEpisodes
 
-private let apiToDomainErrors: [(APIError, DataError)] = [
+private let apiToDomainErrors: [(APIError, RepositoryError)] = [
     (.offline, .offline),
     (.timedOut, .timedOut),
     (.http(statusCode: 404), .notFound),
@@ -18,7 +18,7 @@ private let apiToDomainErrors: [(APIError, DataError)] = [
 @Suite("Character repository")
 struct CharacterRepositoryTests {
     @Test("Network errors reach callers as domain errors", arguments: apiToDomainErrors)
-    func errorTranslation(apiError: APIError, expected: DataError) async {
+    func errorTranslation(apiError: APIError, expected: RepositoryError) async {
         let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(characters: [1: .failure(apiError)]))
         await #expect(throws: expected) {
             try await repository.character(id: 1)
@@ -128,7 +128,7 @@ struct CharacterRepositoryTests {
         size.withLock { $0 = 46 }
         await api.setCharacter(1, .failure(APIError.http(statusCode: 404)))
 
-        await #expect(throws: DataError.notFound) { try await repository.character(id: 1) }
+        await #expect(throws: RepositoryError.notFound) { try await repository.character(id: 1) }
     }
 
     @Test("A cancelled request is not answered with old details")
@@ -215,11 +215,11 @@ struct CharacterRepositoryTests {
         let api = StubAPI(portraits: [Self.avatar: .failure(APIError.offline)])
         let repository = DefaultCharacterRepository.makeTemporary(api: api, portraits: portraits)
 
-        await #expect(throws: DataError.offline) { try await repository.portrait(for: .rick) }
+        await #expect(throws: RepositoryError.offline) { try await repository.portrait(for: .rick) }
     }
 
     @Test("A portrait that was never seen fails when offline", arguments: apiToDomainErrors)
-    func portraitErrorTranslation(apiError: APIError, expected: DataError) async {
+    func portraitErrorTranslation(apiError: APIError, expected: RepositoryError) async {
         let repository = DefaultCharacterRepository.makeTemporary(
             api: StubAPI(portraits: [Self.avatar: .failure(apiError)])
         )
@@ -232,7 +232,7 @@ struct CharacterRepositoryTests {
             id: 9, name: "X", status: .alive, species: "Alien", originName: "Y", episodeCount: 1, imageURL: nil
         )
         let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI())
-        await #expect(throws: DataError.notFound) { try await repository.portrait(for: withoutImage) }
+        await #expect(throws: RepositoryError.notFound) { try await repository.portrait(for: withoutImage) }
     }
 
     @Test("A failed portrait save doesn't fail the load")

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Load failures throw `DataError`; cancellation propagates as `CancellationError`.
+/// Load failures throw `RepositoryError`; cancellation propagates as `CancellationError`.
 /// Saving is best effort: a returned snapshot may not have reached disk.
 protocol EpisodeRepository: Sendable {
     /// The saved list or the one last loaded, whichever is newer; `nil` if there is neither.

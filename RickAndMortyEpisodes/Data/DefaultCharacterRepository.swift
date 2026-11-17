@@ -42,7 +42,7 @@ actor DefaultCharacterRepository: CharacterRepository {
             cache[id] = stored
             await persist(stored)
             return details
-        } catch let error as DataError where error != .notFound {
+        } catch let error as RepositoryError where error != .notFound {
             guard let saved else { throw error }
             logger.info("Serving saved character \(id) after: \(String(describing: error), privacy: .public)")
             return saved.details
@@ -52,7 +52,7 @@ actor DefaultCharacterRepository: CharacterRepository {
     /// Reuses a readable saved portrait without an age limit. A missing, unreadable, or invalid
     /// file is downloaded again; a successful download replaces it. Fetch failures propagate.
     func portrait(for character: CharacterDetails) async throws -> Data {
-        guard let url = character.imageURL else { throw DataError.notFound }
+        guard let url = character.imageURL else { throw RepositoryError.notFound }
         do {
             if let saved = try await portraits.load(for: url) {
                 if ImageValidation.isImage(saved) { return saved }

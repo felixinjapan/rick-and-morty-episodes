@@ -77,7 +77,7 @@ struct EpisodeListViewModelTests {
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
 
-        #expect(viewModel.footer == .failed(message: DataError.offline.userMessage))
+        #expect(viewModel.footer == .failed(message: RepositoryError.offline.userMessage))
         #expect(viewModel.episodes.count == 20)
         #expect(viewModel.emptyListErrorMessage == nil)
 
@@ -113,7 +113,7 @@ struct EpisodeListViewModelTests {
         await viewModel.start()
         await viewModel.loadNextPage()
 
-        #expect(viewModel.emptyListErrorMessage == DataError.offline.userMessage)
+        #expect(viewModel.emptyListErrorMessage == RepositoryError.offline.userMessage)
         #expect(viewModel.footer == .none)
 
         await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true)))
@@ -182,7 +182,7 @@ struct EpisodeListViewModelTests {
         await viewModel.refresh()
 
         #expect(viewModel.episodes.map(\.id) == [1])
-        #expect(viewModel.refreshErrorMessage == DataError.offline.userMessage)
+        #expect(viewModel.refreshErrorMessage == RepositoryError.offline.userMessage)
         #expect(viewModel.footer == .endReached(count: 1))
 
         await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true)))
@@ -199,12 +199,12 @@ struct EpisodeListViewModelTests {
         let viewModel = makeViewModel(api: api, store: try await .makeTemporary(containing: cached))
         await viewModel.start()
         await viewModel.refresh()
-        try #require(viewModel.refreshErrorMessage == DataError.offline.userMessage)
+        try #require(viewModel.refreshErrorMessage == RepositoryError.offline.userMessage)
 
         await viewModel.loadNextPage()
 
         #expect(viewModel.episodes.count == 40)
-        #expect(viewModel.refreshErrorMessage == DataError.offline.userMessage)
+        #expect(viewModel.refreshErrorMessage == RepositoryError.offline.userMessage)
     }
 
     @Test("Pull-to-refresh fetches a fresh page 1 and keeps the pages already loaded")

@@ -33,7 +33,7 @@ struct CharacterDetailViewModelTests {
         await viewModel.load()
         viewModel.export()
 
-        #expect(viewModel.state == .failed(message: DataError.notFound.userMessage))
+        #expect(viewModel.state == .failed(message: RepositoryError.notFound.userMessage))
         #expect(viewModel.exportedFile == nil)
     }
 

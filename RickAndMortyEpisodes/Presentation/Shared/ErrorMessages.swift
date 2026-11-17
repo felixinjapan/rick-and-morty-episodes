@@ -1,6 +1,6 @@
 import Foundation
 
-extension DataError {
+extension RepositoryError {
     var message: String {
         switch self {
         case .offline: String(localized: .errorOffline)
@@ -16,6 +16,6 @@ extension DataError {
 
 extension Error {
     var userMessage: String {
-        ((self as? DataError) ?? .failed).message
+        ((self as? RepositoryError) ?? .failed).message
     }
 }

@@ -22,7 +22,7 @@ enum APIError: Error, Equatable {
 }
 
 extension APIError {
-    func toDomain() -> DataError {
+    func toDomain() -> RepositoryError {
         switch self {
         case .offline: .offline
         case .timedOut: .timedOut
