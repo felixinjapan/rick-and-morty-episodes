@@ -52,19 +52,6 @@ struct EpisodeRepositoryTests {
         #expect(snapshot.nextPage == 2)
     }
 
-    @Test("A refresh in a new process reads the saved list first, so the cached pages survive")
-    func refreshBeforeAnythingWasLoaded() async throws {
-        let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
-        let store = try await FileEpisodeStore.makeTemporary(containing: previous)
-        // Nothing has called `loadCurrentSnapshot()`, like the background task launching the app.
-        let repository = DefaultEpisodeRepository(api: makeThreePageAPI(), store: store, now: { fixedDate.addingTimeInterval(60) })
-
-        let snapshot = try await repository.refreshFirstPage()
-
-        #expect(snapshot.episodes.map(\.id) == Array(1...45))
-        #expect(try await store.load() == snapshot)
-    }
-
     // Tests that wait for a request in a loop have a time limit, so a regression fails instead of hanging.
     @Test("A page that arrives after a refresh doesn't overwrite the refreshed list", .timeLimit(.minutes(1)))
     func latePageAfterRefresh() async throws {

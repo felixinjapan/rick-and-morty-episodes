@@ -35,9 +35,9 @@ struct EpisodeListView: View {
             .toolbar {
                 // A status item in the bottom toolbar (as in Mail) instead of a floating label,
                 // so the system bar keeps it legible and it never covers list rows.
-                if viewModel.lastRefreshedAt != nil || viewModel.isRefreshing {
+                if let lastRefreshedAt = viewModel.lastRefreshedAt {
                     ToolbarItem(placement: .status) {
-                        LastUpdatedLabel(date: viewModel.lastRefreshedAt, isRefreshing: viewModel.isRefreshing)
+                        LastUpdatedLabel(date: lastRefreshedAt, isRefreshing: viewModel.isRefreshing)
                     }
                 }
             }
@@ -58,23 +58,21 @@ struct EpisodeListView: View {
                 .accessibilityIdentifier("episode.row.\(episode.id)")
             }
 
-            EpisodeListFooter(footer: viewModel.footer, viewModel: viewModel)
+            EpisodeListFooter(viewModel: viewModel)
         }
         // A new identity rebuilds the list from the top (see `listIdentity`).
         .id(viewModel.listIdentity)
-        .listStyle(.plain)
         .refreshable { await viewModel.refresh() }
     }
 }
 
 /// The last list row: triggers the next page, shows a paging error, or the end-of-list text.
 private struct EpisodeListFooter: View {
-    let footer: EpisodeListViewModel.Footer
     let viewModel: EpisodeListViewModel
 
     var body: some View {
         Group {
-            switch footer {
+            switch viewModel.footer {
             case .none:
                 EmptyView()
             case .loading(let page):
@@ -104,7 +102,6 @@ private struct EpisodeListFooter: View {
             }
         }
         .padding(.vertical, 12)
-        .listRowSeparator(.hidden)
     }
 }
 
@@ -124,13 +121,12 @@ private struct RefreshErrorBanner: View {
             Image(systemName: "wifi.exclamationmark")
                 .foregroundStyle(.orange)
         }
-        .listRowBackground(Color.orange.opacity(0.12))
         .accessibilityIdentifier("episodeList.refreshError")
     }
 }
 
 private struct LastUpdatedLabel: View {
-    let date: Date?
+    let date: Date
     let isRefreshing: Bool
 
     var body: some View {
@@ -138,7 +134,7 @@ private struct LastUpdatedLabel: View {
             if isRefreshing {
                 ProgressView().controlSize(.mini)
                 Text(.episodeListUpdating)
-            } else if let date {
+            } else {
                 Text(.episodeListLastUpdated(date.formatted(date: .abbreviated, time: .shortened)))
                     .accessibilityIdentifier("episodeList.lastUpdated")
             }
