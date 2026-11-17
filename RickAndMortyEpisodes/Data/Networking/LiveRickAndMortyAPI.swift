@@ -29,9 +29,7 @@ struct LiveRickAndMortyAPI: RickAndMortyAPI {
     }
 
     func portrait(from url: URL) async throws -> Data {
-        var request = URLRequest(url: url)
-        request.setValue("image/*", forHTTPHeaderField: "Accept")
-        let data = try await send(request)
+        let data = try await send(url, accepting: "image/*")
         guard ImageValidation.isImage(data) else {
             Self.logger.error("The portrait from \(url, privacy: .public) is not an image")
             throw APIError.decoding
@@ -40,9 +38,7 @@ struct LiveRickAndMortyAPI: RickAndMortyAPI {
     }
 
     private func get<Response: Decodable>(_ url: URL) async throws -> Response {
-        var request = URLRequest(url: url)
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let data = try await send(request)
+        let data = try await send(url, accepting: "application/json")
 
         do {
             return try JSONDecoder().decode(Response.self, from: data)
@@ -57,7 +53,9 @@ struct LiveRickAndMortyAPI: RickAndMortyAPI {
         }
     }
 
-    private func send(_ request: URLRequest) async throws -> Data {
+    private func send(_ url: URL, accepting contentType: String) async throws -> Data {
+        var request = URLRequest(url: url)
+        request.setValue(contentType, forHTTPHeaderField: "Accept")
         let data: Data
         let response: URLResponse
         do {

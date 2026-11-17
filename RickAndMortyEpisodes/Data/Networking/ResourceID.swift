@@ -2,7 +2,6 @@ import Foundation
 
 enum ResourceID {
     static func from(_ urlString: String) -> Int? {
-        guard let url = URL(string: urlString) else { return nil }
-        return Int(url.lastPathComponent)
+        URL(string: urlString).flatMap { Int($0.lastPathComponent) }
     }
 }
