@@ -17,7 +17,7 @@ struct CharacterDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button(.characterDetailExport, systemImage: "square.and.arrow.up") {
+                    Button(.characterDetailExport) {
                         viewModel.export()
                     }
                     .disabled(viewModel.character == nil)
@@ -40,6 +40,7 @@ struct CharacterDetailView: View {
         switch viewModel.state {
         case .loading:
             ProgressView()
+                .accessibilityLabel(.characterDetailLoading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed(let message):
             ContentUnavailableView {
@@ -65,13 +66,19 @@ private struct CharacterDetailContent: View {
     var body: some View {
         List {
             Section {
-                CharacterPortrait(character: character, repository: repository)
-                    .listRowBackground(Color.clear)
+                VStack(spacing: 16) {
+                    CharacterPortrait(character: character, repository: repository)
+                    Text(character.name)
+                        .font(.title2.bold())
+                        .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("characterDetail.name")
+                }
+                .padding(.vertical, 8)
+                .listRowBackground(Color.clear)
             }
 
             Section(.characterDetailDetails) {
-                LabeledContent(String(localized: .characterDetailName), value: character.name)
-                    .accessibilityIdentifier("characterDetail.name")
                 LabeledContent(String(localized: .characterDetailStatus)) {
                     // An SF Symbol, not a fixed-size shape, so the dot scales with Dynamic Type.
                     HStack(spacing: 6) {
@@ -81,13 +88,18 @@ private struct CharacterDetailContent: View {
                             .foregroundStyle(character.status.color)
                             .accessibilityHidden(true)
                         Text(character.status.title)
+                            .foregroundStyle(.primary)
                     }
                 }
-                LabeledContent(String(localized: .characterDetailSpecies), value: character.species)
-                LabeledContent(String(localized: .characterDetailOrigin), value: character.originName)
-                LabeledContent(
-                    String(localized: .characterDetailEpisodes), value: character.episodeCount, format: .number
-                )
+                LabeledContent(String(localized: .characterDetailSpecies)) {
+                    Text(character.species).foregroundStyle(.primary)
+                }
+                LabeledContent(String(localized: .characterDetailOrigin)) {
+                    Text(character.originName).foregroundStyle(.primary)
+                }
+                LabeledContent(String(localized: .characterDetailEpisodes)) {
+                    Text(character.episodeCount, format: .number).foregroundStyle(.primary)
+                }
                 .accessibilityIdentifier("characterDetail.episodeCount")
             }
         }

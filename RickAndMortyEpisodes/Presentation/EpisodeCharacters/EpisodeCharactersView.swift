@@ -5,7 +5,6 @@ struct CharacterRoute: Hashable {
 }
 
 struct EpisodeCharactersView: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let episode: Episode
     let repository: any CharacterRepository
 
@@ -15,11 +14,8 @@ struct EpisodeCharactersView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(episode.name)
                         .font(.title2.bold())
-                    if dynamicTypeSize.isAccessibilitySize {
-                        VStack(alignment: .leading, spacing: 8) { episodeMetadata }
-                    } else {
-                        HStack(spacing: 12) { episodeMetadata }
-                    }
+                        .accessibilityAddTraits(.isHeader)
+                    EpisodeMetadata(episode: episode)
                 }
                 .padding(.vertical, 8)
             }
@@ -39,23 +35,12 @@ struct EpisodeCharactersView: View {
             } header: {
                 Text(.episodeCharactersCount(episode.characterIDs.count))
                     .textCase(nil)
+                    .foregroundStyle(.primary.opacity(0.7))
             }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(.episodeCharactersTitle)
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    @ViewBuilder
-    private var episodeMetadata: some View {
-        Text(episode.code)
-            .font(.caption.monospaced().weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.tint.opacity(0.12), in: .capsule)
-        Label(episode.formattedAirDate, systemImage: "calendar")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
     }
 }
 
@@ -91,11 +76,11 @@ private struct EpisodeCharacterRow: View {
                 if character != nil {
                     Text(.characterTitle(id))
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.primary.opacity(0.7))
                 } else {
                     Text(.episodeCharactersTapForDetails)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.primary.opacity(0.7))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

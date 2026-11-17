@@ -136,7 +136,7 @@ private struct LastUpdatedLabel: View {
             }
         }
         .font(.caption)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(.primary.opacity(0.7))
         // Size to the text so the toolbar doesn't truncate it to "Las…".
         .fixedSize()
     }

@@ -121,14 +121,14 @@
         }
       }
     },
-    "characterDetail.name" : {
-      "comment" : "Label for the character's name",
+    "characterDetail.loading" : {
+      "comment" : "VoiceOver label while character details load",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Name"
+            "value" : "Loading character"
           }
         }
       }
@@ -457,14 +457,26 @@
         }
       }
     },
-    "export.message" : {
-      "comment" : "Confirmation text; the placeholder is the file name, shown in bold. Keep the ** markers around it",
+    "export.fileName" : {
+      "comment" : "VoiceOver description of the exported file name",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "**%@** was saved. Find it in Files, in the Episodes folder under Exports."
+            "value" : "File name: %@"
+          }
+        }
+      }
+    },
+    "export.message" : {
+      "comment" : "Where to find the exported file in Files; keep the app and folder names unchanged",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find this file in Files → Rick & Morty Episode Guide → Exports."
           }
         }
       }
@@ -476,7 +488,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saved"
+            "value" : "File saved"
           }
         }
       }
@@ -488,7 +500,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Share"
+            "value" : "Share file"
           }
         }
       }

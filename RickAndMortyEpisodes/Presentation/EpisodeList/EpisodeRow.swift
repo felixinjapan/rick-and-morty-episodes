@@ -1,31 +1,15 @@
 import SwiftUI
 
 struct EpisodeRow: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let episode: Episode
 
-    private var detailLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-            : AnyLayout(HStackLayout())
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(episode.name)
                 .font(.headline)
-            detailLayout {
-                Text(episode.code)
-                    .font(.caption.monospaced().weight(.semibold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.tint.opacity(0.15), in: .rect(cornerRadius: 4))
-                Text(episode.formattedAirDate)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            EpisodeMetadata(episode: episode)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
     }
 }

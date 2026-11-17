@@ -21,11 +21,13 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
 
         let endOfList = app.staticTexts["episodeList.endOfList"]
-        for _ in 0..<20 where !endOfList.exists {
+        for _ in 0..<20 {
+            if endOfList.exists && endOfList.isHittable && app.frame.contains(endOfList.frame) { break }
             app.swipeUp()
         }
 
         XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
+        XCTAssertTrue(endOfList.isHittable && app.frame.contains(endOfList.frame))
         XCTAssertEqual(endOfList.label, "You've reached the end. 51 episodes")
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].exists)
     }
@@ -67,7 +69,7 @@ final class EpisodeFlowUITests: XCTestCase {
         capture("Character list with names, IDs and portraits")
         character.tap()
 
-        // The name is also the navigation title, so match the Name row by its identifier.
+        // The name is also the navigation title, so match the heading by its identifier.
         let name = element(containing: "Rick Sanchez", identifier: "characterDetail.name")
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Earth (C-137)").exists)
