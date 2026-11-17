@@ -1,6 +1,6 @@
 import Foundation
 
-/// Shows an air date as `dd/MM/yyyy` ("02/12/2013"), as the assignment requires.
+/// Shows an air date as `dd/MM/yyyy` ("02/12/2013").
 /// Formats in GMT, matching how `AirDateParser` reads the API's dates, so the day can't shift.
 enum AirDateFormatter {
     private static let displayStyle = Date.VerbatimFormatStyle(
