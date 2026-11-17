@@ -7,16 +7,10 @@ extension AppDependencies {
         networkUnavailable: Bool = false
     ) -> Repositories {
         let api: any RickAndMortyAPI = networkUnavailable ? UnavailableRickAndMortyAPI() : LiveRickAndMortyAPI.recorded()
-        let episodes = DefaultEpisodeRepository(api: api, store: .makePreview())
-        return Repositories(
-            episodes: episodes,
-            characters: DefaultCharacterRepository(
-                api: api,
-                store: .makePreview(),
-                portraits: .makePreview(),
-                catalogueCount: { await episodes.loadCurrentSnapshot()?.totalCount },
-                maxAge: configuration.characterMaxAge
-            )
+        return makeRepositories(
+            api: api,
+            cacheDirectory: .temporaryDirectory.appending(path: "Previews/\(UUID().uuidString)"),
+            characterMaxAge: configuration.characterMaxAge
         )
     }
 
