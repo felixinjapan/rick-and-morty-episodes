@@ -1,7 +1,5 @@
-import Foundation
-
-enum CharacterStatus: Sendable, Hashable {
-    case alive
-    case dead
-    case unknown
+enum CharacterStatus: String, Sendable {
+    case alive = "alive"
+    case dead = "dead"
+    case unknown = "unknown"
 }

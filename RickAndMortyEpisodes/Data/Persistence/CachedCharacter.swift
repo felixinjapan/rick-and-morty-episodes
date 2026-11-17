@@ -30,11 +30,7 @@ extension CachedCharacter {
         version = Self.currentVersion
         id = details.id
         name = details.name
-        status = switch details.status {
-        case .alive: "alive"
-        case .dead: "dead"
-        case .unknown: "unknown"
-        }
+        status = details.status.rawValue
         species = details.species
         originName = details.originName
         episodeCount = details.episodeCount

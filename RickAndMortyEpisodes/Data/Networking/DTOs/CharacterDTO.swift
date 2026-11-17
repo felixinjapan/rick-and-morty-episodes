@@ -30,10 +30,6 @@ extension CharacterDTO {
 
 extension CharacterStatus {
     init(apiValue: String) {
-        switch apiValue.lowercased() {
-        case "alive": self = .alive
-        case "dead": self = .dead
-        default: self = .unknown
-        }
+        self = Self(rawValue: apiValue.lowercased()) ?? .unknown
     }
 }
