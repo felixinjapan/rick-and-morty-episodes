@@ -3,6 +3,7 @@ import SwiftUI
 struct EpisodeListView: View {
     /// Owned by AppCoordinator, which also forwards foreground refreshes to this instance.
     let viewModel: EpisodeListViewModel
+    let characterRepository: any CharacterRepository
     let makeCharacterDetail: (CharacterRoute) -> CharacterDetailView
 
     var body: some View {
@@ -24,7 +25,7 @@ struct EpisodeListView: View {
             }
             .navigationTitle(.episodeListTitle)
             .navigationDestination(for: Episode.self) { episode in
-                EpisodeCharactersView(episode: episode)
+                EpisodeCharactersView(episode: episode, repository: characterRepository)
             }
             .navigationDestination(for: CharacterRoute.self) { route in
                 makeCharacterDetail(route)
@@ -161,6 +162,7 @@ private func episodeListPreview(networkUnavailable: Bool = false) -> some View {
             repository: repositories.episodes,
             staleInterval: configuration.freshnessInterval
         ),
+        characterRepository: repositories.characters,
         makeCharacterDetail: { route in
             CharacterDetailView(
                 characterID: route.id,

@@ -61,6 +61,10 @@ final class EpisodeFlowUITests: XCTestCase {
 
         let character = app.buttons["character.link.1"]
         XCTAssertTrue(character.waitForExistence(timeout: 5))
+        XCTAssertTrue(characterRow(1, named: "Rick Sanchez").waitForExistence(timeout: 5))
+        XCTAssertTrue(character.label.contains("Character #1"))
+        XCTAssertTrue(characterRow(2, named: "Morty Smith").waitForExistence(timeout: 5))
+        capture("Character list with names, IDs and portraits")
         character.tap()
 
         // The name is also the navigation title, so match the Name row by its identifier.
@@ -98,9 +102,10 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertFalse(app.images["characterDetail.portraitUnavailable"].exists)
 
         app.navigationBars.buttons.firstMatch.tap()
-        let morty = app.buttons["character.link.2"]
-        XCTAssertTrue(morty.waitForExistence(timeout: 5))
-        morty.tap()
+        XCTAssertTrue(characterRow(1, named: "Rick Sanchez").waitForExistence(timeout: 5))
+        capture("Saved character list available offline")
+        app.navigationBars.buttons.firstMatch.tap()
+        openCharacter(46, episodeID: 2)
         XCTAssertTrue(app.descendants(matching: .any)["characterDetail.loadError"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["characterDetail.retry"].exists)
         XCTAssertFalse(app.progressIndicators.firstMatch.exists)
@@ -108,12 +113,24 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["characterDetail.name"].exists)
     }
 
-    private func openCharacter(_ id: Int) {
-        let episode = app.buttons["episode.row.1"]
+    private func openCharacter(_ id: Int, episodeID: Int = 1) {
+        let episode = app.buttons["episode.row.\(episodeID)"]
         if episode.waitForExistence(timeout: 5) { episode.tap() }
         let character = app.buttons["character.link.\(id)"]
         XCTAssertTrue(character.waitForExistence(timeout: 5))
         character.tap()
+    }
+
+    private func capture(_ name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    private func characterRow(_ id: Int, named name: String) -> XCUIElement {
+        app.buttons.matching(identifier: "character.link.\(id)")
+            .matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
     }
 
     /// `LabeledContent` may expose its label and value as one accessibility element
@@ -145,6 +162,8 @@ final class EpisodeFlowUITests: XCTestCase {
         app.buttons["episode.row.1"].tap()
         let character = app.buttons["character.link.1"]
         XCTAssertTrue(character.waitForExistence(timeout: 5))
+        XCTAssertTrue(characterRow(1, named: "Rick Sanchez").waitForExistence(timeout: 5))
+        capture("Character list at largest accessibility text size")
         character.tap()
         let export = app.buttons["characterDetail.export"]
         XCTAssertTrue(export.waitForExistence(timeout: 5))

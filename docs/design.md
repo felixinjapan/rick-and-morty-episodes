@@ -20,13 +20,15 @@ flowchart TD
     F -. new pages .-> H[Load on scroll]
 ```
 
-## Opening a character
+## Viewing a character
 
-`DefaultCharacterRepository.character(id:)`. Each opened character is its own file, so saving one rewrites nothing else.
+`DefaultCharacterRepository.character(id:)` is used by visible character rows and the detail screen.
+Each viewed character is its own file, so saving one rewrites nothing else. A row keeps its tappable
+ID if enrichment fails; a missing character on the detail screen shows the existing error and Retry action.
 
 ```mermaid
 flowchart TD
-    A[Open character] --> B{Saved details?}
+    A[Character row appears or detail opens] --> B{Saved details?}
     B -- yes --> C{"Catalogue size unchanged<br/>(or unknown) and under 30 days old?"}
     C -- yes --> R1[Return saved details, no request]
     B -- no --> F[Fetch from API]
@@ -71,6 +73,7 @@ flowchart TD
 
     Views --> ListVM
     Views --> DetailVM
+    Views -->|visible character rows| ChRepo
     Coord --> ListVM
     ListVM -- await --> EpRepo
     DetailVM -- await --> ChRepo

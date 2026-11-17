@@ -241,6 +241,30 @@
         }
       }
     },
+    "episodeCharacters.title" : {
+      "comment" : "Navigation title for the characters appearing in an episode",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Characters"
+          }
+        }
+      }
+    },
+    "episodeCharacters.tapForDetails" : {
+      "comment" : "Fallback subtitle when a character row has only an ID",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap for details"
+          }
+        }
+      }
+    },
     "episodeCharacters.empty" : {
       "comment" : "Shown when an episode lists no characters",
       "extractionState" : "manual",
