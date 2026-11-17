@@ -42,7 +42,7 @@ The portrait follows a simpler rule: a saved image that decodes is reused with n
 
 ## Concurrency map
 
-The project builds in Swift 6 language mode with complete strict concurrency checking and no default actor isolation, so every isolation below is declared in code. UI state lives on the main actor; the repositories and file stores are actors, so network and file work runs off the main thread.
+The project builds in Swift 6 language mode with complete strict concurrency checking and no default actor isolation, so every isolation below is declared in code. UI state lives on the main actor. The repositories and stores are actors; SwiftData opens on the store actor and its context and models stay on a model actor, away from the main actor. Only Sendable domain values cross that boundary.
 
 ```mermaid
 flowchart TD
@@ -56,8 +56,8 @@ flowchart TD
     subgraph Actors["Actors (own their state, serialise access)"]
         EpRepo[DefaultEpisodeRepository]
         ChRepo[DefaultCharacterRepository]
-        EpStore[FileEpisodeStore]
-        ChStore[FileCharacterStore]
+        Store[SwiftDataStore]
+        Storage["CacheStorage<br/>(@ModelActor)"]
         Portraits[PortraitStore]
     end
 
@@ -77,9 +77,10 @@ flowchart TD
     DetailVM -- "sync call" --> Exporter
     BG -- await --> EpRepo
     EpRepo --> API
-    EpRepo --> EpStore
+    EpRepo --> Store
     ChRepo --> API
-    ChRepo --> ChStore
+    ChRepo --> Store
+    Store --> Storage
     ChRepo --> Portraits
     ChRepo -. "catalogue size" .-> EpRepo
 ```

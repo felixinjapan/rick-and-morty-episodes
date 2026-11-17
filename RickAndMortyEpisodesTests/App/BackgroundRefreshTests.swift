@@ -21,7 +21,7 @@ struct BackgroundRefreshTests {
         let api = makeThreePageAPI()
         let gate = Gate()
         await api.holdPage(1, until: gate)
-        let store = FileEpisodeStore.makeTemporary()
+        let store = SwiftDataStore.makeTemporary()
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
         let scheduleCount = OSAllocatedUnfairLock(initialState: 0)
 

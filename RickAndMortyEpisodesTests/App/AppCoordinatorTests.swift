@@ -23,7 +23,7 @@ struct AppCoordinatorTests {
     @Test("Foreground events update the coordinator's existing view model from the cache")
     func foregroundUpdatesOwnedViewModel() async throws {
         let initial = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: .now)
-        let store = try await FileEpisodeStore.makeTemporary(containing: initial)
+        let store = try await SwiftDataStore.makeTemporary(containing: initial)
         let api = StubAPI()
         let repository = DefaultEpisodeRepository(api: api, store: store)
         var schedules = 0
@@ -45,7 +45,7 @@ struct AppCoordinatorTests {
     @Test("Background schedules once and inactive does nothing; neither refreshes the list")
     func backgroundAndInactive() async throws {
         let initial = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: .now)
-        let store = try await FileEpisodeStore.makeTemporary(containing: initial)
+        let store = try await SwiftDataStore.makeTemporary(containing: initial)
         let api = StubAPI()
         let repository = DefaultEpisodeRepository(api: api, store: store)
         var schedules = 0

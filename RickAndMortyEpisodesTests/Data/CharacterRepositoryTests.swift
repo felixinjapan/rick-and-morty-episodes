@@ -39,15 +39,18 @@ struct CharacterRepositoryTests {
 
     @Test("A character opened in an earlier session is read from disk, with no request")
     func savedAcrossSessions() async throws {
-        let store = FileCharacterStore.makeTemporary()
+        let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: SwiftDataStore.defaultFileName)
+        let store = SwiftDataStore(storeURL: url)
         let first = DefaultCharacterRepository.makeTemporary(
             api: StubAPI(characters: [1: .success(.rick)]), store: store
         )
         _ = try await first.character(id: 1)
 
-        // A new repository over the same folder, like a relaunch.
+        // Reopen the database as well as the repository, like a relaunch.
         let api = StubAPI()
-        let second = DefaultCharacterRepository.makeTemporary(api: api, store: store)
+        let second = DefaultCharacterRepository.makeTemporary(api: api, store: SwiftDataStore(storeURL: url))
 
         #expect(try await second.character(id: 1) == .rick)
         #expect(await api.requestedCharacters.isEmpty)
@@ -262,13 +265,10 @@ struct CharacterRepositoryTests {
         #expect(await api.requestedCharacters == [1])
     }
 
-    @Test("An unreadable saved file is treated as not saved")
+    @Test("An unavailable database is treated as not saved")
     func corruptFile() async throws {
-        let directory = URL.temporaryDirectory.appending(path: "\(UUID().uuidString)/characters")
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try Data("not json".utf8).write(to: directory.appending(path: "1.json"))
         let api = StubAPI(characters: [1: .success(.rick)])
-        let repository = DefaultCharacterRepository.makeTemporary(api: api, store: FileCharacterStore(directory: directory))
+        let repository = DefaultCharacterRepository.makeTemporary(api: api, store: try .makeUnwritable())
 
         #expect(try await repository.character(id: 1) == .rick)
         #expect(await api.requestedCharacters == [1])

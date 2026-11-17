@@ -9,7 +9,7 @@ struct EpisodeRepositoryTests {
         let api = makeThreePageAPI()
         await api.setPage(1, .success(.make(ids: 101...120, hasNextPage: true)))
         let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
-        let store = try await FileEpisodeStore.makeTemporary(containing: previous)
+        let store = try await SwiftDataStore.makeTemporary(containing: previous)
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate.addingTimeInterval(60) })
 
         let snapshot = try await repository.refreshFirstPage()
@@ -26,7 +26,7 @@ struct EpisodeRepositoryTests {
         let api = makeThreePageAPI()
         await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true, totalCount: 46)))
         let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
-        let store = try await FileEpisodeStore.makeTemporary(containing: previous)
+        let store = try await SwiftDataStore.makeTemporary(containing: previous)
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate.addingTimeInterval(60) })
 
         let snapshot = try await repository.refreshFirstPage()
@@ -43,7 +43,7 @@ struct EpisodeRepositoryTests {
         await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true, totalCount: 44)))
         let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
         let repository = DefaultEpisodeRepository(
-            api: api, store: try await FileEpisodeStore.makeTemporary(containing: previous)
+            api: api, store: try await SwiftDataStore.makeTemporary(containing: previous)
         )
 
         let snapshot = try await repository.refreshFirstPage()
@@ -55,7 +55,7 @@ struct EpisodeRepositoryTests {
     @Test("A refresh in a new process reads the saved list first, so the cached pages survive")
     func refreshBeforeAnythingWasLoaded() async throws {
         let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
-        let store = try await FileEpisodeStore.makeTemporary(containing: previous)
+        let store = try await SwiftDataStore.makeTemporary(containing: previous)
         // Nothing has called `loadCurrentSnapshot()`, like the background task launching the app.
         let repository = DefaultEpisodeRepository(api: makeThreePageAPI(), store: store, now: { fixedDate.addingTimeInterval(60) })
 
@@ -69,7 +69,7 @@ struct EpisodeRepositoryTests {
     @Test("A page that arrives after a refresh doesn't overwrite the refreshed list", .timeLimit(.minutes(1)))
     func latePageAfterRefresh() async throws {
         let api = makeThreePageAPI()
-        let store = FileEpisodeStore.makeTemporary()
+        let store = SwiftDataStore.makeTemporary()
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
         let first = try await repository.loadNextPage(after: nil)
 
@@ -90,7 +90,7 @@ struct EpisodeRepositoryTests {
         let api = makeThreePageAPI()
         await api.setPage(1, .failure(APIError.http(statusCode: 500)))
         let previous = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
-        let store = try await FileEpisodeStore.makeTemporary(containing: previous)
+        let store = try await SwiftDataStore.makeTemporary(containing: previous)
         let repository = DefaultEpisodeRepository(api: api, store: store)
 
         await #expect(throws: DataError.serverUnavailable) {
@@ -104,7 +104,7 @@ struct EpisodeRepositoryTests {
         let api = makeThreePageAPI()
         let gate = Gate()
         await api.holdPage(1, until: gate)
-        let store = FileEpisodeStore.makeTemporary()
+        let store = SwiftDataStore.makeTemporary()
         let repository = DefaultEpisodeRepository(api: api, store: store)
 
         let refresh = Task { try await repository.refreshFirstPage() }
@@ -118,7 +118,7 @@ struct EpisodeRepositoryTests {
 
     @Test("A refresh cancelled after the response arrived still saves page 1")
     func refreshCancelledAfterResponseStillSaves() async throws {
-        let store = FileEpisodeStore.makeTemporary()
+        let store = SwiftDataStore.makeTemporary()
         let repository = DefaultEpisodeRepository(api: CancelsAfterResponseAPI(), store: store, now: { fixedDate })
 
         // Its own task, so the cancellation doesn't reach the test itself.
@@ -128,11 +128,9 @@ struct EpisodeRepositoryTests {
         #expect(try await store.load() == snapshot)
     }
 
-    @Test("An unreadable cache is treated as no cache")
+    @Test("An unavailable database is treated as no cache")
     func corruptCache() async throws {
-        let fileURL = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).json")
-        try Data("not json".utf8).write(to: fileURL)
-        let repository = DefaultEpisodeRepository(api: StubAPI(), store: FileEpisodeStore(fileURL: fileURL))
+        let repository = DefaultEpisodeRepository(api: StubAPI(), store: try .makeUnwritable())
         #expect(await repository.loadCurrentSnapshot() == nil)
     }
 }

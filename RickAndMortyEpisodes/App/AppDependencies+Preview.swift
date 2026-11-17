@@ -9,12 +9,13 @@ extension AppDependencies {
         networkUnavailable: Bool = false
     ) -> Repositories {
         let api: any RickAndMortyAPI = networkUnavailable ? UnavailableRickAndMortyAPI() : RecordedRickAndMortyAPI()
-        let episodes = DefaultEpisodeRepository(api: api, store: .makePreview())
+        let store = SwiftDataStore.makeInMemory()
+        let episodes = DefaultEpisodeRepository(api: api, store: store)
         return Repositories(
             episodes: episodes,
             characters: DefaultCharacterRepository(
                 api: api,
-                store: .makePreview(),
+                store: store,
                 portraits: .makePreview(),
                 catalogueCount: { await episodes.loadCurrentSnapshot()?.totalCount },
                 maxAge: configuration.characterMaxAge

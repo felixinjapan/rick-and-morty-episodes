@@ -1,7 +1,7 @@
 import Foundation
 
 /// The episodes loaded so far, from page 1 on. This is what the repository saves and
-/// restores; the file format itself is `CachedEpisodeSnapshot`.
+/// restores; SwiftData records stay inside the persistence layer.
 struct EpisodeSnapshot: Sendable, Equatable {
     let episodes: [Episode]
     /// The page to load next, or `nil` once the whole list is loaded.

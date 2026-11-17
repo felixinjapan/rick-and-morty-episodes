@@ -78,37 +78,23 @@ actor Gate {
     }
 }
 
-extension FileEpisodeStore {
-    /// A real store in its own temporary folder, so tests don't share state.
-    static func makeTemporary() -> FileEpisodeStore {
-        FileEpisodeStore(fileURL: .temporaryDirectory.appending(path: "\(UUID().uuidString)/episodes-cache.json"))
+extension SwiftDataStore {
+    /// A fresh in-memory database, isolated from other tests.
+    static func makeTemporary() -> SwiftDataStore {
+        .makeInMemory()
     }
 
-    static func makeTemporary(containing snapshot: EpisodeSnapshot) async throws -> FileEpisodeStore {
+    static func makeTemporary(containing snapshot: EpisodeSnapshot) async throws -> SwiftDataStore {
         let store = makeTemporary()
         try await store.save(snapshot)
         return store
     }
 
-    /// A store whose saves fail, because a file sits where its folder should be.
-    static func makeUnwritable() throws -> FileEpisodeStore {
+    /// A database that cannot open because a file sits where its folder should be.
+    static func makeUnwritable() throws -> SwiftDataStore {
         let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
         try Data().write(to: blocker)
-        return FileEpisodeStore(fileURL: blocker.appending(path: "episodes-cache.json"))
-    }
-}
-
-extension FileCharacterStore {
-    /// A real store in its own temporary folder, so tests don't share state.
-    static func makeTemporary() -> FileCharacterStore {
-        FileCharacterStore(directory: .temporaryDirectory.appending(path: "\(UUID().uuidString)/characters"))
-    }
-
-    /// A store whose saves fail, because a file sits where its folder should be.
-    static func makeUnwritable() throws -> FileCharacterStore {
-        let blocker = URL.temporaryDirectory.appending(path: UUID().uuidString)
-        try Data().write(to: blocker)
-        return FileCharacterStore(directory: blocker.appending(path: "characters"))
+        return SwiftDataStore(storeURL: blocker.appending(path: SwiftDataStore.defaultFileName))
     }
 }
 
@@ -131,7 +117,7 @@ extension DefaultCharacterRepository {
     /// stay valid until a test makes them old.
     static func makeTemporary(
         api: any RickAndMortyAPI,
-        store: FileCharacterStore = .makeTemporary(),
+        store: SwiftDataStore = .makeTemporary(),
         portraits: PortraitStore = .makeTemporary(),
         catalogueCount: @escaping @Sendable () async -> Int? = { nil },
         maxAge: TimeInterval = 3600,

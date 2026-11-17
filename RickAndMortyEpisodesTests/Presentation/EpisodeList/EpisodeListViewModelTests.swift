@@ -7,7 +7,7 @@ import Testing
 struct EpisodeListViewModelTests {
     private func makeViewModel(
         api: StubAPI = makeThreePageAPI(),
-        store: FileEpisodeStore = .makeTemporary(),
+        store: SwiftDataStore = .makeTemporary(),
         now: Date = fixedDate
     ) -> EpisodeListViewModel {
         // One clock for both, so a fetch made "later" is stamped later.
@@ -17,7 +17,7 @@ struct EpisodeListViewModelTests {
 
     @Test("Without a cache, pages load one at a time until the end is reached")
     func pagesUntilEnd() async throws {
-        let store = FileEpisodeStore.makeTemporary()
+        let store = SwiftDataStore.makeTemporary()
         let viewModel = makeViewModel(store: store)
 
         await viewModel.start()
@@ -229,7 +229,7 @@ struct EpisodeListViewModelTests {
     @Test("A fresh background snapshot clears an earlier refresh error")
     func foregroundSnapshotClearsRefreshError() async throws {
         let api = StubAPI(pages: [1: .failure(APIError.offline)])
-        let store = try await FileEpisodeStore.makeTemporary(
+        let store = try await SwiftDataStore.makeTemporary(
             containing: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
         )
         let viewModel = makeViewModel(api: api, store: store)
@@ -269,7 +269,7 @@ struct EpisodeListViewModelTests {
         let api = makeThreePageAPI()
         let gate = Gate()
         await api.holdPage(3, until: gate)
-        let store = FileEpisodeStore.makeTemporary()
+        let store = SwiftDataStore.makeTemporary()
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
         let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { fixedDate })
         await viewModel.start()

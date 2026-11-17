@@ -9,19 +9,19 @@ import os
 /// responses and cancellation, which propagate to the caller.
 actor DefaultCharacterRepository: CharacterRepository {
     private let api: any RickAndMortyAPI
-    private let store: FileCharacterStore
+    private let store: SwiftDataStore
     private let portraits: PortraitStore
     /// The catalogue size now, or `nil` if unknown.
     private let catalogueCount: @Sendable () async -> Int?
     private let maxAge: TimeInterval
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultCharacterRepository")
-    /// Saved characters read or written during this session, so repeat visits skip the file.
+    /// Saved characters read or written during this session, so repeat visits skip the database.
     private var cache: [Int: StoredCharacter] = [:]
 
     init(
         api: any RickAndMortyAPI,
-        store: FileCharacterStore,
+        store: SwiftDataStore,
         portraits: PortraitStore,
         catalogueCount: @escaping @Sendable () async -> Int?,
         maxAge: TimeInterval,
@@ -83,7 +83,7 @@ actor DefaultCharacterRepository: CharacterRepository {
         return sameCatalogue && now().timeIntervalSince(saved.savedAt) < maxAge
     }
 
-    /// An unreadable file is logged and treated as not saved.
+    /// An unreadable database is logged and treated as not saved.
     private func savedCharacter(id: Int) async -> StoredCharacter? {
         if let cached = cache[id] { return cached }
         do {

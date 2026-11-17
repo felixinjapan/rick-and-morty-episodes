@@ -1,6 +1,6 @@
 import Foundation
 
-/// An episode as the app uses it. The API's JSON and the cache file have their own types.
+/// An episode as the app uses it. API responses and SwiftData records have their own types.
 struct Episode: Identifiable, Hashable, Sendable {
     let id: Int
     let name: String

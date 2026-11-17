@@ -52,7 +52,7 @@ flowchart TD
     subgraph Data
         Repos["DefaultEpisodeRepository<br/>DefaultCharacterRepository<br/>(actors)"]
         Net["Networking<br/>RickAndMortyAPI · URLSession"]
-        Store["Persistence<br/>JSON files"]
+        Store["Persistence<br/>SwiftData"]
     end
 
     Coord --> VM
@@ -70,7 +70,7 @@ Flowcharts for the refresh and caching decisions, and a concurrency map, are in 
   background task. Each page is saved as it loads. A refresh fetches page 1 only; its total says whether
   the cached pages are still valid (unchanged: keep them, grew: load the new ones on scroll, shrank: keep
   page 1 only).
-- **Characters:** each opened character and its portrait are saved as files, so reopening works offline.
+- **Characters:** each opened character is saved in SwiftData and its portrait as an image file, so reopening works offline.
   Saved details are reused for 30 days while the catalogue size is unchanged (or unknown); otherwise they
   are refetched and still served if that fails, except on a 404.
 - **Errors:** `APIError` → `DataError` → user wording in `Presentation/Shared/ErrorMessages.swift`.
@@ -84,11 +84,23 @@ Flowcharts for the refresh and caching decisions, and a concurrency map, are in 
 | Decision | Why |
 |---|---|
 | Refresh page 1 only | One request however many pages exist; fits a background task's time. Episodes are only added at the end |
-| JSON files in actors, not SwiftData | About 50 records, always read and written whole |
+| SwiftData behind the repositories | One shared database; a model actor isolates the context and returns Sendable domain values |
 | Save only characters the user opens | No reason to download 826 characters for three screens |
 | `BGAppRefreshTask` plus a foreground refresh when data is over 12 h old | iOS doesn't guarantee background runs |
 | Text export in `Documents/Exports` plus a share sheet | Any app can open it and Files shows it |
 | Portraits saved as files, not `AsyncImage` | `AsyncImage` can't save to disk, so an opened character would lose its photo offline |
+
+The versioned SwiftData schema stores episode rows, list order and pagination metadata, and opened
+characters with their freshness metadata. Episode rows and pagination commit in one save; failed
+saves roll back. Snapshots with duplicate episode IDs are rejected before changing the cache. A
+database confirmed to be corrupt is rebuilt. Before opening an on-disk store, a read-only SQLite
+snapshot is checked for damaged pages, including data pages whose metadata is still readable.
+Permission, lock, I/O and schema errors preserve the store.
+The database lives in `Application Support/Cache`, excluded from backups, with file
+protection that allows background refresh after the first unlock. Previews and unit tests use fresh
+in-memory databases; persistence tests also reopen a temporary on-disk database. Existing JSON caches
+are not imported; the app populates the new database as data is fetched again. API responses and
+recorded networking fixtures remain JSON.
 
 ## Background refresh
 

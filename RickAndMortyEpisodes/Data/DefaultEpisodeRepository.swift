@@ -5,7 +5,7 @@ import os
 /// An actor because both reach its mutable state (`latest`) at the same time.
 actor DefaultEpisodeRepository: EpisodeRepository {
     private let api: any RickAndMortyAPI
-    private let store: FileEpisodeStore
+    private let store: SwiftDataStore
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultEpisodeRepository")
     /// The list as last loaded, refreshed or read from disk.
@@ -13,7 +13,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
 
     init(
         api: any RickAndMortyAPI,
-        store: FileEpisodeStore,
+        store: SwiftDataStore,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.api = api
@@ -23,7 +23,7 @@ actor DefaultEpisodeRepository: EpisodeRepository {
 
     // MARK: - Episodes
 
-    /// The saved list or the one last loaded, whichever is newer. At launch it reads the file;
+    /// The saved list or the one last loaded, whichever is newer. At launch it reads SwiftData;
     /// afterwards memory is normally current, because the background task uses this instance.
     /// An unreadable cache is logged and treated as no cache.
     func loadCurrentSnapshot() async -> EpisodeSnapshot? {
