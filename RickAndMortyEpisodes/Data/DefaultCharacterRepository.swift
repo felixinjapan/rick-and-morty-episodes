@@ -12,6 +12,7 @@ actor DefaultCharacterRepository: CharacterRepository {
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultCharacterRepository")
     private var cache: [Int: StoredCharacter] = [:]
+    private var portraitLoads: [URL: Task<Data, any Error>] = [:]
 
     init(
         api: any RickAndMortyAPI,
@@ -87,8 +88,20 @@ actor DefaultCharacterRepository: CharacterRepository {
 
     /// Reuses a readable saved portrait without an age limit. A missing, unreadable, or invalid
     /// file is downloaded again; a successful download replaces it. Fetch failures propagate.
+    /// Callers asking for the same URL share one load, because the actor can interleave them at
+    /// each `await` and both would miss the saved file.
     func portrait(for character: CharacterDetails) async throws -> Data {
         guard let url = character.imageURL else { throw RepositoryError.notFound }
+        if let running = portraitLoads[url] { return try await running.value }
+        let load = Task<Data, any Error> {
+            defer { portraitLoads[url] = nil }
+            return try await loadPortrait(for: character, from: url)
+        }
+        portraitLoads[url] = load
+        return try await load.value
+    }
+
+    private func loadPortrait(for character: CharacterDetails, from url: URL) async throws -> Data {
         do {
             if let saved = try await portraits.load(for: url) {
                 if ImageValidation.isImage(saved) { return saved }
