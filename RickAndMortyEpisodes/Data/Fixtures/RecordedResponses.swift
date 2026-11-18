@@ -15,10 +15,14 @@ enum RecordedResponses {
     /// A small solid-colour image that stands in for every avatar.
     static let portrait = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGPQmtuPFTEMLQkAT3dVgRdrT9YAAAAASUVORK5CYII=")!
 
-    static func character(id: Int) throws -> Data? {
+    static func characters(ids: [Int]) throws -> Data? {
         let all = try JSONSerialization.jsonObject(with: data(named: "characters")) as? [[String: Any]]
-        guard let match = all?.first(where: { $0["id"] as? Int == id }) else { return nil }
-        return try JSONSerialization.data(withJSONObject: match)
+        let requested = Set(ids)
+        let matches = all?.filter { character in
+            (character["id"] as? Int).map(requested.contains) ?? false
+        } ?? []
+        guard let first = matches.first else { return nil }
+        return try JSONSerialization.data(withJSONObject: ids.count == 1 ? first as Any : matches)
     }
 }
 
@@ -34,8 +38,8 @@ extension HTTPTransport {
             body = try? RecordedResponses.data(named: "episodes-page-\(page)")
         } else if path.dropLast().last == "avatar" {
             body = RecordedResponses.portrait
-        } else if path.dropLast().last == "character", let id = Int(path.last ?? "") {
-            body = try RecordedResponses.character(id: id)
+        } else if path.dropLast().last == "character", let ids = path.last {
+            body = try RecordedResponses.characters(ids: ids.split(separator: ",").compactMap { Int($0) })
         }
 
         let response = HTTPURLResponse(

@@ -59,6 +59,18 @@ struct LiveAPITests {
         #expect(character.imageURL != nil)
     }
 
+    @Test("Multiple character IDs use one request and decode an array")
+    func characterBatch() async throws {
+        let body = try #require(try RecordedResponses.characters(ids: [1, 2]))
+        let urls = OSAllocatedUnfairLock(initialState: [URL?]())
+        let api = makeAPI(body: body) { request in
+            urls.withLock { $0.append(request.url) }
+        }
+
+        #expect(try await api.characters(ids: [1, 2]).map(\.name) == ["Rick Sanchez", "Morty Smith"])
+        #expect(urls.withLock { $0 } == [URL(string: "https://rickandmortyapi.com/api/character/1,2")])
+    }
+
     @Test("Character status maps the API's values", arguments: [
         ("Alive", CharacterStatus.alive), ("Dead", .dead), ("unknown", .unknown), ("Zombie", .unknown),
     ])

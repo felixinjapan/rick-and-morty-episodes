@@ -8,6 +8,9 @@ struct CharacterRoute: Hashable {
 struct EpisodeCharactersView: View {
     let episode: Episode
     let repository: any CharacterRepository
+    @State private var loader = EpisodeCharactersLoader()
+    @State private var visibleIDs: Set<Int> = []
+    @State private var viewport: CGRect = .zero
 
     var body: some View {
         List {
@@ -25,7 +28,19 @@ struct EpisodeCharactersView: View {
 
             Section {
                 ForEach(episode.characterIDs, id: \.self) { id in
-                    EpisodeCharacterRow(id: id, repository: repository)
+                    EpisodeCharacterRow(
+                        id: id,
+                        character: loader.characters[id],
+                        loadsPortrait: visibleIDs.contains(id) && loader.settledIDs.contains(id),
+                        repository: repository,
+                        viewport: viewport
+                    ) { isVisible in
+                        if isVisible {
+                            visibleIDs.insert(id)
+                        } else {
+                            visibleIDs.remove(id)
+                        }
+                    }
                 }
                 if episode.characterIDs.isEmpty {
                     ContentUnavailableView(.episodeCharactersEmpty, systemImage: "person.slash")
@@ -37,30 +52,39 @@ struct EpisodeCharactersView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .navigationTitle(.episodeCharactersTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: visibleIDs) { [visibleIDs] in
+            await loader.load(visibleIDs: visibleIDs, from: repository)
+        }
     }
 }
 
 private struct EpisodeCharacterRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let id: Int
+    let character: CharacterDetails?
+    let loadsPortrait: Bool
     let repository: any CharacterRepository
+    let viewport: CGRect
+    let visibilityChanged: (Bool) -> Void
     @ScaledMetric(relativeTo: .body) private var portraitSize = 52
-    @State private var character: CharacterDetails?
+    @State private var frame: CGRect = .zero
+
+    private var isVisible: Bool {
+        frame.height > 0 && frame.intersection(viewport).height >= frame.height / 2
+    }
 
     var body: some View {
         NavigationLink(value: CharacterRoute(id: id, name: character?.name)) {
             label
         }
         .accessibilityIdentifier("character.link.\(id)")
-        .task(id: id) {
-            // The ID stays tappable when details fail to load or the task is cancelled.
-            guard character == nil,
-                  let loaded = try? await repository.character(id: id),
-                  !Task.isCancelled else { return }
-            character = loaded
-        }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+        .onChange(of: isVisible) { _, visible in visibilityChanged(visible) }
+        .onAppear { visibilityChanged(isVisible) }
+        .onDisappear { visibilityChanged(false) }
     }
 
     private var label: some View {
@@ -71,7 +95,7 @@ private struct EpisodeCharacterRow: View {
         return layout {
             Group {
                 if let character {
-                    CharacterPortrait(character: character, repository: repository, size: size)
+                    CharacterPortrait(character: character, repository: repository, size: size, loadsImage: loadsPortrait)
                 } else {
                     Image(systemName: "person.crop.square.fill")
                         .resizable()

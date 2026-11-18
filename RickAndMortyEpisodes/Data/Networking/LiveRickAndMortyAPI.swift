@@ -28,6 +28,14 @@ struct LiveRickAndMortyAPI: RickAndMortyAPI {
         return dto.toDomain()
     }
 
+    func characters(ids: [Int]) async throws -> [CharacterDetails] {
+        guard let first = ids.first else { return [] }
+        if ids.count == 1 { return [try await character(id: first)] }
+        let path = ids.map(String.init).joined(separator: ",")
+        let dtos: [CharacterDTO] = try await get(baseURL.appending(path: "character/\(path)"))
+        return dtos.map { $0.toDomain() }
+    }
+
     func portrait(from url: URL) async throws -> Data {
         let data = try await send(url, accepting: "image/*")
         guard ImageValidation.isImage(data) else {

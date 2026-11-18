@@ -62,6 +62,36 @@ struct CharacterRepositoryTests {
         #expect(await api.requestedCharacters == [1])
     }
 
+    @Test("An episode requests only uncached IDs in one batch and saves the available details")
+    func episodeBatch() async throws {
+        let morty = CharacterDetails(
+            id: 2, name: "Morty Smith", status: .alive, species: "Human",
+            originName: "Earth (C-137)", episodeCount: 1, imageURL: nil
+        )
+        let store = FileCharacterStore.makeTemporary()
+        try await store.save(StoredCharacter(details: .rick, catalogueCount: nil, savedAt: fixedDate))
+        let api = StubAPI(characters: [2: .success(morty)])
+        let repository = DefaultCharacterRepository.makeTemporary(api: api, store: store)
+
+        #expect(await repository.characters(ids: [1, 2, 2, 99999]) == [1: .rick, 2: morty])
+        #expect(await api.requestedCharacterBatches == [[2, 99999]])
+        #expect(await api.requestedCharacters.isEmpty)
+        #expect(try await store.load(id: 2)?.details == morty)
+        #expect(await repository.characters(ids: [1, 2]) == [1: .rick, 2: morty])
+        #expect(await api.requestedCharacterBatches == [[2, 99999]])
+    }
+
+    @Test("A rate-limited episode batch still returns stale cached details")
+    func rateLimitedEpisodeBatch() async throws {
+        let store = FileCharacterStore.makeTemporary()
+        try await store.save(StoredCharacter(details: .rick, catalogueCount: 45, savedAt: fixedDate))
+        let api = StubAPI(characters: [1: .failure(APIError.http(statusCode: 429))])
+        let repository = DefaultCharacterRepository.makeTemporary(api: api, store: store, catalogueCount: { 46 })
+
+        #expect(await repository.characters(ids: [1, 2]) == [1: .rick])
+        #expect(await api.requestedCharacterBatches == [[1, 2]])
+    }
+
     @Test("Details saved under another catalogue size are fetched again")
     func catalogueSizeChanged() async throws {
         let size = OSAllocatedUnfairLock<Int?>(initialState: 45)

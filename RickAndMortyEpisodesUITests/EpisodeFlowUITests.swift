@@ -103,6 +103,26 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["characterDetail.name"].exists)
     }
 
+    func testCharacterNamesLoadAfterFastScrolling() {
+        let episode = app.buttons["episode.row.10"]
+        for _ in 0..<3 where !episode.exists || !episode.isHittable {
+            app.swipeUp(velocity: .fast)
+        }
+        XCTAssertTrue(episode.isHittable)
+        episode.tap()
+        XCTAssertTrue(app.navigationBars["Characters"].waitForExistence(timeout: 5))
+        XCTAssertTrue(characterRow(1, named: "Rick Sanchez").waitForExistence(timeout: 5))
+
+        let lastRow = app.buttons["character.link.663"]
+        for _ in 0..<12 where !lastRow.exists || !lastRow.isHittable {
+            app.swipeUp(velocity: XCUIGestureVelocity(rawValue: 8_000))
+        }
+        XCTAssertTrue(lastRow.isHittable)
+        XCTAssertTrue(characterRow(663, named: "Reggie").waitForExistence(timeout: 5))
+        XCTAssertTrue(characterRow(434, named: "Super Weird Rick").waitForExistence(timeout: 5))
+        XCTAssertTrue(characterRow(433, named: "Doopidoo").waitForExistence(timeout: 5))
+    }
+
     private func relaunchOffline() {
         app.terminate()
         app.launchArguments = ["-uiTesting", "-networkUnavailable"]

@@ -10,12 +10,14 @@ struct CharacterPortrait: View {
     let character: CharacterDetails
     let repository: any CharacterRepository
     let size: CGFloat
+    let loadsImage: Bool
     @State private var phase: Phase
 
-    init(character: CharacterDetails, repository: any CharacterRepository, size: CGFloat = 200) {
+    init(character: CharacterDetails, repository: any CharacterRepository, size: CGFloat = 200, loadsImage: Bool = true) {
         self.character = character
         self.repository = repository
         self.size = size
+        self.loadsImage = loadsImage
         _phase = State(initialValue: character.imageURL == nil ? .failed : .loading)
     }
 
@@ -37,7 +39,11 @@ struct CharacterPortrait: View {
         .frame(width: size, height: size)
         .clipShape(.rect(cornerRadius: 16))
         .frame(maxWidth: .infinity)
-        .task(id: character.id) { await load() }
+        .task(id: loadsImage ? character.id : nil) {
+            guard loadsImage else { return }
+            if case .loaded = phase { return }
+            await load()
+        }
     }
 
     private func load() async {

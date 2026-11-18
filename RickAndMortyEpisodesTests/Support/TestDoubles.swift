@@ -8,6 +8,7 @@ actor StubAPI: RickAndMortyAPI {
     private var pageGates: [Int: Gate] = [:]
     private(set) var requestedPages: [Int] = []
     private(set) var requestedCharacters: [Int] = []
+    private(set) var requestedCharacterBatches: [[Int]] = []
     private(set) var requestedPortraits: [URL] = []
 
     init(
@@ -46,6 +47,11 @@ actor StubAPI: RickAndMortyAPI {
         requestedCharacters.append(id)
         guard let result = characters[id] else { throw APIError.http(statusCode: 404) }
         return try result.get()
+    }
+
+    func characters(ids: [Int]) async throws -> [CharacterDetails] {
+        requestedCharacterBatches.append(ids)
+        return try ids.compactMap { try characters[$0]?.get() }
     }
 
     func portrait(from url: URL) async throws -> Data {

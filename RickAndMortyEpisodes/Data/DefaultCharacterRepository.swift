@@ -38,15 +38,51 @@ actor DefaultCharacterRepository: CharacterRepository {
 
         do {
             let details = try await translatingErrors(logger: logger) { try await api.character(id: id) }
-            let stored = StoredCharacter(details: details, catalogueCount: current, savedAt: now())
-            cache[id] = stored
-            await persist(stored)
+            await save(details, catalogueCount: current)
             return details
         } catch let error as RepositoryError where error != .notFound {
             guard let saved else { throw error }
             logger.info("Serving saved character \(id) after: \(String(describing: error), privacy: .public)")
             return saved.details
         }
+    }
+
+    func characters(ids: [Int]) async -> [Int: CharacterDetails] {
+        guard !ids.isEmpty else { return [:] }
+        let current = await catalogueCount()
+        var available: [Int: CharacterDetails] = [:]
+        var stale: [Int: CharacterDetails] = [:]
+        var idsToFetch: [Int] = []
+        for id in Set(ids).sorted() {
+            guard !Task.isCancelled else { return available }
+            if let saved = await savedCharacter(id: id) {
+                if isFresh(saved, catalogueCount: current) {
+                    available[id] = saved.details
+                    continue
+                }
+                stale[id] = saved.details
+            }
+            idsToFetch.append(id)
+        }
+        guard !idsToFetch.isEmpty else { return available }
+
+        do {
+            try Task.checkCancellation()
+            let fetched = try await translatingErrors(logger: logger) {
+                try await api.characters(ids: idsToFetch)
+            }
+            logger.debug("Character batch downloaded \(fetched.count) records")
+            let requested = Set(idsToFetch)
+            for details in fetched where requested.contains(details.id) {
+                available[details.id] = details
+                await save(details, catalogueCount: current)
+            }
+        } catch let error as RepositoryError where error != .notFound {
+            available.merge(stale) { fresh, _ in fresh }
+        } catch {
+            // Cancellation and not-found responses leave only the fresh cached details.
+        }
+        return available
     }
 
     /// Reuses a readable saved portrait without an age limit. A missing, unreadable, or invalid
@@ -88,7 +124,9 @@ actor DefaultCharacterRepository: CharacterRepository {
     }
 
     /// A failed save only costs offline availability, so it is logged, not shown to the user.
-    private func persist(_ stored: StoredCharacter) async {
+    private func save(_ details: CharacterDetails, catalogueCount: Int?) async {
+        let stored = StoredCharacter(details: details, catalogueCount: catalogueCount, savedAt: now())
+        cache[details.id] = stored
         do {
             try await store.save(stored)
         } catch {
