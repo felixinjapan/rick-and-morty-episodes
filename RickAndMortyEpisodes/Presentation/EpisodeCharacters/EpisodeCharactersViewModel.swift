@@ -6,6 +6,7 @@ import Observation
 final class EpisodeCharactersViewModel {
     let portraits = EpisodeCharacterPortraits()
     private(set) var characters: [Int: CharacterDetails] = [:]
+    /// The visible IDs once scrolling paused. No view reads it; tests wait on it.
     private(set) var settledIDs: Set<Int> = []
     private(set) var unavailableIDs: Set<Int> = []
 
