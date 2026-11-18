@@ -31,13 +31,8 @@ actor DefaultEpisodeRepository: EpisodeRepository {
     }
 
     func loadNextPage(after current: EpisodeSnapshot?) async throws -> EpisodeSnapshot {
-        let page: Int
-        if let current {
-            guard let next = current.nextPage else { return current }
-            page = next
-        } else {
-            page = 1
-        }
+        if let current, current.nextPage == nil { return current }
+        let page = current?.nextPage ?? 1
 
         let loaded = try await translatingErrors(logger: logger) { try await api.episodes(page: page) }
 
