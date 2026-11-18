@@ -5,6 +5,7 @@ struct EpisodeListView: View {
     let viewModel: EpisodeListViewModel
     let characterRepository: any CharacterRepository
     let makeCharacterDetail: (CharacterRoute) -> CharacterDetailView
+    @State private var viewport: CGRect = .zero
 
     var body: some View {
         NavigationStack {
@@ -56,15 +57,25 @@ struct EpisodeListView: View {
                 .accessibilityIdentifier("episode.row.\(episode.id)")
             }
 
-            EpisodeListFooter(viewModel: viewModel)
+            EpisodeListFooter(viewModel: viewModel, viewport: viewport)
+                .id(viewModel.episodes.last?.id)
         }
         .id(viewModel.listIdentity)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .refreshable { await viewModel.refresh() }
     }
 }
 
 private struct EpisodeListFooter: View {
     let viewModel: EpisodeListViewModel
+    let viewport: CGRect
+    @State private var frame: CGRect = .zero
+
+    private var isNearViewport: Bool {
+        // Allow about two rows of lead time, independent of List's offscreen cell preparation.
+        !frame.isEmpty && !viewport.isEmpty
+            && frame.maxY > viewport.minY && frame.minY < viewport.maxY + 120
+    }
 
     var body: some View {
         Group {
@@ -75,8 +86,10 @@ private struct EpisodeListFooter: View {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .accessibilityLabel(.episodeListLoadingMore)
-                    // Re-runs for each new page while the footer stays visible.
-                    .task(id: page) { await viewModel.loadNextPage() }
+                    .task(id: isNearViewport ? page : nil) {
+                        guard isNearViewport, !Task.isCancelled else { return }
+                        await viewModel.loadNextPage()
+                    }
             case .failed(let message):
                 VStack(spacing: 8) {
                     Text(message)
@@ -98,6 +111,7 @@ private struct EpisodeListFooter: View {
             }
         }
         .padding(.vertical, 12)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
     }
 }
 

@@ -49,6 +49,33 @@ struct EpisodeListViewModelTests {
         #expect(await api.requestedPages == [1, 2, 3])
     }
 
+    @Test("A long feed keeps pages in order and can continue loading")
+    func longFeedKeepsPagesInOrder() async throws {
+        let pageCount = 80
+        let pageSize = 12
+        let totalCount = 120_000
+        let pages = Dictionary(uniqueKeysWithValues: (1...pageCount).map { page in
+            let firstID = (page - 1) * pageSize + 1
+            let result: Result<EpisodePage, any Error> = .success(
+                .make(ids: firstID...(firstID + pageSize - 1), hasNextPage: true, totalCount: totalCount)
+            )
+            return (page, result)
+        })
+        let api = StubAPI(pages: pages)
+        let store = FileEpisodeStore.makeTemporary()
+        let viewModel = makeViewModel(api: api, store: store)
+        await viewModel.start()
+
+        for _ in 1...pageCount {
+            await viewModel.loadNextPage()
+        }
+
+        #expect(await api.requestedPages == Array(1...pageCount))
+        #expect(viewModel.episodes.map(\.id) == Array(1...(pageCount * pageSize)))
+        #expect(viewModel.footer == .loading(page: pageCount + 1))
+        #expect(try await store.load()?.episodes == viewModel.episodes)
+    }
+
     @Test("A second trigger while a page is loading is ignored", .timeLimit(.minutes(1)))
     func duplicateTriggersAreIgnored() async {
         let api = makeThreePageAPI()
