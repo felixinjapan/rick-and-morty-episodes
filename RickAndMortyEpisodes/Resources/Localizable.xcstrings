@@ -229,6 +229,18 @@
         }
       }
     },
+    "episode.code.spoken" : {
+      "comment" : "VoiceOver label for an episode code such as S01E02; the arguments are the season and episode numbers",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Season %lld, episode %lld"
+          }
+        }
+      }
+    },
     "episode.airDate.unknown" : {
       "comment" : "Shown instead of an episode's air date when the API's value couldn't be read",
       "extractionState" : "manual",

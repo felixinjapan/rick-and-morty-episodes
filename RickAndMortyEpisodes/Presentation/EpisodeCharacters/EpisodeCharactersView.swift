@@ -29,6 +29,7 @@ struct EpisodeCharactersView: View {
                     Text(episode.code)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.accentColor)
+                        .accessibilityLabel(episode.spokenCode)
                     Text(episode.name)
                         .font(.title.bold())
                         .accessibilityAddTraits(.isHeader)

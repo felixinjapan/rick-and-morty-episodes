@@ -13,7 +13,8 @@ final class EpisodeFlowUITests: XCTestCase {
 
     func testEpisodeRowShowsNameCodeAndFormattedDate() {
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["S01E01"].exists)
+        // The code is shown as S01E01 but read as words.
+        XCTAssertTrue(app.staticTexts["Season 1, episode 1"].exists)
         XCTAssertTrue(app.staticTexts["Aired 02/12/2013"].firstMatch.exists)
     }
 

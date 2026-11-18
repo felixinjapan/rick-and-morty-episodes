@@ -17,6 +17,7 @@ struct EpisodeRow: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(.tint.opacity(0.12), in: .capsule)
+                    .accessibilityLabel(episode.spokenCode)
                 Text(episode.airedDateLabel)
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(.secondary)
