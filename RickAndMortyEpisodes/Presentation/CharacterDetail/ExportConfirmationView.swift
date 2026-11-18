@@ -50,3 +50,13 @@ struct ExportConfirmationView: View {
         .presentationDragIndicator(.visible)
     }
 }
+
+#if DEBUG
+#Preview("Export confirmation") {
+    if let file = try? AppDependencies.makePreviewExporter().export(PreviewData.character) {
+        ExportConfirmationView(fileURL: file)
+    } else {
+        ContentUnavailableView("Preview file unavailable", systemImage: "doc")
+    }
+}
+#endif

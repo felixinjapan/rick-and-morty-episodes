@@ -20,15 +20,7 @@ final class EpisodeFlowUITests: XCTestCase {
     func testScrollingLoadsAllPagesAndShowsEndOfList() {
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
 
-        let endOfList = app.staticTexts["episodeList.endOfList"]
-        for _ in 0..<20 {
-            if endOfList.exists && endOfList.isHittable && app.frame.contains(endOfList.frame) { break }
-            app.swipeUp()
-        }
-
-        XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
-        XCTAssertTrue(endOfList.isHittable && app.frame.contains(endOfList.frame))
-        XCTAssertEqual(endOfList.label, "You've reached the end. 51 episodes")
+        XCTAssertEqual(scrollToEndOfList().label, "You've reached the end. 51 episodes")
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].exists)
     }
 
@@ -132,10 +124,12 @@ final class EpisodeFlowUITests: XCTestCase {
     @discardableResult
     private func scrollToEndOfList() -> XCUIElement {
         let endOfList = app.staticTexts["episodeList.endOfList"]
-        for _ in 0..<20 where !endOfList.exists {
+        for _ in 0..<20 {
+            if endOfList.exists && endOfList.isHittable && app.frame.contains(endOfList.frame) { break }
             app.swipeUp()
         }
         XCTAssertTrue(endOfList.waitForExistence(timeout: 5))
+        XCTAssertTrue(endOfList.isHittable && app.frame.contains(endOfList.frame))
         return endOfList
     }
 

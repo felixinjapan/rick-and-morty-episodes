@@ -1,6 +1,14 @@
 #if DEBUG
 import Foundation
 
+enum PreviewData {
+    static let character = CharacterDetails(
+        id: 1, name: "Rick Sanchez", status: .alive, species: "Human",
+        originName: "Earth (C-137)", episodeCount: 51,
+        imageURL: URL(string: "https://rickandmortyapi.com/api/character/avatar/1.jpeg")
+    )
+}
+
 extension AppDependencies {
     static func makePreviewRepositories(
         configuration: AppConfiguration,

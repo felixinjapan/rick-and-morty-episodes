@@ -35,3 +35,16 @@ struct CharacterPortraitContent: View {
         .frame(maxWidth: .infinity)
     }
 }
+
+#if DEBUG
+#Preview("Portrait states", traits: .sizeThatFitsLayout) {
+    HStack {
+        if let image = UIImage(data: RecordedResponses.portrait) {
+            CharacterPortraitContent(name: PreviewData.character.name, size: 52, phase: .loaded(image))
+        }
+        CharacterPortraitContent(name: PreviewData.character.name, size: 52, phase: .loading)
+        CharacterPortraitContent(name: PreviewData.character.name, size: 52, phase: .failed)
+    }
+    .padding()
+}
+#endif

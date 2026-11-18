@@ -94,6 +94,7 @@ flowchart TD
     subgraph Main["@MainActor"]
         Views[SwiftUI views]
         ListVM[EpisodeListViewModel]
+        CastVM[EpisodeCharactersViewModel]
         DetailVM[CharacterDetailViewModel]
         Coord[AppCoordinator]
     end
@@ -115,10 +116,11 @@ flowchart TD
     BG["App .backgroundTask<br/>(BackgroundRefresh.perform)"]
 
     Views --> ListVM
+    Views --> CastVM
     Views --> DetailVM
-    Views -->|episode cast and visible portraits| ChRepo
     Coord --> ListVM
     ListVM -- await --> EpRepo
+    CastVM -- "cast and thumbnails" --> ChRepo
     DetailVM -- "character and portrait" --> ChRepo
     DetailVM -- "sync call" --> Exporter
     BG -- await --> EpRepo

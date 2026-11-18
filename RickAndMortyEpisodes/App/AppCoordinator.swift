@@ -24,9 +24,7 @@ final class AppCoordinator {
     }
 
     var rootView: some View {
-        EpisodeListView(viewModel: episodeListViewModel, characterRepository: characters) { route in
-            CharacterDetailView(route: route, repository: self.characters, exporter: self.exporter)
-        }
+        EpisodeListView(viewModel: episodeListViewModel, characterRepository: characters, exporter: exporter)
     }
 
     func handle(_ phase: ScenePhase) async {

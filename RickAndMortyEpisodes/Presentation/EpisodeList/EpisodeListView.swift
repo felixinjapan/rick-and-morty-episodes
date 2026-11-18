@@ -4,7 +4,7 @@ struct EpisodeListView: View {
     /// Owned by AppCoordinator, which also forwards foreground refreshes to this instance.
     let viewModel: EpisodeListViewModel
     let characterRepository: any CharacterRepository
-    let makeCharacterDetail: (CharacterRoute) -> CharacterDetailView
+    let exporter: any CharacterExporting
     @State private var viewport: CGRect = .zero
 
     var body: some View {
@@ -26,10 +26,7 @@ struct EpisodeListView: View {
             }
             .navigationTitle(.episodeListTitle)
             .navigationDestination(for: Episode.self) { episode in
-                EpisodeCharactersView(episode: episode, repository: characterRepository)
-            }
-            .navigationDestination(for: CharacterRoute.self) { route in
-                makeCharacterDetail(route)
+                EpisodeCharactersView(episode: episode, repository: characterRepository, exporter: exporter)
             }
             .toolbar {
                 // A status item in the bottom toolbar (as in Mail) instead of a floating label,
@@ -65,8 +62,10 @@ struct EpisodeListView: View {
                 }
             }
 
-            EpisodeListFooter(viewModel: viewModel, viewport: viewport)
-                .id(viewModel.episodes.last?.id)
+            EpisodeListFooter(footer: viewModel.footer, viewport: viewport) {
+                await viewModel.loadNextPage()
+            }
+            .id(viewModel.episodes.last?.id)
         }
         .id(viewModel.listIdentity)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
@@ -92,8 +91,9 @@ private struct SeasonHeader: View {
 }
 
 private struct EpisodeListFooter: View {
-    let viewModel: EpisodeListViewModel
+    let footer: EpisodeListViewModel.Footer
     let viewport: CGRect
+    let loadNextPage: () async -> Void
     @State private var frame: CGRect = .zero
 
     private var isNearViewport: Bool {
@@ -104,7 +104,7 @@ private struct EpisodeListFooter: View {
 
     var body: some View {
         Group {
-            switch viewModel.footer {
+            switch footer {
             case .none:
                 EmptyView()
             case .loading(let page):
@@ -113,7 +113,7 @@ private struct EpisodeListFooter: View {
                     .accessibilityLabel(.episodeListLoadingMore)
                     .task(id: isNearViewport ? page : nil) {
                         guard isNearViewport, !Task.isCancelled else { return }
-                        await viewModel.loadNextPage()
+                        await loadNextPage()
                     }
             case .failed(let message):
                 VStack(spacing: 8) {
@@ -122,7 +122,7 @@ private struct EpisodeListFooter: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                     Button(.commonRetry) {
-                        Task { await viewModel.loadNextPage() }
+                        Task { await loadNextPage() }
                     }
                     .buttonStyle(.bordered)
                 }
@@ -188,6 +188,26 @@ private struct LastUpdatedLabel: View {
 
 #Preview("Offline") {
     episodeListPreview(networkUnavailable: true)
+}
+
+#Preview("Episode list components") {
+    let date = Date(timeIntervalSince1970: 1_385_942_400)
+    List {
+        Section {
+            RefreshErrorBanner(message: RepositoryError.offline.userMessage)
+        } header: {
+            SeasonHeader(season: 1, count: 11)
+        }
+        Section("Pagination") {
+            EpisodeListFooter(footer: .loading(page: 2), viewport: .zero) {}
+            EpisodeListFooter(footer: .failed(message: RepositoryError.offline.userMessage), viewport: .zero) {}
+            EpisodeListFooter(footer: .endReached(count: 51), viewport: .zero) {}
+        }
+        Section("Refresh status") {
+            LastUpdatedLabel(date: date, isRefreshing: false)
+            LastUpdatedLabel(date: date, isRefreshing: true)
+        }
+    }
 }
 
 @MainActor

@@ -2,22 +2,21 @@ import SwiftUI
 
 struct CharacterDetailView: View {
     @State private var viewModel: CharacterDetailViewModel
-    private let initialName: String?
 
     init(
         route: CharacterRoute,
         repository: any CharacterRepository,
-        exporter: any CharacterExporting
+        exporter: any CharacterExporting,
+        resolveCharacter: @escaping () async throws -> CharacterDetails
     ) {
-        initialName = route.name
         _viewModel = State(initialValue: CharacterDetailViewModel(
-            characterID: route.id, repository: repository, exporter: exporter
+            character: route.character, repository: repository, exporter: exporter, resolveCharacter: resolveCharacter
         ))
     }
 
     var body: some View {
         content
-            .navigationTitle(viewModel.character?.name ?? initialName ?? String(localized: .characterDetailTitle))
+            .navigationTitle(viewModel.character?.name ?? String(localized: .characterDetailTitle))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -121,6 +120,13 @@ private struct CharacterDetailContent: View {
     characterDetailPreview(networkUnavailable: true)
 }
 
+#Preview("Character content") {
+    CharacterDetailContent(
+        character: PreviewData.character,
+        portraitPhase: UIImage(data: RecordedResponses.portrait).map(CharacterPortraitPhase.loaded) ?? .failed
+    )
+}
+
 @MainActor
 private func characterDetailPreview(networkUnavailable: Bool = false) -> some View {
     let repositories = AppDependencies.makePreviewRepositories(
@@ -128,10 +134,12 @@ private func characterDetailPreview(networkUnavailable: Bool = false) -> some Vi
     )
     return NavigationStack {
         CharacterDetailView(
-            route: CharacterRoute(id: 1, name: nil),
+            route: CharacterRoute(id: 1, character: nil),
             repository: repositories.characters,
             exporter: AppDependencies.makePreviewExporter()
-        )
+        ) {
+            try await repositories.characters.character(id: 1)
+        }
     }
 }
 #endif

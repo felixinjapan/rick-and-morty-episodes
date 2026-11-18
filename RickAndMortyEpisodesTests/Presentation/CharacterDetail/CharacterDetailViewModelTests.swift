@@ -10,9 +10,9 @@ struct CharacterDetailViewModelTests {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(characters: [1: .success(.rick)]))
-        let viewModel = CharacterDetailViewModel(
-            characterID: 1, repository: repository, exporter: CharacterExporter(directory: directory)
-        )
+        let viewModel = CharacterDetailViewModel(repository: repository, exporter: CharacterExporter(directory: directory)) {
+            try await repository.character(id: 1)
+        }
 
         await viewModel.load()
         #expect(viewModel.state == .loaded(.rick))
@@ -26,9 +26,11 @@ struct CharacterDetailViewModelTests {
     func loadFailure() async {
         let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI())
         let viewModel = CharacterDetailViewModel(
-            characterID: 99999, repository: repository,
+            repository: repository,
             exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
-        )
+        ) {
+            try await repository.character(id: 99999)
+        }
 
         await viewModel.load()
         viewModel.export()
@@ -40,14 +42,14 @@ struct CharacterDetailViewModelTests {
     @Test("An invalid portrait shows a fallback while keeping the character details")
     func invalidPortrait() async throws {
         let url = try #require(CharacterDetails.rick.imageURL)
-        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(
-            characters: [1: .success(.rick)], portraits: [url: .success(Data([0]))]
-        ))
+        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(portraits: [url: .success(Data([0]))]))
         let viewModel = CharacterDetailViewModel(
-            characterID: 1, repository: repository,
+            character: .rick, repository: repository,
             exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
-        )
-        await viewModel.load()
+        ) {
+            Issue.record("Loaded details should never be resolved again")
+            throw RepositoryError.notFound
+        }
 
         guard case .loading = viewModel.portraitPhase else {
             Issue.record("Expected the portrait to start in the loading state")
@@ -62,16 +64,20 @@ struct CharacterDetailViewModelTests {
         }
     }
 
-    @Test("A failed export shows an error and no file")
+    @Test("Passed details are ready to export without resolving the character again")
     func exportFailure() async throws {
         let blocker = try makeTemporaryBlockingFile()
         defer { try? FileManager.default.removeItem(at: blocker) }
-        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(characters: [1: .success(.rick)]))
         let viewModel = CharacterDetailViewModel(
-            characterID: 1, repository: repository,
+            character: .rick,
+            repository: DefaultCharacterRepository.makeTemporary(api: StubAPI()),
             exporter: CharacterExporter(directory: blocker.appending(path: "Exports"))
-        )
+        ) {
+            Issue.record("Loaded details should never be resolved again")
+            throw RepositoryError.notFound
+        }
 
+        #expect(viewModel.state == .loaded(.rick))
         await viewModel.load()
         viewModel.export()
 

@@ -2,16 +2,25 @@ import SwiftUI
 
 struct CharacterRoute: Hashable {
     let id: Int
-    let name: String?
+    let character: CharacterDetails?
 }
 
 struct EpisodeCharactersView: View {
     let episode: Episode
     let repository: any CharacterRepository
-    @State private var loader = EpisodeCharactersLoader()
-    @State private var portraits = EpisodeCharacterPortraits()
+    let exporter: any CharacterExporting
+    @State private var viewModel: EpisodeCharactersViewModel
     @State private var visibleIDs: Set<Int> = []
     @State private var viewport: CGRect = .zero
+
+    init(episode: Episode, repository: any CharacterRepository, exporter: any CharacterExporting) {
+        self.episode = episode
+        self.repository = repository
+        self.exporter = exporter
+        _viewModel = State(initialValue: EpisodeCharactersViewModel(
+            characterIDs: episode.characterIDs, repository: repository
+        ))
+    }
 
     var body: some View {
         List {
@@ -46,9 +55,9 @@ struct EpisodeCharactersView: View {
                 ForEach(episode.characterIDs, id: \.self) { id in
                     EpisodeCharacterRow(
                         id: id,
-                        character: loader.characters[id],
-                        isUnavailable: loader.unavailableIDs.contains(id),
-                        portraits: portraits,
+                        character: viewModel.characters[id],
+                        isUnavailable: viewModel.unavailableIDs.contains(id),
+                        portraits: viewModel.portraits,
                         viewport: viewport
                     ) { isVisible in
                         if isVisible {
@@ -71,15 +80,20 @@ struct EpisodeCharactersView: View {
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .navigationTitle(.episodeCharactersTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: CharacterRoute.self) { route in
+            CharacterDetailView(route: route, repository: repository, exporter: exporter) {
+                try await viewModel.character(id: route.id)
+            }
+        }
         .task(id: visibleIDs) { [visibleIDs] in
-            await loader.load(visibleIDs: visibleIDs, from: repository)
-            await portraits.load(for: visibleIDs.compactMap { loader.characters[$0] }, from: repository)
+            await viewModel.loadVisibleCast(visibleIDs: visibleIDs)
         }
     }
 }
 
 private struct EpisodeCharacterRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let id: Int
     let character: CharacterDetails?
     let isUnavailable: Bool
@@ -93,22 +107,25 @@ private struct EpisodeCharacterRow: View {
         frame.height > 0 && frame.intersection(viewport).height >= frame.height / 2
     }
 
+    private var isLoading: Bool { character == nil && !isUnavailable }
+
     var body: some View {
         Group {
-            if character == nil && !isUnavailable {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: min(portraitSize, 80))
-                    .padding(.vertical, 6)
+            if isLoading {
+                label
+                    .accessibilityElement(children: .ignore)
                     .accessibilityLabel(.characterDetailLoading)
                     .accessibilityIdentifier("episodeCharacters.loading.\(id)")
+                    .transition(.opacity)
             } else {
-                NavigationLink(value: CharacterRoute(id: id, name: character?.name)) {
+                NavigationLink(value: CharacterRoute(id: id, character: character)) {
                     label
                 }
                 .accessibilityIdentifier("character.link.\(id)")
+                .transition(.opacity)
             }
         }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: character != nil)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
         .onChange(of: isVisible) { _, visible in visibilityChanged(visible) }
         .onAppear { visibilityChanged(isVisible) }
@@ -137,24 +154,40 @@ private struct EpisodeCharacterRow: View {
             .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 5) {
-                Text(character?.name ?? String(localized: .characterTitle(id)))
-                    .font(.headline)
-                Group {
-                    if character != nil {
-                        Text(.characterTitle(id))
-                            .font(.caption.monospacedDigit())
-                    } else {
-                        Text(.episodeCharactersTapForDetails)
-                            .font(.subheadline)
+                if isLoading {
+                    textPlaceholder(font: .headline, width: 104)
+                    textPlaceholder(font: .caption, width: 64)
+                } else {
+                    Text(character?.name ?? String(localized: .characterTitle(id)))
+                        .font(.headline)
+                    Group {
+                        if character != nil {
+                            Text(.characterTitle(id))
+                                .font(.caption.monospacedDigit())
+                        } else {
+                            Text(.episodeCharactersTapForDetails)
+                                .font(.subheadline)
+                        }
                     }
+                    .foregroundStyle(.primary.opacity(0.7))
                 }
-                .foregroundStyle(.primary.opacity(0.7))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
+    }
+
+    private func textPlaceholder(font: Font, width: CGFloat) -> some View {
+        // Keep the height of the text line at the current Dynamic Type size.
+        Text(verbatim: " ")
+            .font(font)
+            .hidden()
+            .frame(maxWidth: width)
+            .overlay {
+                Capsule().fill(.quaternary).frame(height: 7)
+            }
     }
 }
 
@@ -166,8 +199,27 @@ private struct EpisodeCharacterRow: View {
                 id: 1, name: "Pilot", airDate: Date(timeIntervalSince1970: 1_385_942_400),
                 code: "S01E01", characterIDs: [1, 2, 35]
             ),
-            repository: AppDependencies.makePreviewRepositories(configuration: .production).characters
+            repository: AppDependencies.makePreviewRepositories(configuration: .production).characters,
+            exporter: AppDependencies.makePreviewExporter()
         )
+    }
+}
+
+#Preview("Character row states") {
+    let portraits = EpisodeCharacterPortraits()
+    let repository = AppDependencies.makePreviewRepositories(configuration: .production).characters
+    NavigationStack {
+        List {
+            EpisodeCharacterRow(id: 1, character: PreviewData.character, isUnavailable: false, portraits: portraits, viewport: .zero) { _ in }
+            EpisodeCharacterRow(id: 2, character: nil, isUnavailable: false, portraits: portraits, viewport: .zero) { _ in }
+            EpisodeCharacterRow(id: 3, character: nil, isUnavailable: true, portraits: portraits, viewport: .zero) { _ in }
+        }
+        .navigationDestination(for: CharacterRoute.self) { route in
+            CharacterDetailView(route: route, repository: repository, exporter: AppDependencies.makePreviewExporter()) {
+                try await repository.character(id: route.id)
+            }
+        }
+        .task { await portraits.load(for: [PreviewData.character], from: repository) }
     }
 }
 #endif

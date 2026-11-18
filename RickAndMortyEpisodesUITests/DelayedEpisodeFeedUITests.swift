@@ -48,24 +48,13 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
     }
 
     private func launchEdgeCases(episodeID: Int) -> XCUIApplication {
-        continueAfterFailure = false
-        let app = XCUIApplication()
-        app.launchArguments = ["-uiTesting", "-resetCache", "-delayedEpisodeFeed", "-characterEdgeCases"]
-        app.launch()
-        let episode = app.buttons["episode.row.\(episodeID)"]
-        XCTAssertTrue(episode.waitForExistence(timeout: 8))
-        episode.tap()
+        let app = launch(opening: episodeID, arguments: ["-characterEdgeCases"])
         XCTAssertTrue(app.navigationBars["Characters"].waitForExistence(timeout: 5))
         return app
     }
 
     func testFastScrollingLoadsAnEndlessCharacterList() {
-        continueAfterFailure = false
-        let app = XCUIApplication()
-        app.launchArguments = ["-uiTesting", "-resetCache", "-delayedEpisodeFeed", "-endlessCharacters"]
-        app.launch()
-        XCTAssertTrue(app.buttons["episode.row.1"].waitForExistence(timeout: 8))
-        app.buttons["episode.row.1"].tap()
+        let app = launch(opening: 1, arguments: ["-endlessCharacters"])
         XCTAssertTrue(app.navigationBars["Characters"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Episode 1"].exists)
 
@@ -73,21 +62,16 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
             app.swipeUp(velocity: XCUIGestureVelocity(rawValue: 8_000))
         }
 
-        let loadedRow = app.buttons.matching(NSPredicate(
+        let loadedRows = app.buttons.matching(NSPredicate(
             format: "identifier MATCHES %@ AND label BEGINSWITH %@",
             "character\\.link\\.[1-9][0-9]{2,}", "Endless Character "
-        )).firstMatch
-        XCTAssertTrue(loadedRow.waitForExistence(timeout: 5))
-        XCTAssertTrue(loadedRow.isHittable)
+        ))
+        XCTAssertTrue(loadedRows.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(loadedRows.allElementsBoundByIndex.contains { $0.isHittable })
     }
 
     func testShowsCastProgressUntilCharactersLoad() {
-        continueAfterFailure = false
-        let app = XCUIApplication()
-        app.launchArguments = ["-uiTesting", "-resetCache", "-delayedEpisodeFeed"]
-        app.launch()
-        XCTAssertTrue(app.buttons["episode.row.1"].waitForExistence(timeout: 8))
-        app.buttons["episode.row.1"].tap()
+        let app = launch(opening: 1)
 
         let progress = app.descendants(matching: .any)["episodeCharacters.loading.1"]
         XCTAssertTrue(progress.waitForExistence(timeout: 5))
@@ -97,11 +81,7 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
     }
 
     func testFastScrollingAndRetryInLongDelayedFeed() {
-        continueAfterFailure = false
-        let app = XCUIApplication()
-        app.launchArguments = ["-uiTesting", "-resetCache", "-delayedEpisodeFeed"]
-        app.launch()
-        XCTAssertTrue(app.buttons["episode.row.1"].waitForExistence(timeout: 8))
+        let app = launch()
 
         let retry = app.buttons["Retry"]
         for _ in 0..<12 {
@@ -120,9 +100,15 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
         let laterEpisodes = app.buttons.matching(
             NSPredicate(format: "identifier MATCHES %@", "episode\\.row\\.(9[0-9]|[1-9][0-9]{2,})")
         )
+        let lastUpdated = app.staticTexts["episodeList.lastUpdated"]
         var target: XCUIElement?
         for _ in 0..<24 {
-            target = laterEpisodes.allElementsBoundByIndex.first { $0.isHittable }
+            // A partly visible row can report as hittable behind a toolbar.
+            let top = app.navigationBars["Episodes"].frame.maxY
+            let bottom = lastUpdated.frame.minY
+            target = laterEpisodes.allElementsBoundByIndex.first {
+                $0.isHittable && $0.frame.minY >= top && $0.frame.maxY < bottom
+            }
             if target != nil { break }
             app.swipeUp(velocity: XCUIGestureVelocity(rawValue: 8_000))
         }
@@ -132,11 +118,22 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
         }
         XCTAssertFalse(retry.exists)
         XCTAssertFalse(app.staticTexts["episodeList.endOfList"].exists)
-        XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].exists)
+        XCTAssertTrue(lastUpdated.exists)
 
         let episodeID = target.identifier.dropFirst("episode.row.".count)
         target.tap()
         XCTAssertTrue(app.navigationBars["Characters"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Episode \(episodeID)"].exists)
+    }
+
+    private func launch(opening episodeID: Int? = nil, arguments: [String] = []) -> XCUIApplication {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTesting", "-resetCache", "-delayedEpisodeFeed"] + arguments
+        app.launch()
+        let episode = app.buttons["episode.row.\(episodeID ?? 1)"]
+        XCTAssertTrue(episode.waitForExistence(timeout: 8))
+        if episodeID != nil { episode.tap() }
+        return app
     }
 }

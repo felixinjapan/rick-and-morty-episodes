@@ -20,14 +20,18 @@ final class CharacterDetailViewModel {
     var exportedFile: ExportedFile?
     var exportErrorMessage: String?
 
-    let characterID: Int
-    private let repository: any CharacterRepository
     private let exporter: any CharacterExporting
+    private let repository: any CharacterRepository
+    private let resolveCharacter: () async throws -> CharacterDetails
 
-    init(characterID: Int, repository: any CharacterRepository, exporter: any CharacterExporting) {
-        self.characterID = characterID
+    init(
+        character: CharacterDetails? = nil, repository: any CharacterRepository, exporter: any CharacterExporting,
+        resolveCharacter: @escaping () async throws -> CharacterDetails
+    ) {
+        state = character.map(State.loaded) ?? .loading
         self.repository = repository
         self.exporter = exporter
+        self.resolveCharacter = resolveCharacter
     }
 
     var character: CharacterDetails? {
@@ -41,12 +45,10 @@ final class CharacterDetailViewModel {
     }
 
     func load() async {
-        // Keep a loaded character on screen while it reloads, so the list keeps its scroll position.
-        if character == nil {
-            state = .loading
-        }
+        guard character == nil else { return }
+        state = .loading
         do {
-            state = .loaded(try await repository.character(id: characterID))
+            state = .loaded(try await resolveCharacter())
         } catch is CancellationError {
             // The user left the screen; `.task` will reload if it appears again.
         } catch {
