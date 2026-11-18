@@ -10,7 +10,9 @@ struct CharacterDetailViewModelTests {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(characters: [1: .success(.rick)]))
-        let viewModel = CharacterDetailViewModel(repository: repository, exporter: CharacterExporter(directory: directory)) {
+        let viewModel = CharacterDetailViewModel(
+            portraitLoader: PortraitLoader(repository: repository), exporter: CharacterExporter(directory: directory)
+        ) {
             try await repository.character(id: 1)
         }
 
@@ -26,7 +28,7 @@ struct CharacterDetailViewModelTests {
     func loadFailure() async {
         let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI())
         let viewModel = CharacterDetailViewModel(
-            repository: repository,
+            portraitLoader: PortraitLoader(repository: repository),
             exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
         ) {
             try await repository.character(id: 99999)
@@ -44,7 +46,7 @@ struct CharacterDetailViewModelTests {
         let url = try #require(CharacterDetails.rick.imageURL)
         let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(portraits: [url: .success(Data([0]))]))
         let viewModel = CharacterDetailViewModel(
-            character: .rick, repository: repository,
+            character: .rick, portraitLoader: PortraitLoader(repository: repository),
             exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
         ) {
             Issue.record("Loaded details should never be resolved again")
@@ -64,13 +66,53 @@ struct CharacterDetailViewModelTests {
         }
     }
 
+    @Test("A failed load can be retried and then shows the character")
+    func retryAfterFailure() async {
+        let api = StubAPI()
+        let repository = DefaultCharacterRepository.makeTemporary(api: api)
+        let viewModel = CharacterDetailViewModel(
+            portraitLoader: PortraitLoader(repository: repository),
+            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
+        ) {
+            try await repository.character(id: 1)
+        }
+
+        await viewModel.load()
+        #expect(viewModel.state == .failed(message: RepositoryError.notFound.userMessage))
+
+        await api.setCharacter(1, .success(.rick))
+        await viewModel.load()
+        #expect(viewModel.state == .loaded(.rick))
+    }
+
+    @Test("A downloaded portrait is shown at the detail size")
+    func portraitLoads() async throws {
+        let url = try #require(CharacterDetails.rick.imageURL)
+        let repository = DefaultCharacterRepository.makeTemporary(
+            api: StubAPI(portraits: [url: .success(RecordedResponses.portrait)])
+        )
+        let viewModel = CharacterDetailViewModel(
+            character: .rick, portraitLoader: PortraitLoader(repository: repository),
+            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
+        ) {
+            throw RepositoryError.notFound
+        }
+
+        await viewModel.loadPortrait()
+
+        guard case .loaded = viewModel.portraitPhase else {
+            Issue.record("Expected the downloaded portrait to be shown")
+            return
+        }
+    }
+
     @Test("Passed details are ready to export without resolving the character again")
     func exportFailure() async throws {
         let blocker = try makeTemporaryBlockingFile()
         defer { try? FileManager.default.removeItem(at: blocker) }
         let viewModel = CharacterDetailViewModel(
             character: .rick,
-            repository: DefaultCharacterRepository.makeTemporary(api: StubAPI()),
+            portraitLoader: PortraitLoader(repository: DefaultCharacterRepository.makeTemporary(api: StubAPI())),
             exporter: CharacterExporter(directory: blocker.appending(path: "Exports"))
         ) {
             Issue.record("Loaded details should never be resolved again")

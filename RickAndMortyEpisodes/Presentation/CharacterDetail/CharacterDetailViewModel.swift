@@ -21,15 +21,15 @@ final class CharacterDetailViewModel {
     var exportErrorMessage: String?
 
     private let exporter: any CharacterExporting
-    private let repository: any CharacterRepository
+    private let portraitLoader: any PortraitLoading
     private let resolveCharacter: () async throws -> CharacterDetails
 
     init(
-        character: CharacterDetails? = nil, repository: any CharacterRepository, exporter: any CharacterExporting,
+        character: CharacterDetails? = nil, portraitLoader: any PortraitLoading, exporter: any CharacterExporting,
         resolveCharacter: @escaping () async throws -> CharacterDetails
     ) {
         state = character.map(State.loaded) ?? .loading
-        self.repository = repository
+        self.portraitLoader = portraitLoader
         self.exporter = exporter
         self.resolveCharacter = resolveCharacter
     }
@@ -60,15 +60,11 @@ final class CharacterDetailViewModel {
         guard let character, let url = character.imageURL else { return }
         if case .loaded = portraitPhase { return }
         portrait = (url, .loading)
-        do {
-            let data = try await repository.portrait(for: character)
-            try Task.checkCancellation()
-            portrait = (url, UIImage(data: data).map(CharacterPortraitPhase.loaded) ?? .failed)
-        } catch is CancellationError {
-            return
-        } catch {
-            guard !Task.isCancelled else { return }
-            portrait = (url, .failed)
+        // `nil` means the load was cancelled; `.task` starts it again if the screen reappears.
+        guard let result = await portraitLoader.thumbnail(for: character), !Task.isCancelled else { return }
+        switch result {
+        case .image(let image): portrait = (url, .loaded(UIImage(cgImage: image)))
+        case .unavailable: portrait = (url, .failed)
         }
     }
 
