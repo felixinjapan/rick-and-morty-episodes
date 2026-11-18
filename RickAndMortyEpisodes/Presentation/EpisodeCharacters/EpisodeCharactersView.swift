@@ -31,6 +31,7 @@ struct EpisodeCharactersView: View {
                     EpisodeCharacterRow(
                         id: id,
                         character: loader.characters[id],
+                        isUnavailable: loader.unavailableIDs.contains(id),
                         loadsPortrait: visibleIDs.contains(id) && loader.settledIDs.contains(id),
                         repository: repository,
                         viewport: viewport
@@ -65,6 +66,7 @@ private struct EpisodeCharacterRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let id: Int
     let character: CharacterDetails?
+    let isUnavailable: Bool
     let loadsPortrait: Bool
     let repository: any CharacterRepository
     let viewport: CGRect
@@ -77,10 +79,21 @@ private struct EpisodeCharacterRow: View {
     }
 
     var body: some View {
-        NavigationLink(value: CharacterRoute(id: id, name: character?.name)) {
-            label
+        Group {
+            if character == nil && !isUnavailable {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: min(portraitSize, 80))
+                    .padding(.vertical, 6)
+                    .accessibilityLabel(.characterDetailLoading)
+                    .accessibilityIdentifier("episodeCharacters.loading.\(id)")
+            } else {
+                NavigationLink(value: CharacterRoute(id: id, name: character?.name)) {
+                    label
+                }
+                .accessibilityIdentifier("character.link.\(id)")
+            }
         }
-        .accessibilityIdentifier("character.link.\(id)")
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
         .onChange(of: isVisible) { _, visible in visibilityChanged(visible) }
         .onAppear { visibilityChanged(isVisible) }

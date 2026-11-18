@@ -28,10 +28,11 @@ struct EpisodeCharactersLoaderTests {
     @Test("A new viewport waits for the active batch and requests only remaining IDs", .timeLimit(.minutes(1)))
     func reusesInFlightBatch() async throws {
         let gate = Gate()
-        let repository = CharacterBatchRecorder(firstBatchGate: gate)
+        let repository = CharacterBatchRecorder(firstBatchGate: gate, unavailableID: 3)
         let loader = EpisodeCharactersLoader()
         let first = Task { await loader.load(visibleIDs: [1, 2], from: repository) }
         while await repository.requests.isEmpty { await Task.yield() }
+        #expect(loader.unavailableIDs.isEmpty)
 
         first.cancel()
         let last = Task { await loader.load(visibleIDs: [2, 3], from: repository) }
@@ -42,16 +43,19 @@ struct EpisodeCharactersLoaderTests {
         await last.value
 
         #expect(await repository.requests == [[1, 2], [3]])
-        #expect(Set(loader.characters.keys) == [1, 2, 3])
+        #expect(Set(loader.characters.keys) == [1, 2])
+        #expect(loader.unavailableIDs == [3])
     }
 }
 
 private actor CharacterBatchRecorder: CharacterRepository {
     private(set) var requests: [[Int]] = []
     let firstBatchGate: Gate?
+    let unavailableID: Int?
 
-    init(firstBatchGate: Gate? = nil) {
+    init(firstBatchGate: Gate? = nil, unavailableID: Int? = nil) {
         self.firstBatchGate = firstBatchGate
+        self.unavailableID = unavailableID
     }
 
     func characters(ids: [Int]) async -> [Int: CharacterDetails] {
@@ -59,7 +63,7 @@ private actor CharacterBatchRecorder: CharacterRepository {
         if requests.count == 1 {
             await firstBatchGate?.wait()
         }
-        return Dictionary(uniqueKeysWithValues: ids.map { ($0, makeCharacter($0)) })
+        return Dictionary(uniqueKeysWithValues: ids.filter { $0 != unavailableID }.map { ($0, makeCharacter($0)) })
     }
 
     func character(id: Int) async throws -> CharacterDetails { makeCharacter(id) }

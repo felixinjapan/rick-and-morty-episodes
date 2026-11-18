@@ -6,6 +6,7 @@ import Observation
 final class EpisodeCharactersLoader {
     private(set) var characters: [Int: CharacterDetails] = [:]
     private(set) var settledIDs: Set<Int> = []
+    private(set) var unavailableIDs: Set<Int> = []
 
     @ObservationIgnored private var hasSettled = false
     @ObservationIgnored private var inFlight: Task<Void, Never>?
@@ -36,10 +37,13 @@ final class EpisodeCharactersLoader {
 
         let missing = visibleIDs.filter { characters[$0] == nil }
         guard !missing.isEmpty else { return }
+        unavailableIDs.subtract(missing)
         let batch = Task { [weak self] in
             let loaded = await repository.characters(ids: missing.sorted())
-            self?.characters.merge(loaded) { _, latest in latest }
-            self?.inFlight = nil
+            guard let self else { return }
+            characters.merge(loaded) { _, latest in latest }
+            unavailableIDs.formUnion(missing.subtracting(loaded.keys))
+            inFlight = nil
         }
         inFlight = batch
         await batch.value
