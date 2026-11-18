@@ -70,6 +70,21 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
         XCTAssertTrue(loadedRows.allElementsBoundByIndex.contains { $0.isHittable })
     }
 
+    func testEndlessCastFillsInAsYouScroll() {
+        let app = launch(opening: 1, arguments: ["-endlessCharacters"])
+        XCTAssertTrue(app.staticTexts["Endless Character 1"].waitForExistence(timeout: 5))
+
+        // Row 101 starts the third request. At normal speed the 80% prefetch has already asked for
+        // it by the time the row scrolls in, so it fills in at once instead of waiting a second.
+        let loading = app.descendants(matching: .any)["episodeCharacters.loading.101"]
+        let loaded = app.buttons["character.link.101"]
+        for _ in 0..<40 where !(loading.exists || loaded.exists) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(loaded.waitForExistence(timeout: 5))
+        XCTAssertTrue(loaded.label.contains("Endless Character 101"))
+    }
+
     func testShowsCastProgressUntilCharactersLoad() {
         let app = launch(opening: 1)
 

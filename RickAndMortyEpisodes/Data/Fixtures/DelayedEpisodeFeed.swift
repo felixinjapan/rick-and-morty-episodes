@@ -49,6 +49,7 @@ actor DelayedEpisodeFeed: RickAndMortyAPI {
         return try await recorded.character(id: id)
     }
     func characters(ids: [Int]) async throws -> [CharacterDetails] {
+        logger.info("Requested simulated character batch of \(ids.count): \(ids.first ?? 0)...\(ids.last ?? 0)")
         try await Task.sleep(for: cast == .recorded ? .seconds(3) : .seconds(1))
         if cast == .edgeCases {
             if ids.contains(Self.transientCharacterID), !failedCharacterBatch {
@@ -79,6 +80,15 @@ actor DelayedEpisodeFeed: RickAndMortyAPI {
     }
 
     private func makeCharacter(_ id: Int) -> CharacterDetails {
+        if cast == .endless {
+            // Every character has a portrait, so scrolling exercises the lazy image loading too.
+            return CharacterDetails(
+                id: id, name: "Endless Character \(id)", status: [.alive, .dead, .unknown][id % 3],
+                species: id.isMultiple(of: 2) ? "Human" : "Alien", originName: "Earth (C-137)",
+                episodeCount: id % 51 + 1,
+                imageURL: URL(string: "https://rickandmortyapi.com/api/character/avatar/\(id).jpeg")
+            )
+        }
         let name = cast == .edgeCases && id == Self.unicodeCharacterID
             ? "偏遠太空站 🛸 " + String(repeating: "مرحبا بالعالم ", count: 16)
             : "Endless Character \(id)"
