@@ -12,8 +12,17 @@ final class EpisodeListViewModel {
         case endReached(count: Int)
     }
 
+    /// The episodes of one season, in list order. Episodes without a recognized code share one group.
+    struct SeasonGroup: Identifiable, Equatable {
+        let season: Int?
+        let episodes: [Episode]
+        var id: Int { season ?? .max }
+    }
+
     private var snapshot: EpisodeSnapshot?
     var episodes: [Episode] { snapshot?.episodes ?? [] }
+    /// Grouped once per snapshot rather than on every view update.
+    private(set) var seasonGroups: [SeasonGroup] = []
     var lastRefreshedAt: Date? { snapshot?.refreshedAt }
     var isRefreshing: Bool { activeRefreshCount > 0 }
     private(set) var refreshErrorMessage: String?
@@ -58,6 +67,12 @@ final class EpisodeListViewModel {
         if let pageErrorMessage { return .failed(message: pageErrorMessage) }
         if let nextPage { return .loading(page: nextPage) }
         return .endReached(count: episodes.count)
+    }
+
+    /// True while the first page is loading and there is nothing to show yet.
+    var isLoadingFirstPage: Bool {
+        guard episodes.isEmpty, case .loading = footer else { return false }
+        return true
     }
 
     // MARK: - Lifecycle
@@ -151,6 +166,9 @@ final class EpisodeListViewModel {
         }
         listGeneration += 1
         self.snapshot = snapshot
+        seasonGroups = Dictionary(grouping: snapshot.episodes, by: \.seasonNumber)
+            .map { SeasonGroup(season: $0.key, episodes: $0.value) }
+            .sorted { ($0.season ?? .max) < ($1.season ?? .max) }
         pageErrorMessage = nil
         isLoadingPage = false
     }

@@ -349,6 +349,18 @@
         }
       }
     },
+    "episodeList.loading" : {
+      "comment" : "VoiceOver label for the spinner shown while the first page of episodes loads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading episodes"
+          }
+        }
+      }
+    },
     "episodeList.loadingMore" : {
       "comment" : "VoiceOver label for the spinner that loads the next page",
       "extractionState" : "manual",

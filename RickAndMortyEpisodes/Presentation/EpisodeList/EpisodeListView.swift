@@ -42,34 +42,44 @@ struct EpisodeListView: View {
     }
 
     private var episodeList: some View {
-        let seasons = Dictionary(grouping: viewModel.episodes, by: \.seasonNumber)
-        return List {
+        List {
             if let refreshErrorMessage = viewModel.refreshErrorMessage {
                 RefreshErrorBanner(message: refreshErrorMessage)
             }
 
-            ForEach(seasons.keys.sorted { ($0 ?? .max) < ($1 ?? .max) }, id: \.self) { season in
-                let episodes = seasons[season, default: []]
+            ForEach(viewModel.seasonGroups) { group in
                 Section {
-                    ForEach(episodes) { episode in
+                    ForEach(group.episodes) { episode in
                         NavigationLink(value: episode) {
                             EpisodeRow(episode: episode)
                         }
                         .accessibilityIdentifier("episode.row.\(episode.id)")
                     }
                 } header: {
-                    SeasonHeader(season: season, count: episodes.count)
+                    SeasonHeader(season: group.season, count: group.episodes.count)
                 }
             }
 
-            EpisodeListFooter(footer: viewModel.footer, viewport: viewport) {
+            // The footer's task loads the first page too, so it stays in the list while the
+            // spinner below stands in for its own.
+            EpisodeListFooter(
+                footer: viewModel.footer, isFirstPage: viewModel.isLoadingFirstPage, viewport: viewport
+            ) {
                 await viewModel.loadNextPage()
             }
+            .listRowBackground(viewModel.isLoadingFirstPage ? Color.clear : nil)
             .id(viewModel.episodes.last?.id)
         }
         .id(viewModel.listIdentity)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .refreshable { await viewModel.refresh() }
+        .overlay {
+            if viewModel.isLoadingFirstPage {
+                ProgressView()
+                    .controlSize(.large)
+                    .accessibilityLabel(.episodeListLoading)
+            }
+        }
     }
 }
 
@@ -92,6 +102,8 @@ private struct SeasonHeader: View {
 
 private struct EpisodeListFooter: View {
     let footer: EpisodeListViewModel.Footer
+    /// The screen shows its own spinner, so this one only has to keep the page request alive.
+    let isFirstPage: Bool
     let viewport: CGRect
     let loadNextPage: () async -> Void
     @State private var frame: CGRect = .zero
@@ -110,6 +122,8 @@ private struct EpisodeListFooter: View {
             case .loading(let page):
                 ProgressView()
                     .frame(maxWidth: .infinity)
+                    .opacity(isFirstPage ? 0 : 1)
+                    .accessibilityHidden(isFirstPage)
                     .accessibilityLabel(.episodeListLoadingMore)
                     .task(id: isNearViewport ? page : nil) {
                         guard isNearViewport, !Task.isCancelled else { return }
@@ -199,9 +213,11 @@ private struct LastUpdatedLabel: View {
             SeasonHeader(season: 1, count: 11)
         }
         Section("Pagination") {
-            EpisodeListFooter(footer: .loading(page: 2), viewport: .zero) {}
-            EpisodeListFooter(footer: .failed(message: RepositoryError.offline.userMessage), viewport: .zero) {}
-            EpisodeListFooter(footer: .endReached(count: 51), viewport: .zero) {}
+            EpisodeListFooter(footer: .loading(page: 2), isFirstPage: false, viewport: .zero) {}
+            EpisodeListFooter(
+                footer: .failed(message: RepositoryError.offline.userMessage), isFirstPage: false, viewport: .zero
+            ) {}
+            EpisodeListFooter(footer: .endReached(count: 51), isFirstPage: false, viewport: .zero) {}
         }
         Section("Refresh status") {
             LastUpdatedLabel(date: date, isRefreshing: false)
