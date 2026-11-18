@@ -40,7 +40,7 @@ Views take only view models. `CharacterScreens` (built in `AppDependencies`) cre
 |---|---|
 | Refresh only the first episode page | One request fits the background refresh budget. Cache reuse relies on new episodes being appended. Later pages load as the user scrolls. |
 | Persist episodes as a JSON snapshot and character details as individual JSON files | The episode list is small and read as a whole. Per-character files let the app save a character without rewriting the rest of the cache. Actors serialize access to the stores. |
-| Batch character details for visible rows after scrolling settles | The first screen loads after layout. Later viewports wait 200 ms so a fling can skip intermediate rows. Portrait requests start for settled rows. |
+| Load character details in chunks: 20, then 80, then 80 at a time | The first request is small so the first screen fills quickly, and the next 80 follow at once. Later chunks start when a visible row is 80% through the loaded chunk. A request holds at most 80 IDs, so the URL and response stay small for any cast, and a short cast needs one or two requests. A jump loads the chunk around its destination, not the chunks in between. Later viewports wait 200 ms so a fling can skip rows. Portraits stay lazy: only rows near the viewport start a download. |
 | Schedule background refresh and check freshness in the foreground | iOS decides whether the background task runs. Checking freshness on launch and return gives the app another chance to refresh while cached episodes stay visible. |
 | No use-case layer, no SwiftData | Each screen calls one repository method, so a use case would only forward the call. Episodes and characters are small and read whole or by ID, so JSON files behind actor stores cover offline use without a database schema or migrations. Revisit both if a screen needs to combine several repositories or query the cache. |
 | Export a text file to `Documents/Exports` | Files exposes the saved file and the iOS share sheet hands it to other apps. The app writes the small export synchronously on the main actor. |
@@ -65,8 +65,9 @@ flowchart TD
 
 ## Viewing a character
 
-The character list tracks rows that are at least half visible. It batches their IDs after scrolling
-settles and lets any batch already sent finish so its results can be reused. The repository reads
+The character list tracks rows that are at least half visible. After scrolling settles, it requests
+the chunk of the cast that holds them (the first 20 rows, then 80 per chunk), and the next chunk once
+a row is 80% through its chunk. It lets any batch already sent finish so its results can be reused. The repository reads
 cached details first and requests missing or stale IDs. Rows with unavailable details remain tappable
 by ID. The detail screen uses `character(id:)` and shows a Retry button if loading fails.
 

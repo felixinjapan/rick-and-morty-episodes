@@ -10,6 +10,13 @@ final class EpisodeCharactersViewModel {
     private(set) var settledIDs: Set<Int> = []
     private(set) var unavailableIDs: Set<Int> = []
 
+    /// The first request is small so the first screen fills quickly; later ones are bigger. A request
+    /// is capped at `chunkSize` IDs, which keeps the URL and the response small for any cast.
+    private static let firstChunkSize = 20
+    private static let chunkSize = 80
+    /// The next chunk is requested once a visible row is this far through the chunk holding it.
+    private static let prefetchFraction = 0.8
+
     @ObservationIgnored private var hasSettled = false
     @ObservationIgnored private var inFlight: Task<Void, Never>?
     @ObservationIgnored private var batchCount = 0
@@ -76,21 +83,52 @@ final class EpisodeCharactersViewModel {
         hasSettled = true
         settledIDs = visibleIDs
 
-        await waitForInFlightBatch()
-        guard !Task.isCancelled else { return }
-
-        let missing = nearbyIDs(for: visibleIDs, padding: 6).filter {
-            characters[$0] == nil && (visibleIDs.contains($0) || !unavailableIDs.contains($0))
+        for chunk in chunks(for: visibleIDs) {
+            await waitForInFlightBatch()
+            guard !Task.isCancelled else { return }
+            let missing = characterIDs[chunk].filter {
+                characters[$0] == nil && (visibleIDs.contains($0) || !unavailableIDs.contains($0))
+            }
+            guard !missing.isEmpty else { continue }
+            await load(missing)
         }
-        guard !missing.isEmpty else { return }
+    }
+
+    /// The chunk of the cast that holds the row at `index`: the first `firstChunkSize` rows, then
+    /// `chunkSize` rows each.
+    private func chunk(at index: Int) -> Range<Int> {
+        if index < Self.firstChunkSize { return 0..<min(characterIDs.count, Self.firstChunkSize) }
+        let start = Self.firstChunkSize + (index - Self.firstChunkSize) / Self.chunkSize * Self.chunkSize
+        return start..<min(characterIDs.count, start + Self.chunkSize)
+    }
+
+    /// The chunks to load for these rows, in order: the ones holding them, then the next one when a
+    /// row is far enough through its chunk. The first chunk always brings the second, so a short
+    /// cast is complete after two requests. A jump far down the list loads the chunk around the
+    /// destination, not every chunk in between.
+    private func chunks(for visibleIDs: Set<Int>) -> [Range<Int>] {
+        let rows = Dictionary(grouping: visibleIDs.compactMap { indices[$0] }, by: chunk(at:))
+        let held = rows.keys.sorted { $0.lowerBound < $1.lowerBound }
+        var wanted = held
+        for range in held {
+            guard let last = rows[range]?.max() else { continue }
+            if range.lowerBound == 0 || Double(last - range.lowerBound) >= Double(range.count) * Self.prefetchFraction {
+                wanted.append(chunk(at: range.upperBound))
+            }
+        }
+        var seen: Set<Range<Int>> = []
+        return wanted.filter { !$0.isEmpty && seen.insert($0).inserted }
+    }
+
+    private func load(_ missing: [Int]) async {
         unavailableIDs.subtract(missing)
         batchCount += 1
         let batchNumber = batchCount
         let batch = Task { [weak self, repository] in
-            let loaded = await repository.characters(ids: missing.sorted())
+            let loaded = await repository.characters(ids: missing)
             guard let self else { return }
             characters.merge(loaded) { _, latest in latest }
-            unavailableIDs.formUnion(missing.subtracting(loaded.keys))
+            unavailableIDs.formUnion(Set(missing).subtracting(loaded.keys))
             // Only the newest batch may clear the slot; an older one must not hide a running one.
             if batchCount == batchNumber { inFlight = nil }
         }

@@ -10,8 +10,8 @@ struct EpisodeCharactersViewModelTests {
         let url = try #require(URL(string: "https://example.com/portrait.png"))
         let recovering = CharacterBatchRecorder(portraitURL: url, firstPortraitError: .serverUnavailable)
         let missing = CharacterBatchRecorder(portraitURL: url, firstPortraitError: .notFound)
-        let recoveringModel = makeViewModel(repository: recovering)
-        let missingModel = makeViewModel(repository: missing)
+        let recoveringModel = makeViewModel(characterIDs: [1], repository: recovering)
+        let missingModel = makeViewModel(characterIDs: [1], repository: missing)
 
         await recoveringModel.loadVisibleCast(visibleIDs: [1])
         await missingModel.loadVisibleCast(visibleIDs: [1])
@@ -51,63 +51,96 @@ struct EpisodeCharactersViewModelTests {
         #expect(episode.characterIDs == [3, 1, 2])
     }
 
-    @Test("Widely separated viewports prefetch bounded windows and skip the rows between them")
+    @Test("The first request is small, and the next 80 follow on their own")
+    func firstChunkThenSecond() async {
+        let repository = CharacterBatchRecorder()
+        let viewModel = makeViewModel(characterIDs: Array(1...300), repository: repository)
+
+        await viewModel.loadVisibleCast(visibleIDs: [1, 2, 3])
+
+        #expect(await repository.requests == [Array(1...20), Array(21...100)])
+        #expect(Set(viewModel.characters.keys) == Set(1...100))
+    }
+
+    @Test("A short cast is complete after one request")
+    func shortCast() async {
+        let repository = CharacterBatchRecorder()
+        let viewModel = makeViewModel(characterIDs: Array(1...15), repository: repository)
+
+        await viewModel.loadVisibleCast(visibleIDs: [1, 2])
+        await viewModel.loadVisibleCast(visibleIDs: [14, 15])
+
+        #expect(await repository.requests == [Array(1...15)])
+    }
+
+    @Test("The next 80 are requested once a row is 80% through the loaded chunk, not before")
+    func prefetchesNextChunk() async {
+        let repository = CharacterBatchRecorder()
+        let viewModel = makeViewModel(characterIDs: Array(1...400), repository: repository)
+        await viewModel.loadVisibleCast(visibleIDs: [1])
+
+        await viewModel.loadVisibleCast(visibleIDs: [84])
+        #expect(await repository.requests == [Array(1...20), Array(21...100)])
+
+        await viewModel.loadVisibleCast(visibleIDs: [85])
+        #expect(await repository.requests == [Array(1...20), Array(21...100), Array(101...180)])
+    }
+
+    @Test("A far jump loads the chunk around the destination, not the chunks in between")
     func distantViewports() async {
         let repository = CharacterBatchRecorder()
         let viewModel = makeViewModel(characterIDs: Array(1...10_000), repository: repository)
-        let windows = stride(from: 1, through: 9_998, by: 909).map { Array($0...($0 + 2)) }
 
         await viewModel.loadVisibleCast(visibleIDs: [])
-        for window in windows {
-            await viewModel.loadVisibleCast(visibleIDs: Set(window))
-        }
-        await viewModel.loadVisibleCast(visibleIDs: Set(windows[0]))
+        await viewModel.loadVisibleCast(visibleIDs: [1, 2, 3])
+        await viewModel.loadVisibleCast(visibleIDs: [5_001, 5_002, 5_003])
+        await viewModel.loadVisibleCast(visibleIDs: [5_046, 5_047, 5_048])
+        await viewModel.loadVisibleCast(visibleIDs: [1, 2, 3])
 
-        let expected = windows.map { window in
-            Array(max(1, window[0] - 6)...min(10_000, window[2] + 6))
-        }
-        #expect(await repository.requests == expected)
-        #expect(Set(viewModel.characters.keys) == Set(expected.joined()))
+        #expect(await repository.requests == [
+            Array(1...20), Array(21...100), Array(4_981...5_060), Array(5_061...5_140),
+        ])
+        #expect(viewModel.characters.count == 260)
     }
 
     @Test("Opening a character from the cast reuses loaded details and saves a fallback lookup")
     func opensCharacterFromCast() async throws {
         let repository = CharacterBatchRecorder()
-        let viewModel = makeViewModel(characterIDs: Array(1...30), repository: repository)
+        let viewModel = makeViewModel(characterIDs: Array(1...300), repository: repository)
         await viewModel.loadVisibleCast(visibleIDs: [4])
 
         #expect(try await viewModel.character(id: 8).id == 8)
         #expect(await repository.singleRequests.isEmpty)
-        #expect(try await viewModel.character(id: 30).id == 30)
-        #expect(try await viewModel.character(id: 30).id == 30)
-        #expect(await repository.singleRequests == [30])
+        #expect(try await viewModel.character(id: 300).id == 300)
+        #expect(try await viewModel.character(id: 300).id == 300)
+        #expect(await repository.singleRequests == [300])
     }
 
     @Test("A fling skips intermediate rows and revisiting loaded rows makes no request")
     func skipsIntermediateRows() async throws {
         let repository = CharacterBatchRecorder()
-        let viewModel = makeViewModel(repository: repository)
+        let viewModel = makeViewModel(characterIDs: Array(1...1_000), repository: repository)
         await viewModel.loadVisibleCast(visibleIDs: [1, 2])
 
-        let passingRows = Task { await viewModel.loadVisibleCast(visibleIDs: [20, 21]) }
+        let passingRows = Task { await viewModel.loadVisibleCast(visibleIDs: [200, 201]) }
         try await Task.sleep(for: .milliseconds(35))
         #expect(viewModel.settledIDs == [1, 2])
         passingRows.cancel()
         await passingRows.value
 
-        await viewModel.loadVisibleCast(visibleIDs: [59, 60])
-        #expect(viewModel.settledIDs == [59, 60])
+        await viewModel.loadVisibleCast(visibleIDs: [599, 600])
+        #expect(viewModel.settledIDs == [599, 600])
         await viewModel.loadVisibleCast(visibleIDs: [1, 2])
 
-        #expect(await repository.requests == [[1, 2], [59, 60]])
-        #expect(Set(viewModel.characters.keys) == [1, 2, 59, 60])
+        #expect(await repository.requests == [Array(1...20), Array(21...100), Array(581...660)])
+        #expect(viewModel.characters.count == 180)
     }
 
     @Test("A new viewport waits for the active batch and requests only remaining IDs", .timeLimit(.minutes(1)))
     func reusesInFlightBatch() async throws {
         let gate = Gate()
         let repository = CharacterBatchRecorder(firstBatchGate: gate, unavailableID: 3)
-        let viewModel = makeViewModel(repository: repository)
+        let viewModel = makeViewModel(characterIDs: Array(1...300), repository: repository)
         let first = Task { await viewModel.loadVisibleCast(visibleIDs: [1, 2]) }
         while await repository.requests.isEmpty { await Task.yield() }
         #expect(viewModel.unavailableIDs.isEmpty)
@@ -115,13 +148,13 @@ struct EpisodeCharactersViewModelTests {
         first.cancel()
         let last = Task { await viewModel.loadVisibleCast(visibleIDs: [2, 3]) }
         while viewModel.settledIDs != [2, 3] { await Task.yield() }
-        #expect(await repository.requests == [[1, 2]])
+        #expect(await repository.requests == [Array(1...20)])
         await gate.open()
         await first.value
         await last.value
 
-        #expect(await repository.requests == [[1, 2], [3]])
-        #expect(Set(viewModel.characters.keys) == [1, 2])
+        #expect(await repository.requests == [Array(1...20), [3], Array(21...100)])
+        #expect(Set(viewModel.characters.keys) == Set(1...100).subtracting([3]))
         #expect(viewModel.unavailableIDs == [3])
     }
 }
