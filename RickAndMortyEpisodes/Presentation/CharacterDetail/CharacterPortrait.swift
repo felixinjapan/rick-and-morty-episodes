@@ -6,31 +6,6 @@ enum CharacterPortraitPhase {
     case failed
 }
 
-struct CharacterPortrait: View {
-    let character: CharacterDetails
-    let repository: any CharacterRepository
-    @State private var phase = CharacterPortraitPhase.loading
-
-    var body: some View {
-        CharacterPortraitContent(
-            name: character.name, size: 200, phase: character.imageURL == nil ? .failed : phase
-        )
-        .task(id: character.imageURL) {
-            guard character.imageURL != nil else { return }
-            if case .loaded = phase { return }
-            do {
-                let data = try await repository.portrait(for: character)
-                try Task.checkCancellation()
-                phase = UIImage(data: data).map(CharacterPortraitPhase.loaded) ?? .failed
-            } catch is CancellationError {
-                return
-            } catch {
-                phase = .failed
-            }
-        }
-    }
-}
-
 struct CharacterPortraitContent: View {
     let name: String
     let size: CGFloat

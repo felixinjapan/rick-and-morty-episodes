@@ -1,5 +1,5 @@
-import Foundation
 import Observation
+import UIKit
 
 @MainActor
 @Observable
@@ -16,6 +16,7 @@ final class CharacterDetailViewModel {
     }
 
     private(set) var state: State = .loading
+    private var portrait: (url: URL, phase: CharacterPortraitPhase)?
     var exportedFile: ExportedFile?
     var exportErrorMessage: String?
 
@@ -33,6 +34,12 @@ final class CharacterDetailViewModel {
         if case .loaded(let character) = state { character } else { nil }
     }
 
+    var portraitPhase: CharacterPortraitPhase {
+        guard let url = character?.imageURL else { return .failed }
+        guard let portrait, portrait.url == url else { return .loading }
+        return portrait.phase
+    }
+
     func load() async {
         // Keep a loaded character on screen while it reloads, so the list keeps its scroll position.
         if character == nil {
@@ -44,6 +51,22 @@ final class CharacterDetailViewModel {
             // The user left the screen; `.task` will reload if it appears again.
         } catch {
             state = .failed(message: error.userMessage)
+        }
+    }
+
+    func loadPortrait() async {
+        guard let character, let url = character.imageURL else { return }
+        if case .loaded = portraitPhase { return }
+        portrait = (url, .loading)
+        do {
+            let data = try await repository.portrait(for: character)
+            try Task.checkCancellation()
+            portrait = (url, UIImage(data: data).map(CharacterPortraitPhase.loaded) ?? .failed)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            portrait = (url, .failed)
         }
     }
 

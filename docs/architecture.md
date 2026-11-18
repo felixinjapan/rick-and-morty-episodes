@@ -119,7 +119,7 @@ flowchart TD
     Views -->|episode cast and visible portraits| ChRepo
     Coord --> ListVM
     ListVM -- await --> EpRepo
-    DetailVM -- await --> ChRepo
+    DetailVM -- "character and portrait" --> ChRepo
     DetailVM -- "sync call" --> Exporter
     BG -- await --> EpRepo
     EpRepo --> API

@@ -3,7 +3,6 @@ import SwiftUI
 struct CharacterDetailView: View {
     @State private var viewModel: CharacterDetailViewModel
     private let initialName: String?
-    private let repository: any CharacterRepository
 
     init(
         route: CharacterRoute,
@@ -11,7 +10,6 @@ struct CharacterDetailView: View {
         exporter: any CharacterExporting
     ) {
         initialName = route.name
-        self.repository = repository
         _viewModel = State(initialValue: CharacterDetailViewModel(
             characterID: route.id, repository: repository, exporter: exporter
         ))
@@ -63,20 +61,21 @@ struct CharacterDetailView: View {
                     .accessibilityIdentifier("characterDetail.retry")
             }
         case .loaded(let character):
-            CharacterDetailContent(character: character, repository: repository)
+            CharacterDetailContent(character: character, portraitPhase: viewModel.portraitPhase)
+                .task(id: character.imageURL) { await viewModel.loadPortrait() }
         }
     }
 }
 
 private struct CharacterDetailContent: View {
     let character: CharacterDetails
-    let repository: any CharacterRepository
+    let portraitPhase: CharacterPortraitPhase
 
     var body: some View {
         List {
             Section {
                 VStack(spacing: 16) {
-                    CharacterPortrait(character: character, repository: repository)
+                    CharacterPortraitContent(name: character.name, size: 200, phase: portraitPhase)
                     Text(character.name)
                         .font(.title2.bold())
                         .multilineTextAlignment(.center)

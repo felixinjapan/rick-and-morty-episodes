@@ -37,6 +37,31 @@ struct CharacterDetailViewModelTests {
         #expect(viewModel.exportedFile == nil)
     }
 
+    @Test("An invalid portrait shows a fallback while keeping the character details")
+    func invalidPortrait() async throws {
+        let url = try #require(CharacterDetails.rick.imageURL)
+        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(
+            characters: [1: .success(.rick)], portraits: [url: .success(Data([0]))]
+        ))
+        let viewModel = CharacterDetailViewModel(
+            characterID: 1, repository: repository,
+            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
+        )
+        await viewModel.load()
+
+        guard case .loading = viewModel.portraitPhase else {
+            Issue.record("Expected the portrait to start in the loading state")
+            return
+        }
+        await viewModel.loadPortrait()
+
+        #expect(viewModel.state == .loaded(.rick))
+        guard case .failed = viewModel.portraitPhase else {
+            Issue.record("Expected the portrait to fall back after invalid image data")
+            return
+        }
+    }
+
     @Test("A failed export shows an error and no file")
     func exportFailure() async throws {
         let blocker = try makeTemporaryBlockingFile()
