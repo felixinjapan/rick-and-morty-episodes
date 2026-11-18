@@ -30,6 +30,8 @@ flowchart TD
     Deps -.->|wires| Repos
 ```
 
+Views take only view models. `CharacterScreens` (built in `AppDependencies`) creates the cast and detail view models, so no view holds a repository or the exporter. `PortraitLoader` in the data layer turns portrait bytes into display-sized images and owns the retry policy. The cast view model keeps the results per URL, so a finished portrait redraws only its own row.
+
 `APIError` is translated to `RepositoryError` in the data layer. `Presentation/Shared/ErrorMessages.swift` maps repository errors to user-facing messages. Cancellation stays silent.
 
 ## Decision log
@@ -40,6 +42,7 @@ flowchart TD
 | Persist episodes as a JSON snapshot and character details as individual JSON files | The episode list is small and read as a whole. Per-character files let the app save a character without rewriting the rest of the cache. Actors serialize access to the stores. |
 | Batch character details for visible rows after scrolling settles | The first screen loads after layout. Later viewports wait 200 ms so a fling can skip intermediate rows. Portrait requests start for settled rows. |
 | Schedule background refresh and check freshness in the foreground | iOS decides whether the background task runs. Checking freshness on launch and return gives the app another chance to refresh while cached episodes stay visible. |
+| No use-case layer, no SwiftData | Each screen calls one repository method, so a use case would only forward the call. Episodes and characters are small and read whole or by ID, so JSON files behind actor stores cover offline use without a database schema or migrations. Revisit both if a screen needs to combine several repositories or query the cache. |
 | Export a text file to `Documents/Exports` | Files exposes the saved file and the iOS share sheet hands it to other apps. The app writes the small export synchronously on the main actor. |
 
 ## Episode refresh

@@ -67,6 +67,26 @@ enum AppDependencies {
         )
     }
 
+    @MainActor
+    static func makeCharacterScreens(
+        characters: any CharacterRepository, exporter: any CharacterExporting
+    ) -> CharacterScreens {
+        let portraitLoader = PortraitLoader(repository: characters)
+        return CharacterScreens(
+            makeCast: { episode in
+                EpisodeCharactersViewModel(
+                    characterIDs: episode.characterIDs, repository: characters, portraitLoader: portraitLoader
+                )
+            },
+            makeDetail: { route, resolveCharacter in
+                CharacterDetailViewModel(
+                    character: route.character, repository: characters, exporter: exporter,
+                    resolveCharacter: resolveCharacter
+                )
+            }
+        )
+    }
+
     /// Exports go to `Documents/Exports`, which the Files app shows (`UIFileSharingEnabled`,
     /// `LSSupportsOpeningDocumentsInPlace`); the share sheet can hand them to other apps.
     static func makeExporter() -> CharacterExporter {

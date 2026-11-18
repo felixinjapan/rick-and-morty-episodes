@@ -26,6 +26,25 @@ struct FileCharacterStoreTests {
         #expect(try await store.load(id: 7) == stored)
     }
 
+    @Test("A batch saves and reads back several characters, reporting a missing one as nil")
+    func batchRoundTrip() async throws {
+        let store = FileCharacterStore.makeTemporary()
+        let other = StoredCharacter(
+            details: CharacterDetails(
+                id: 2, name: "Morty", status: .alive, species: "Human", originName: "Earth", episodeCount: 3, imageURL: nil
+            ),
+            catalogueCount: nil, savedAt: fixedDate
+        )
+
+        let failures = await store.save([saved, other])
+        let loaded = await store.load(ids: [1, 2, 3])
+
+        #expect(failures.isEmpty)
+        #expect(try loaded[1]?.get() == saved)
+        #expect(try loaded[2]?.get() == other)
+        #expect(try loaded[3]?.get() == nil)
+    }
+
     @Test("A character that was never saved reads as missing")
     func missing() async throws {
         #expect(try await FileCharacterStore.makeTemporary().load(id: 1) == nil)

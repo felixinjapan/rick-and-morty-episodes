@@ -10,8 +10,8 @@ struct EpisodeCharactersViewModelTests {
         let url = try #require(URL(string: "https://example.com/portrait.png"))
         let recovering = CharacterBatchRecorder(portraitURL: url, firstPortraitError: .serverUnavailable)
         let missing = CharacterBatchRecorder(portraitURL: url, firstPortraitError: .notFound)
-        let recoveringModel = EpisodeCharactersViewModel(repository: recovering)
-        let missingModel = EpisodeCharactersViewModel(repository: missing)
+        let recoveringModel = makeViewModel(repository: recovering)
+        let missingModel = makeViewModel(repository: missing)
 
         await recoveringModel.loadVisibleCast(visibleIDs: [1])
         await missingModel.loadVisibleCast(visibleIDs: [1])
@@ -31,7 +31,7 @@ struct EpisodeCharactersViewModelTests {
         let url = try #require(URL(string: "https://example.com/portrait.png"))
         let otherURL = try #require(URL(string: "https://example.com/replacement.png"))
         let repository = CharacterBatchRecorder(portraitURL: url)
-        let viewModel = EpisodeCharactersViewModel(characterIDs: [1, 2], repository: repository)
+        let viewModel = makeViewModel(characterIDs: [1, 2], repository: repository)
 
         await viewModel.loadVisibleCast(visibleIDs: [1, 2])
         await viewModel.loadVisibleCast(visibleIDs: [])
@@ -54,7 +54,7 @@ struct EpisodeCharactersViewModelTests {
     @Test("Widely separated viewports prefetch bounded windows and skip the rows between them")
     func distantViewports() async {
         let repository = CharacterBatchRecorder()
-        let viewModel = EpisodeCharactersViewModel(characterIDs: Array(1...10_000), repository: repository)
+        let viewModel = makeViewModel(characterIDs: Array(1...10_000), repository: repository)
         let windows = stride(from: 1, through: 9_998, by: 909).map { Array($0...($0 + 2)) }
 
         await viewModel.loadVisibleCast(visibleIDs: [])
@@ -73,7 +73,7 @@ struct EpisodeCharactersViewModelTests {
     @Test("Opening a character from the cast reuses loaded details and saves a fallback lookup")
     func opensCharacterFromCast() async throws {
         let repository = CharacterBatchRecorder()
-        let viewModel = EpisodeCharactersViewModel(characterIDs: Array(1...30), repository: repository)
+        let viewModel = makeViewModel(characterIDs: Array(1...30), repository: repository)
         await viewModel.loadVisibleCast(visibleIDs: [4])
 
         #expect(try await viewModel.character(id: 8).id == 8)
@@ -86,7 +86,7 @@ struct EpisodeCharactersViewModelTests {
     @Test("A fling skips intermediate rows and revisiting loaded rows makes no request")
     func skipsIntermediateRows() async throws {
         let repository = CharacterBatchRecorder()
-        let viewModel = EpisodeCharactersViewModel(repository: repository)
+        let viewModel = makeViewModel(repository: repository)
         await viewModel.loadVisibleCast(visibleIDs: [1, 2])
 
         let passingRows = Task { await viewModel.loadVisibleCast(visibleIDs: [20, 21]) }
@@ -107,7 +107,7 @@ struct EpisodeCharactersViewModelTests {
     func reusesInFlightBatch() async throws {
         let gate = Gate()
         let repository = CharacterBatchRecorder(firstBatchGate: gate, unavailableID: 3)
-        let viewModel = EpisodeCharactersViewModel(repository: repository)
+        let viewModel = makeViewModel(repository: repository)
         let first = Task { await viewModel.loadVisibleCast(visibleIDs: [1, 2]) }
         while await repository.requests.isEmpty { await Task.yield() }
         #expect(viewModel.unavailableIDs.isEmpty)
@@ -124,6 +124,15 @@ struct EpisodeCharactersViewModelTests {
         #expect(Set(viewModel.characters.keys) == [1, 2])
         #expect(viewModel.unavailableIDs == [3])
     }
+}
+
+@MainActor
+private func makeViewModel(
+    characterIDs: [Int] = [], repository: CharacterBatchRecorder
+) -> EpisodeCharactersViewModel {
+    EpisodeCharactersViewModel(
+        characterIDs: characterIDs, repository: repository, portraitLoader: PortraitLoader(repository: repository)
+    )
 }
 
 private actor CharacterBatchRecorder: CharacterRepository {

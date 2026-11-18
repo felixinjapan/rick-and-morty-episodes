@@ -7,6 +7,11 @@ enum PreviewData {
         originName: "Earth (C-137)", episodeCount: 51,
         imageURL: URL(string: "https://rickandmortyapi.com/api/character/avatar/1.jpeg")
     )
+
+    static let episode = Episode(
+        id: 1, name: "Pilot", airDate: Date(timeIntervalSince1970: 1_385_942_400),
+        code: "S01E01", characterIDs: [1, 2, 35]
+    )
 }
 
 extension AppDependencies {
@@ -20,6 +25,19 @@ extension AppDependencies {
             cacheDirectory: .temporaryDirectory.appending(path: "Previews/\(UUID().uuidString)"),
             characterMaxAge: configuration.characterMaxAge
         )
+    }
+
+    @MainActor
+    static func makePreviewScreens(networkUnavailable: Bool = false) -> CharacterScreens {
+        makeCharacterScreens(
+            characters: makePreviewRepositories(configuration: .production, networkUnavailable: networkUnavailable)
+                .characters,
+            exporter: makePreviewExporter()
+        )
+    }
+
+    static func makePreviewPortraitLoader() -> any PortraitLoading {
+        PortraitLoader(repository: makePreviewRepositories(configuration: .production).characters)
     }
 
     static func makePreviewExporter() -> CharacterExporter {

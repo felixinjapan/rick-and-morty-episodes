@@ -15,10 +15,14 @@ final class EpisodeCharactersViewModel {
     private let characterIDs: [Int]
     private let indices: [Int: Int]
     private let repository: any CharacterRepository
+    private let portraitLoader: any PortraitLoading
 
-    init(characterIDs: [Int] = [], repository: any CharacterRepository) {
+    init(
+        characterIDs: [Int] = [], repository: any CharacterRepository, portraitLoader: any PortraitLoading
+    ) {
         self.characterIDs = characterIDs
         self.repository = repository
+        self.portraitLoader = portraitLoader
         indices = Dictionary(uniqueKeysWithValues: characterIDs.enumerated().map { ($0.element, $0.offset) })
     }
 
@@ -27,7 +31,7 @@ final class EpisodeCharactersViewModel {
         guard !Task.isCancelled else { return }
         let nearby = nearbyIDs(for: visibleIDs, padding: 2).subtracting(visibleIDs)
         let portraitIDs = visibleIDs.sorted() + nearby.sorted()
-        await portraits.load(for: portraitIDs.compactMap { characters[$0] }, from: repository)
+        await portraits.load(for: portraitIDs.compactMap { characters[$0] }, using: portraitLoader)
     }
 
     private func nearbyIDs(for visibleIDs: Set<Int>, padding: Int) -> Set<Int> {

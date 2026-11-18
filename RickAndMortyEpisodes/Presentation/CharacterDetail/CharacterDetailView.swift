@@ -3,15 +3,8 @@ import SwiftUI
 struct CharacterDetailView: View {
     @State private var viewModel: CharacterDetailViewModel
 
-    init(
-        route: CharacterRoute,
-        repository: any CharacterRepository,
-        exporter: any CharacterExporting,
-        resolveCharacter: @escaping () async throws -> CharacterDetails
-    ) {
-        _viewModel = State(initialValue: CharacterDetailViewModel(
-            character: route.character, repository: repository, exporter: exporter, resolveCharacter: resolveCharacter
-        ))
+    init(viewModel: CharacterDetailViewModel) {
+        _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
@@ -132,17 +125,14 @@ private struct CharacterDetailContent: View {
 
 @MainActor
 private func characterDetailPreview(networkUnavailable: Bool = false) -> some View {
-    let repositories = AppDependencies.makePreviewRepositories(
-        configuration: .production, networkUnavailable: networkUnavailable
-    )
+    let screens = AppDependencies.makePreviewScreens(networkUnavailable: networkUnavailable)
+    let cast = screens.makeCast(PreviewData.episode)
     return NavigationStack {
         CharacterDetailView(
-            route: CharacterRoute(id: 1, character: nil),
-            repository: repositories.characters,
-            exporter: AppDependencies.makePreviewExporter()
-        ) {
-            try await repositories.characters.character(id: 1)
-        }
+            viewModel: screens.makeDetail(CharacterRoute(id: 1, character: nil)) {
+                try await cast.character(id: 1)
+            }
+        )
     }
 }
 #endif

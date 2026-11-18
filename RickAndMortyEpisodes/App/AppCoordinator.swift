@@ -4,8 +4,7 @@ import SwiftUI
 final class AppCoordinator {
     let episodeListViewModel: EpisodeListViewModel
 
-    private let characters: any CharacterRepository
-    private let exporter: any CharacterExporting
+    private let screens: CharacterScreens
     private let scheduleBackgroundRefresh: @MainActor () -> Void
 
     init(
@@ -18,13 +17,12 @@ final class AppCoordinator {
             repository: repositories.episodes,
             staleInterval: freshnessInterval
         )
-        characters = repositories.characters
-        self.exporter = exporter
+        screens = AppDependencies.makeCharacterScreens(characters: repositories.characters, exporter: exporter)
         self.scheduleBackgroundRefresh = scheduleBackgroundRefresh
     }
 
     var rootView: some View {
-        EpisodeListView(viewModel: episodeListViewModel, characterRepository: characters, exporter: exporter)
+        EpisodeListView(viewModel: episodeListViewModel, screens: screens)
     }
 
     func handle(_ phase: ScenePhase) async {

@@ -3,8 +3,7 @@ import SwiftUI
 struct EpisodeListView: View {
     /// Owned by AppCoordinator, which also forwards foreground refreshes to this instance.
     let viewModel: EpisodeListViewModel
-    let characterRepository: any CharacterRepository
-    let exporter: any CharacterExporting
+    let screens: CharacterScreens
     @State private var viewport: CGRect = .zero
 
     var body: some View {
@@ -26,7 +25,7 @@ struct EpisodeListView: View {
             }
             .navigationTitle(.episodeListTitle)
             .navigationDestination(for: Episode.self) { episode in
-                EpisodeCharactersView(episode: episode, repository: characterRepository, exporter: exporter)
+                EpisodeCharactersView(episode: episode, screens: screens)
             }
             .toolbar {
                 // A status item in the bottom toolbar (as in Mail) instead of a floating label,

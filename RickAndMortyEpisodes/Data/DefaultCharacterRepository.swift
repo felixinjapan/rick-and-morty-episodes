@@ -54,9 +54,11 @@ actor DefaultCharacterRepository: CharacterRepository {
         var available: [Int: CharacterDetails] = [:]
         var stale: [Int: CharacterDetails] = [:]
         var idsToFetch: [Int] = []
-        for id in Set(ids).sorted() {
-            guard !Task.isCancelled else { return available }
-            if let saved = await savedCharacter(id: id) {
+        let sortedIDs = Set(ids).sorted()
+        let saved = await savedCharacters(ids: sortedIDs)
+        guard !Task.isCancelled else { return available }
+        for id in sortedIDs {
+            if let saved = saved[id] {
                 if isFresh(saved, catalogueCount: current) {
                     available[id] = saved.details
                     continue
@@ -74,10 +76,9 @@ actor DefaultCharacterRepository: CharacterRepository {
             }
             logger.debug("Character batch downloaded \(fetched.count) records")
             let requested = Set(idsToFetch)
-            for details in fetched where requested.contains(details.id) {
-                available[details.id] = details
-                await save(details, catalogueCount: current)
-            }
+            let received = fetched.filter { requested.contains($0.id) }
+            for details in received { available[details.id] = details }
+            await save(received, catalogueCount: current)
         } catch let error as RepositoryError where error != .notFound {
             available.merge(stale) { fresh, _ in fresh }
         } catch {
@@ -136,14 +137,39 @@ actor DefaultCharacterRepository: CharacterRepository {
         }
     }
 
+    /// Reads the files for every ID missing from memory in one store call.
+    private func savedCharacters(ids: [Int]) async -> [Int: StoredCharacter] {
+        var saved: [Int: StoredCharacter] = [:]
+        var uncached: [Int] = []
+        for id in ids {
+            if let cached = cache[id] { saved[id] = cached } else { uncached.append(id) }
+        }
+        guard !uncached.isEmpty else { return saved }
+        for (id, result) in await store.load(ids: uncached) {
+            switch result {
+            case .success(let loaded?):
+                cache[id] = loaded
+                saved[id] = loaded
+            case .success(nil):
+                break
+            case .failure(let error):
+                logger.error("Failed to read saved character \(id): \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        return saved
+    }
+
     /// A failed save only costs offline availability, so it is logged, not shown to the user.
     private func save(_ details: CharacterDetails, catalogueCount: Int?) async {
-        let stored = StoredCharacter(details: details, catalogueCount: catalogueCount, savedAt: now())
-        cache[details.id] = stored
-        do {
-            try await store.save(stored)
-        } catch {
-            logger.error("Failed to save character \(stored.details.id): \(error.localizedDescription, privacy: .public)")
+        await save([details], catalogueCount: catalogueCount)
+    }
+
+    private func save(_ characters: [CharacterDetails], catalogueCount: Int?) async {
+        guard !characters.isEmpty else { return }
+        let stored = characters.map { StoredCharacter(details: $0, catalogueCount: catalogueCount, savedAt: now()) }
+        for character in stored { cache[character.details.id] = character }
+        for (id, error) in await store.save(stored) {
+            logger.error("Failed to save character \(id): \(error.localizedDescription, privacy: .public)")
         }
     }
 }

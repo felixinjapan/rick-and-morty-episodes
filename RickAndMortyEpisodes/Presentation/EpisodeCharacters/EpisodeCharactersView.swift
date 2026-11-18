@@ -7,19 +7,15 @@ struct CharacterRoute: Hashable {
 
 struct EpisodeCharactersView: View {
     let episode: Episode
-    let repository: any CharacterRepository
-    let exporter: any CharacterExporting
+    let screens: CharacterScreens
     @State private var viewModel: EpisodeCharactersViewModel
     @State private var visibleIDs: Set<Int> = []
     @State private var viewport: CGRect = .zero
 
-    init(episode: Episode, repository: any CharacterRepository, exporter: any CharacterExporting) {
+    init(episode: Episode, screens: CharacterScreens) {
         self.episode = episode
-        self.repository = repository
-        self.exporter = exporter
-        _viewModel = State(initialValue: EpisodeCharactersViewModel(
-            characterIDs: episode.characterIDs, repository: repository
-        ))
+        self.screens = screens
+        _viewModel = State(initialValue: screens.makeCast(episode))
     }
 
     var body: some View {
@@ -82,9 +78,9 @@ struct EpisodeCharactersView: View {
         .navigationTitle(.episodeCharactersTitle)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: CharacterRoute.self) { route in
-            CharacterDetailView(route: route, repository: repository, exporter: exporter) {
-                try await viewModel.character(id: route.id)
-            }
+            CharacterDetailView(
+                viewModel: screens.makeDetail(route) { try await viewModel.character(id: route.id) }
+            )
         }
         .task(id: visibleIDs) { [visibleIDs] in
             await viewModel.loadVisibleCast(visibleIDs: visibleIDs)
@@ -203,20 +199,15 @@ private struct EpisodeCharacterRow: View {
 #if DEBUG
 #Preview("Characters") {
     NavigationStack {
-        EpisodeCharactersView(
-            episode: Episode(
-                id: 1, name: "Pilot", airDate: Date(timeIntervalSince1970: 1_385_942_400),
-                code: "S01E01", characterIDs: [1, 2, 35]
-            ),
-            repository: AppDependencies.makePreviewRepositories(configuration: .production).characters,
-            exporter: AppDependencies.makePreviewExporter()
-        )
+        EpisodeCharactersView(episode: PreviewData.episode, screens: AppDependencies.makePreviewScreens())
     }
 }
 
 #Preview("Character row states") {
     let portraits = EpisodeCharacterPortraits()
-    let repository = AppDependencies.makePreviewRepositories(configuration: .production).characters
+    let portraitLoader = AppDependencies.makePreviewPortraitLoader()
+    let screens = AppDependencies.makePreviewScreens()
+    let cast = screens.makeCast(PreviewData.episode)
     NavigationStack {
         List {
             EpisodeCharacterRow(id: 1, character: PreviewData.character, isUnavailable: false, portraits: portraits, viewport: .zero) { _ in }
@@ -224,11 +215,9 @@ private struct EpisodeCharacterRow: View {
             EpisodeCharacterRow(id: 3, character: nil, isUnavailable: true, portraits: portraits, viewport: .zero) { _ in }
         }
         .navigationDestination(for: CharacterRoute.self) { route in
-            CharacterDetailView(route: route, repository: repository, exporter: AppDependencies.makePreviewExporter()) {
-                try await repository.character(id: route.id)
-            }
+            CharacterDetailView(viewModel: screens.makeDetail(route) { try await cast.character(id: route.id) })
         }
-        .task { await portraits.load(for: [PreviewData.character], from: repository) }
+        .task { await portraits.load(for: [PreviewData.character], using: portraitLoader) }
     }
 }
 #endif
