@@ -38,7 +38,7 @@ flowchart TD
 |---|---|
 | Refresh only the first episode page | One request fits the background refresh budget. Cache reuse relies on new episodes being appended. Later pages load as the user scrolls. |
 | Persist episodes as a JSON snapshot and character details as individual JSON files | The episode list is small and read as a whole. Per-character files let the app save a character without rewriting the rest of the cache. Actors serialize access to the stores. |
-| Load characters as rows appear and cache their portraits on disk | Names and portraits make the list easy to scan. Loading on demand limits requests, and previously loaded details and portraits are available offline. |
+| Batch character details for visible rows after scrolling settles | The first screen loads after layout. Later viewports wait 200 ms so a fling can skip intermediate rows. Portrait requests start for settled rows. |
 | Schedule background refresh and check freshness in the foreground | iOS decides whether the background task runs. Checking freshness on launch and return gives the app another chance to refresh while cached episodes stay visible. |
 | Export a text file to `Documents/Exports` | Files exposes the saved file and the iOS share sheet hands it to other apps. The app writes the small export synchronously on the main actor. |
 
@@ -62,9 +62,10 @@ flowchart TD
 
 ## Viewing a character
 
-`DefaultCharacterRepository.character(id:)` is used by visible character rows and the detail screen.
-A row keeps its tappable ID if loading character details fails. If the detail screen cannot load the
-character, it shows an error and a Retry button.
+The character list tracks rows that are at least half visible. It batches their IDs after scrolling
+settles and lets any batch already sent finish so its results can be reused. The repository reads
+cached details first and requests missing or stale IDs. Rows with unavailable details remain tappable
+by ID. The detail screen uses `character(id:)` and shows a Retry button if loading fails.
 
 ```mermaid
 flowchart TD
@@ -115,7 +116,7 @@ flowchart TD
 
     Views --> ListVM
     Views --> DetailVM
-    Views -->|visible character rows| ChRepo
+    Views -->|episode cast and visible portraits| ChRepo
     Coord --> ListVM
     ListVM -- await --> EpRepo
     DetailVM -- await --> ChRepo
@@ -130,7 +131,7 @@ flowchart TD
 ```
 
 - The UI and the background task share the `DefaultEpisodeRepository` actor. Refresh requests can overlap, and the file store writes snapshots one at a time.
-- **Paging outlives the view.** `EpisodeListViewModel.loadNextPage()` runs the request in its own `Task`, so scrolling the footer away (which cancels the view's `.task`) doesn't cancel it. A generation counter drops a page that was requested against a list a refresh has since replaced.
+- **Paging starts near the viewport.** The footer starts a request when it comes within 120 points of the visible list. After each append it measures its new position before another page can start. `loadNextPage()` lets a request already sent finish when the footer scrolls away. A generation counter drops results for a list that a refresh has replaced.
 - **Refresh errors leave the footer alone.** A failed pull-to-refresh or stale check with rows on screen sets a separate message and the cached list stays usable. A cancelled request shows nothing.
 
 ## Background refresh
@@ -146,6 +147,8 @@ e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWith
 ## Test fixtures
 
 Debug builds include saved responses for 51 episodes and 826 characters under `Resources/StubData`. UI tests launch with `-uiTesting`, which routes requests through the recorded `LiveRickAndMortyAPI` and uses a dedicated cache. `-resetCache` clears that cache, and `-networkUnavailable` simulates failed requests. These tests run without live network access.
+
+Add `-delayedEpisodeFeed` alongside `-uiTesting` to simulate 10,000 episode pages with a one-second delay per page. Page four fails once with HTTP 503 so the footer's Retry behavior can be exercised.
 
 ## Known limitations
 
