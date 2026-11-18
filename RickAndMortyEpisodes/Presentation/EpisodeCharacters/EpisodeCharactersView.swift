@@ -9,6 +9,7 @@ struct EpisodeCharactersView: View {
     let episode: Episode
     let repository: any CharacterRepository
     @State private var loader = EpisodeCharactersLoader()
+    @State private var portraits = EpisodeCharacterPortraits()
     @State private var visibleIDs: Set<Int> = []
     @State private var viewport: CGRect = .zero
 
@@ -32,8 +33,7 @@ struct EpisodeCharactersView: View {
                         id: id,
                         character: loader.characters[id],
                         isUnavailable: loader.unavailableIDs.contains(id),
-                        loadsPortrait: visibleIDs.contains(id) && loader.settledIDs.contains(id),
-                        repository: repository,
+                        portraits: portraits,
                         viewport: viewport
                     ) { isVisible in
                         if isVisible {
@@ -58,6 +58,7 @@ struct EpisodeCharactersView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: visibleIDs) { [visibleIDs] in
             await loader.load(visibleIDs: visibleIDs, from: repository)
+            await portraits.load(for: visibleIDs.compactMap { loader.characters[$0] }, from: repository)
         }
     }
 }
@@ -67,8 +68,7 @@ private struct EpisodeCharacterRow: View {
     let id: Int
     let character: CharacterDetails?
     let isUnavailable: Bool
-    let loadsPortrait: Bool
-    let repository: any CharacterRepository
+    let portraits: EpisodeCharacterPortraits
     let viewport: CGRect
     let visibilityChanged: (Bool) -> Void
     @ScaledMetric(relativeTo: .body) private var portraitSize = 52
@@ -108,7 +108,9 @@ private struct EpisodeCharacterRow: View {
         return layout {
             Group {
                 if let character {
-                    CharacterPortrait(character: character, repository: repository, size: size, loadsImage: loadsPortrait)
+                    CharacterPortraitContent(
+                        name: character.name, size: size, phase: portraits.phase(for: character.imageURL)
+                    )
                 } else {
                     Image(systemName: "person.crop.square.fill")
                         .resizable()

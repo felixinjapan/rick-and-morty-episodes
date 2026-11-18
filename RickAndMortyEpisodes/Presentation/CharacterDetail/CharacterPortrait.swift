@@ -1,68 +1,62 @@
 import SwiftUI
 
-struct CharacterPortrait: View {
-    private enum Phase {
-        case loading
-        case loaded(UIImage)
-        case failed
-    }
+enum CharacterPortraitPhase {
+    case loading
+    case loaded(UIImage)
+    case failed
+}
 
+struct CharacterPortrait: View {
     let character: CharacterDetails
     let repository: any CharacterRepository
-    let size: CGFloat
-    let loadsImage: Bool
-    @State private var phase: Phase
+    @State private var phase = CharacterPortraitPhase.loading
 
-    init(character: CharacterDetails, repository: any CharacterRepository, size: CGFloat = 200, loadsImage: Bool = true) {
-        self.character = character
-        self.repository = repository
-        self.size = size
-        self.loadsImage = loadsImage
-        _phase = State(initialValue: character.imageURL == nil ? .failed : .loading)
+    var body: some View {
+        CharacterPortraitContent(
+            name: character.name, size: 200, phase: character.imageURL == nil ? .failed : phase
+        )
+        .task(id: character.imageURL) {
+            guard character.imageURL != nil else { return }
+            if case .loaded = phase { return }
+            do {
+                let data = try await repository.portrait(for: character)
+                try Task.checkCancellation()
+                phase = UIImage(data: data).map(CharacterPortraitPhase.loaded) ?? .failed
+            } catch is CancellationError {
+                return
+            } catch {
+                phase = .failed
+            }
+        }
     }
+}
+
+struct CharacterPortraitContent: View {
+    let name: String
+    let size: CGFloat
+    let phase: CharacterPortraitPhase
 
     var body: some View {
         Group {
             switch phase {
             case .loaded(let image):
                 Image(uiImage: image).resizable().scaledToFill()
-                    .accessibilityLabel(.portraitImage(character.name))
+                    .accessibilityLabel(.portraitImage(name))
                     .accessibilityIdentifier("characterDetail.portrait")
             case .loading:
                 ProgressView()
                     .accessibilityLabel(.portraitLoading)
                     .accessibilityIdentifier("characterDetail.portraitLoading")
             case .failed:
-                placeholder
+                Image(systemName: "person.crop.square")
+                    .font(.system(size: size * 0.32))
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel(.portraitUnavailable(name))
+                    .accessibilityIdentifier("characterDetail.portraitUnavailable")
             }
         }
         .frame(width: size, height: size)
         .clipShape(.rect(cornerRadius: 16))
         .frame(maxWidth: .infinity)
-        .task(id: loadsImage ? character.id : nil) {
-            guard loadsImage else { return }
-            if case .loaded = phase { return }
-            await load()
-        }
-    }
-
-    private func load() async {
-        guard character.imageURL != nil else { return }
-        do {
-            let data = try await repository.portrait(for: character)
-            phase = UIImage(data: data).map(Phase.loaded) ?? .failed
-        } catch is CancellationError {
-            // The screen went away; `.task` starts again if it comes back.
-        } catch {
-            phase = .failed
-        }
-    }
-
-    private var placeholder: some View {
-        Image(systemName: "person.crop.square")
-            .font(.system(size: size * 0.32))
-            .foregroundStyle(.secondary)
-            .accessibilityLabel(.portraitUnavailable(character.name))
-            .accessibilityIdentifier("characterDetail.portraitUnavailable")
     }
 }

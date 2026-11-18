@@ -5,6 +5,27 @@ import Testing
 @MainActor
 @Suite("Episode character loading")
 struct EpisodeCharactersLoaderTests {
+    @Test("Recreated rows can reuse the same portrait from the cast cache")
+    func reusesCachedPortrait() async throws {
+        let url = try #require(URL(string: "https://example.com/portrait.png"))
+        let otherURL = try #require(URL(string: "https://example.com/replacement.png"))
+        let portraits = EpisodeCharacterPortraits()
+        let repository = CharacterBatchRecorder()
+        let character = CharacterDetails(
+            id: 1, name: "Rick", status: .alive, species: "", originName: "", episodeCount: 1, imageURL: url
+        )
+
+        await portraits.load(for: [character, character], from: repository)
+        await portraits.load(for: [], from: repository)
+        await portraits.load(for: [character], from: repository)
+
+        #expect(await repository.portraitRequests == [url])
+        guard case .loaded = portraits.phase(for: url), case .loading = portraits.phase(for: otherURL) else {
+            Issue.record("Expected the loaded portrait to stay available by URL")
+            return
+        }
+    }
+
     @Test("Cast IDs keep their original order and discard duplicates and invalid IDs")
     func normalizesCastIDs() {
         let episode = Episode(id: 1, name: "Episode", airDate: nil, code: "", characterIDs: [3, 0, 1, -1, 3, 2, 1])
@@ -72,6 +93,7 @@ struct EpisodeCharactersLoaderTests {
 
 private actor CharacterBatchRecorder: CharacterRepository {
     private(set) var requests: [[Int]] = []
+    private(set) var portraitRequests: [URL] = []
     let firstBatchGate: Gate?
     let unavailableID: Int?
 
@@ -89,7 +111,11 @@ private actor CharacterBatchRecorder: CharacterRepository {
     }
 
     func character(id: Int) async throws -> CharacterDetails { makeCharacter(id) }
-    func portrait(for character: CharacterDetails) async throws -> Data { throw RepositoryError.notFound }
+    func portrait(for character: CharacterDetails) async throws -> Data {
+        guard let url = character.imageURL else { throw RepositoryError.notFound }
+        portraitRequests.append(url)
+        return RecordedResponses.portrait
+    }
 
     private func makeCharacter(_ id: Int) -> CharacterDetails {
         CharacterDetails(
