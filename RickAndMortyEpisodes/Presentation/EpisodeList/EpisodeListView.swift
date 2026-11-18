@@ -116,15 +116,11 @@ private struct EpisodeListFooter: View {
     let isFirstPage: Bool
     let viewport: CGRect
     let loadNextPage: () async -> Void
-    @State private var frame: CGRect = .zero
-
-    private var isNearViewport: Bool {
-        // Allow about two rows of lead time, independent of List's offscreen cell preparation.
-        !frame.isEmpty && !viewport.isEmpty
-            && frame.maxY > viewport.minY && frame.minY < viewport.maxY + 120
-    }
+    @State private var isNearViewport = false
 
     var body: some View {
+        // The transform captures a copy so it doesn't capture the view itself.
+        let viewport = viewport
         Group {
             switch footer {
             case .none:
@@ -160,7 +156,13 @@ private struct EpisodeListFooter: View {
             }
         }
         .padding(.vertical, 12)
-        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+        // Reports only when the answer changes, so scrolling doesn't re-render the footer.
+        // Allow about two rows of lead time, independent of List's offscreen cell preparation.
+        .onGeometryChange(for: Bool.self) { proxy in
+            let frame = proxy.frame(in: .global)
+            return !frame.isEmpty && !viewport.isEmpty
+                && frame.maxY > viewport.minY && frame.minY < viewport.maxY + 120
+        } action: { isNearViewport = $0 }
     }
 }
 

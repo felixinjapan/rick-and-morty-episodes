@@ -102,15 +102,13 @@ private struct EpisodeCharacterRow: View {
     let viewport: CGRect
     let visibilityChanged: (Bool) -> Void
     @ScaledMetric(relativeTo: .body) private var portraitSize = 52
-    @State private var frame: CGRect = .zero
-
-    private var isVisible: Bool {
-        frame.height > 0 && frame.intersection(viewport).height >= frame.height / 2
-    }
+    @State private var isVisible = false
 
     private var isLoading: Bool { character == nil && !isUnavailable }
 
     var body: some View {
+        // The transform captures a copy so it doesn't capture the view itself.
+        let viewport = viewport
         Group {
             if isLoading {
                 label
@@ -127,7 +125,11 @@ private struct EpisodeCharacterRow: View {
             }
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: character != nil)
-        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+        // Reports only when the answer changes, so scrolling doesn't re-render every row.
+        .onGeometryChange(for: Bool.self) { proxy in
+            let frame = proxy.frame(in: .global)
+            return frame.height > 0 && frame.intersection(viewport).height >= frame.height / 2
+        } action: { isVisible = $0 }
         .onChange(of: isVisible) { _, visible in visibilityChanged(visible) }
         .onAppear { visibilityChanged(isVisible) }
         .onDisappear { visibilityChanged(false) }
