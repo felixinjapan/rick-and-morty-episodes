@@ -45,16 +45,24 @@ struct EpisodeListView: View {
     }
 
     private var episodeList: some View {
-        List {
+        let seasons = Dictionary(grouping: viewModel.episodes, by: \.seasonNumber)
+        return List {
             if let refreshErrorMessage = viewModel.refreshErrorMessage {
                 RefreshErrorBanner(message: refreshErrorMessage)
             }
 
-            ForEach(viewModel.episodes) { episode in
-                NavigationLink(value: episode) {
-                    EpisodeRow(episode: episode)
+            ForEach(seasons.keys.sorted { ($0 ?? .max) < ($1 ?? .max) }, id: \.self) { season in
+                let episodes = seasons[season, default: []]
+                Section {
+                    ForEach(episodes) { episode in
+                        NavigationLink(value: episode) {
+                            EpisodeRow(episode: episode)
+                        }
+                        .accessibilityIdentifier("episode.row.\(episode.id)")
+                    }
+                } header: {
+                    SeasonHeader(season: season, count: episodes.count)
                 }
-                .accessibilityIdentifier("episode.row.\(episode.id)")
             }
 
             EpisodeListFooter(viewModel: viewModel, viewport: viewport)
@@ -63,6 +71,23 @@ struct EpisodeListView: View {
         .id(viewModel.listIdentity)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .refreshable { await viewModel.refresh() }
+    }
+}
+
+private struct SeasonHeader: View {
+    let season: Int?
+    let count: Int
+
+    var body: some View {
+        HStack {
+            Text(season.map { .episodeListSeason($0) } ?? .episodeListOtherEpisodes)
+                .textCase(.uppercase)
+            Spacer(minLength: 8)
+            Text(.episodeListSeasonCount(count))
+                .textCase(nil)
+                .multilineTextAlignment(.trailing)
+        }
+        .accessibilityAddTraits(.isHeader)
     }
 }
 

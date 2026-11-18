@@ -217,6 +217,18 @@
         }
       }
     },
+    "episode.airDate.aired": {
+      "comment": "Air date below the episode title; the argument is the formatted date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aired %@"
+          }
+        }
+      }
+    },
     "episode.airDate.unknown" : {
       "comment" : "Shown instead of an episode's air date when the API's value couldn't be read",
       "extractionState" : "manual",
@@ -349,6 +361,18 @@
         }
       }
     },
+    "episodeList.otherEpisodes": {
+      "comment": "Section header for episodes without a recognized season code",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other Episodes"
+          }
+        }
+      }
+    },
     "episodeList.refreshError.title" : {
       "comment" : "Banner title when a refresh fails but saved episodes are shown",
       "extractionState" : "manual",
@@ -357,6 +381,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't refresh. Showing saved episodes."
+          }
+        }
+      }
+    },
+    "episodeList.season": {
+      "comment": "Season section heading; the argument is the season number",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Season %lld"
+          }
+        }
+      }
+    },
+    "episodeList.seasonCount": {
+      "comment": "Count of episodes currently loaded in the section",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld episode"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld episodes"
+                }
+              }
+            }
           }
         }
       }

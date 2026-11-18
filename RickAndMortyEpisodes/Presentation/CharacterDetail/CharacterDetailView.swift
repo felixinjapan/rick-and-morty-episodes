@@ -82,24 +82,22 @@ private struct CharacterDetailContent: View {
                         .multilineTextAlignment(.center)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityIdentifier("characterDetail.name")
+                    HStack(spacing: 6) {
+                        Image(systemName: "circle.fill")
+                            .font(.caption2)
+                            .imageScale(.small)
+                            .accessibilityHidden(true)
+                        Text(character.status.title)
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(character.status.color)
+                    .accessibilityIdentifier("characterDetail.status")
                 }
                 .padding(.vertical, 8)
                 .listRowBackground(Color.clear)
             }
 
             Section(.characterDetailDetails) {
-                LabeledContent(String(localized: .characterDetailStatus)) {
-                    // An SF Symbol, not a fixed-size shape, so the dot scales with Dynamic Type.
-                    HStack(spacing: 6) {
-                        Image(systemName: "circle.fill")
-                            .font(.caption2)
-                            .imageScale(.small)
-                            .foregroundStyle(character.status.color)
-                            .accessibilityHidden(true)
-                        Text(character.status.title)
-                            .foregroundStyle(.primary)
-                    }
-                }
                 LabeledContent(String(localized: .characterDetailSpecies)) {
                     Text(character.species).foregroundStyle(.primary)
                 }

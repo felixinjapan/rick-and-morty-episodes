@@ -14,16 +14,10 @@ struct EpisodeMetadata: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(.tint.opacity(0.12), in: .capsule)
-            Group {
-                if dynamicTypeSize.isAccessibilitySize {
-                    Text(episode.formattedAirDate)
-                } else {
-                    Label(episode.formattedAirDate, systemImage: "calendar")
-                }
-            }
-            .font(.subheadline)
-            .foregroundStyle(.primary.opacity(0.7))
-            .fixedSize(horizontal: false, vertical: true)
+            Text(episode.airedDateLabel)
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

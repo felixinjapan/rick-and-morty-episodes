@@ -14,7 +14,7 @@ final class EpisodeFlowUITests: XCTestCase {
     func testEpisodeRowShowsNameCodeAndFormattedDate() {
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["S01E01"].exists)
-        XCTAssertTrue(app.staticTexts["02/12/2013"].firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Aired 02/12/2013"].firstMatch.exists)
     }
 
     func testScrollingLoadsAllPagesAndShowsEndOfList() {

@@ -17,10 +17,25 @@ struct EpisodeCharactersView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 12) {
+                    Text(episode.code)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
                     Text(episode.name)
-                        .font(.title2.bold())
+                        .font(.title.bold())
                         .accessibilityAddTraits(.isHeader)
-                    EpisodeMetadata(episode: episode)
+                    Label {
+                        Text(episode.airedDateLabel)
+                            .monospacedDigit()
+                    } icon: {
+                        Image(systemName: "calendar")
+                            .accessibilityHidden(true)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.tint)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(.tint.opacity(0.10), in: .rect(cornerRadius: 12))
                 }
                 .padding(.vertical, 8)
             }
