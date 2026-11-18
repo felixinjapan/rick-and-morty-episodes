@@ -6,7 +6,7 @@ The app uses MVVM. SwiftUI views and their view models depend on domain types an
 flowchart TD
     subgraph App
         Deps["AppDependencies<br/>(composition root)"]
-        Coord[AppCoordinator]
+        Root[AppRoot]
         BG[BackgroundRefresh]
     end
     subgraph Presentation
@@ -21,7 +21,7 @@ flowchart TD
         Store["Persistence<br/>JSON files"]
     end
 
-    Coord --> VM
+    Root --> VM
     VM -->|depends on| Proto
     Repos -.->|implements| Proto
     Repos --> Net
@@ -30,7 +30,7 @@ flowchart TD
     Deps -.->|wires| Repos
 ```
 
-Views take only view models. `CharacterScreens` (built in `AppDependencies`) creates the cast and detail view models, so no view holds a repository or the exporter. `PortraitLoader` in the data layer turns portrait bytes into display-sized images and owns the retry policy. The cast view model keeps the results per URL, so a finished portrait redraws only its own row.
+Views take only view models. `CharacterScreens` (built in `AppDependencies`) creates the cast and detail view models, so no view holds a repository or the exporter. `PortraitLoader` in the data layer turns portrait bytes into display-sized images and owns the retry policy. The cast and detail view models both load portraits through it, at thumbnail and detail sizes. The cast view model keeps the results per URL, so a finished portrait redraws only its own row.
 
 `APIError` is translated to `RepositoryError` in the data layer. `Presentation/Shared/ErrorMessages.swift` maps repository errors to user-facing messages. Cancellation stays silent.
 
@@ -99,7 +99,7 @@ flowchart TD
         ListVM[EpisodeListViewModel]
         CastVM[EpisodeCharactersViewModel]
         DetailVM[CharacterDetailViewModel]
-        Coord[AppCoordinator]
+        Root[AppRoot]
     end
 
     subgraph Actors["Actors (own their state, serialise access)"]
@@ -112,6 +112,7 @@ flowchart TD
 
     subgraph Values["Sendable values, no shared state"]
         API["LiveRickAndMortyAPI<br/>(HTTPTransport, URLSession)"]
+        Loader[PortraitLoader]
         Exporter[CharacterExporter]
         Types["Episode, EpisodeSnapshot,<br/>CharacterDetails, DTOs"]
     end
@@ -121,12 +122,15 @@ flowchart TD
     Views --> ListVM
     Views --> CastVM
     Views --> DetailVM
-    Coord --> ListVM
+    Root --> ListVM
     ListVM -- await --> EpRepo
-    CastVM -- "cast and thumbnails" --> ChRepo
-    DetailVM -- "character and portrait" --> ChRepo
+    CastVM -- "cast" --> ChRepo
+    CastVM -- "thumbnails" --> Loader
+    DetailVM -- "character" --> ChRepo
+    DetailVM -- "portrait" --> Loader
     DetailVM -- "sync call" --> Exporter
     BG -- await --> EpRepo
+    Loader -- "portrait bytes" --> ChRepo
     EpRepo --> API
     EpRepo --> EpStore
     ChRepo --> API
