@@ -2,6 +2,43 @@ import XCTest
 
 @MainActor
 final class DelayedEpisodeFeedUITests: XCTestCase {
+    func testFastScrollingLoadsAnEndlessCharacterList() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTesting", "-resetCache", "-delayedEpisodeFeed", "-endlessCharacters"]
+        app.launch()
+        XCTAssertTrue(app.buttons["episode.row.1"].waitForExistence(timeout: 8))
+        app.buttons["episode.row.1"].tap()
+        XCTAssertTrue(app.navigationBars["Characters"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Episode 1"].exists)
+
+        for _ in 0..<4 {
+            app.swipeUp(velocity: XCUIGestureVelocity(rawValue: 8_000))
+        }
+
+        let loadedRow = app.buttons.matching(NSPredicate(
+            format: "identifier MATCHES %@ AND label BEGINSWITH %@",
+            "character\\.link\\.[1-9][0-9]{2,}", "Endless Character "
+        )).firstMatch
+        XCTAssertTrue(loadedRow.waitForExistence(timeout: 5))
+        XCTAssertTrue(loadedRow.isHittable)
+    }
+
+    func testShowsCastProgressUntilCharactersLoad() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTesting", "-resetCache", "-delayedEpisodeFeed"]
+        app.launch()
+        XCTAssertTrue(app.buttons["episode.row.1"].waitForExistence(timeout: 8))
+        app.buttons["episode.row.1"].tap()
+
+        let progress = app.descendants(matching: .any)["episodeCharacters.loading.1"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Character #1"].exists)
+        XCTAssertTrue(app.staticTexts["Rick Sanchez"].waitForExistence(timeout: 5))
+        XCTAssertFalse(progress.exists)
+    }
+
     func testFastScrollingAndRetryInLongDelayedFeed() {
         continueAfterFailure = false
         let app = XCUIApplication()

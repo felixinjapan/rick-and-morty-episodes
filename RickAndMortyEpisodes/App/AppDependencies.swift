@@ -14,14 +14,22 @@ enum AppDependencies {
         // UI tests use recorded data and a separate cache.
         if arguments.contains("-uiTesting") {
             let delayedFeed = arguments.contains("-delayedEpisodeFeed")
-            let directory = URL.temporaryDirectory.appending(path: delayedFeed ? "Delayed Episode Feed" : "UI Testing")
+            let endlessCharacters = delayedFeed && arguments.contains("-endlessCharacters")
+            let cacheName = if endlessCharacters {
+                "Endless Characters"
+            } else if delayedFeed {
+                "Delayed Episode Feed"
+            } else {
+                "UI Testing"
+            }
+            let directory = URL.temporaryDirectory.appending(path: cacheName)
             if arguments.contains("-resetCache") {
                 try? FileManager.default.removeItem(at: directory)
             }
             let api: any RickAndMortyAPI = if arguments.contains("-networkUnavailable") {
                 UnavailableRickAndMortyAPI()
             } else if delayedFeed {
-                DelayedEpisodeFeed()
+                DelayedEpisodeFeed(endlessCharacters: endlessCharacters)
             } else {
                 LiveRickAndMortyAPI.recorded()
             }

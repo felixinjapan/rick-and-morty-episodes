@@ -6,7 +6,12 @@ import os
 actor DelayedEpisodeFeed: RickAndMortyAPI {
     private let recorded = LiveRickAndMortyAPI.recorded()
     private let logger = Logger(category: "DelayedEpisodeFeed")
+    private let endlessCharacters: Bool
     private var failedPageFour = false
+
+    init(endlessCharacters: Bool = false) {
+        self.endlessCharacters = endlessCharacters
+    }
 
     func episodes(page: Int) async throws -> EpisodePage {
         logger.info("Requested simulated episode page \(page)")
@@ -21,13 +26,28 @@ actor DelayedEpisodeFeed: RickAndMortyAPI {
         let totalCount = 120_000
         let firstID = (page - 1) * pageSize + 1
         let episodes = (firstID..<(firstID + pageSize)).map { id in
-            Episode(id: id, name: "Episode \(id)", airDate: nil, code: "E\(id)", characterIDs: [1, 2])
+            let characterIDs = endlessCharacters && id == 1 ? Array(1...10_000) : [1, 2]
+            return Episode(id: id, name: "Episode \(id)", airDate: nil, code: "E\(id)", characterIDs: characterIDs)
         }
         return EpisodePage(episodes: episodes, hasNextPage: page * pageSize < totalCount, totalCount: totalCount)
     }
 
-    func character(id: Int) async throws -> CharacterDetails { try await recorded.character(id: id) }
-    func characters(ids: [Int]) async throws -> [CharacterDetails] { try await recorded.characters(ids: ids) }
+    func character(id: Int) async throws -> CharacterDetails {
+        if endlessCharacters { return makeCharacter(id) }
+        return try await recorded.character(id: id)
+    }
+    func characters(ids: [Int]) async throws -> [CharacterDetails] {
+        try await Task.sleep(for: endlessCharacters ? .seconds(1) : .seconds(3))
+        if endlessCharacters { return ids.map(makeCharacter) }
+        return try await recorded.characters(ids: ids)
+    }
     func portrait(from url: URL) async throws -> Data { try await recorded.portrait(from: url) }
+
+    private func makeCharacter(_ id: Int) -> CharacterDetails {
+        CharacterDetails(
+            id: id, name: "Endless Character \(id)", status: .unknown,
+            species: "", originName: "", episodeCount: 0, imageURL: nil
+        )
+    }
 }
 #endif
