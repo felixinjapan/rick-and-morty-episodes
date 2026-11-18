@@ -81,14 +81,17 @@ private struct CharacterDetailContent: View {
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityIdentifier("characterDetail.name")
                     HStack(spacing: 6) {
+                        // Only the dot carries the color: system green and red are too light to
+                        // read as 15 pt text on white, and the label already names the status.
                         Image(systemName: "circle.fill")
                             .font(.caption2)
                             .imageScale(.small)
+                            .foregroundStyle(character.status.color)
                             .accessibilityHidden(true)
                         Text(character.status.title)
                     }
                     .font(.subheadline)
-                    .foregroundStyle(character.status.color)
+                    .foregroundStyle(.secondary)
                     .accessibilityIdentifier("characterDetail.status")
                 }
                 .padding(.vertical, 8)
