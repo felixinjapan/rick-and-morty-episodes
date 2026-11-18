@@ -144,6 +144,12 @@ private struct EpisodeCharacterRow: View {
                     CharacterPortraitContent(
                         name: character.name, size: size, phase: portraits.phase(for: character.imageURL)
                     )
+                } else if isUnavailable {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .padding(size * 0.2)
+                        .foregroundStyle(.orange)
                 } else {
                     Image(systemName: "person.crop.square.fill")
                         .resizable()
@@ -166,7 +172,7 @@ private struct EpisodeCharacterRow: View {
                             Text(.characterTitle(id))
                                 .font(.caption.monospacedDigit())
                         } else {
-                            Text(.episodeCharactersTapForDetails)
+                            Text(.episodeCharactersUnavailable)
                                 .font(.subheadline)
                         }
                     }

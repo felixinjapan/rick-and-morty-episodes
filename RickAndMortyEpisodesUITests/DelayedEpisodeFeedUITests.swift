@@ -16,7 +16,7 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
 
         XCTAssertTrue(corrupt.waitForExistence(timeout: 5))
         XCTAssertTrue(missing.waitForExistence(timeout: 5))
-        XCTAssertTrue(missing.label.contains("Tap for details"))
+        XCTAssertTrue(missing.label.contains("Couldn't load. Tap to try again"))
         XCTAssertTrue(corrupt.label.contains("Endless Character 9001"))
         XCTAssertLessThan(missing.frame.minY, corrupt.frame.minY)
         XCTAssertTrue(unicode.waitForExistence(timeout: 5))
@@ -41,7 +41,7 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
         let app = launchEdgeCases(episodeID: 4)
         let row = app.buttons["character.link.9004"]
         XCTAssertTrue(row.waitForExistence(timeout: 5))
-        XCTAssertTrue(row.label.contains("Tap for details"))
+        XCTAssertTrue(row.label.contains("Couldn't load. Tap to try again"))
         app.navigationBars.buttons.firstMatch.tap()
         app.buttons["episode.row.4"].tap()
         XCTAssertTrue(app.staticTexts["Endless Character 9004"].waitForExistence(timeout: 5))

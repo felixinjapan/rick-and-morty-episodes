@@ -289,14 +289,14 @@
         }
       }
     },
-    "episodeCharacters.tapForDetails" : {
-      "comment" : "Fallback subtitle when a character row has only an ID",
+    "episodeCharacters.unavailable" : {
+      "comment" : "Subtitle of a character row whose details couldn't be loaded; tapping the row opens the detail screen, which loads them again",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap for details"
+            "value" : "Couldn't load. Tap to try again"
           }
         }
       }
