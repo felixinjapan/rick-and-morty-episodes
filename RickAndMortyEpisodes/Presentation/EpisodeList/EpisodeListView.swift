@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct EpisodeListView: View {
-    /// Owned by AppCoordinator, which also forwards foreground refreshes to this instance.
+    /// Owned by AppRoot, which also forwards foreground refreshes to this instance.
     let viewModel: EpisodeListViewModel
     let screens: CharacterScreens
     @State private var viewport: CGRect = .zero
@@ -252,11 +252,11 @@ private func episodeListPreview(networkUnavailable: Bool = false) -> some View {
     let repositories = AppDependencies.makePreviewRepositories(
         configuration: configuration, networkUnavailable: networkUnavailable
     )
-    return AppCoordinator(
+    return AppRoot(
         repositories: repositories,
         exporter: AppDependencies.makePreviewExporter(),
         freshnessInterval: configuration.freshnessInterval,
         scheduleBackgroundRefresh: {}
-    ).rootView
+    ).content
 }
 #endif

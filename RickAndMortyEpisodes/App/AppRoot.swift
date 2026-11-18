@@ -1,7 +1,9 @@
 import SwiftUI
 
+/// Owns the root screen's state for the app's lifetime and turns scene-phase changes into refreshes.
+/// Navigation stays in the views' `NavigationStack`, because every route is a push from one screen.
 @MainActor
-final class AppCoordinator {
+final class AppRoot {
     let episodeListViewModel: EpisodeListViewModel
 
     private let screens: CharacterScreens
@@ -21,7 +23,7 @@ final class AppCoordinator {
         self.scheduleBackgroundRefresh = scheduleBackgroundRefresh
     }
 
-    var rootView: some View {
+    var content: some View {
         EpisodeListView(viewModel: episodeListViewModel, screens: screens)
     }
 

@@ -5,7 +5,7 @@ struct RickAndMortyEpisodesApp: App {
     @Environment(\.scenePhase) private var scenePhase
     private let repositories: AppDependencies.Repositories
     private let scheduleBackgroundRefresh: @Sendable () -> Void
-    @State private var coordinator: AppCoordinator
+    @State private var root: AppRoot
 
     init() {
         let configuration = AppConfiguration.production
@@ -15,7 +15,7 @@ struct RickAndMortyEpisodesApp: App {
         }
         self.repositories = repositories
         self.scheduleBackgroundRefresh = scheduleBackgroundRefresh
-        _coordinator = State(initialValue: AppCoordinator(
+        _root = State(initialValue: AppRoot(
             repositories: repositories,
             exporter: AppDependencies.makeExporter(),
             freshnessInterval: configuration.freshnessInterval,
@@ -25,10 +25,10 @@ struct RickAndMortyEpisodesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            coordinator.rootView
+            root.content
         }
         .onChange(of: scenePhase) { _, newPhase in
-            Task { await coordinator.handle(newPhase) }
+            Task { await root.handle(newPhase) }
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.taskIdentifier)) {
             [episodes = repositories.episodes, scheduleNext = scheduleBackgroundRefresh] in
