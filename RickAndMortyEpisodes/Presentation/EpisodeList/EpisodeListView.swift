@@ -44,7 +44,9 @@ struct EpisodeListView: View {
     private var episodeList: some View {
         List {
             if let refreshErrorMessage = viewModel.refreshErrorMessage {
-                RefreshErrorBanner(message: refreshErrorMessage)
+                RefreshErrorBanner(message: refreshErrorMessage) {
+                    await viewModel.refresh()
+                }
             }
 
             ForEach(viewModel.seasonGroups) { group in
@@ -73,6 +75,13 @@ struct EpisodeListView: View {
         .id(viewModel.listIdentity)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .refreshable { await viewModel.refresh() }
+        .onChange(of: viewModel.refreshErrorMessage) { _, message in
+            // The banner appears above the rows, where VoiceOver focus isn't.
+            guard let message else { return }
+            AccessibilityNotification.Announcement(
+                "\(String(localized: .episodeListRefreshErrorTitle)). \(message)"
+            ).post()
+        }
         .overlay {
             if viewModel.isLoadingFirstPage {
                 ProgressView()
@@ -96,6 +105,7 @@ private struct SeasonHeader: View {
                 .textCase(nil)
                 .multilineTextAlignment(.trailing)
         }
+        .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
     }
 }
@@ -156,25 +166,32 @@ private struct EpisodeListFooter: View {
 
 private struct RefreshErrorBanner: View {
     let message: String
+    let retry: () async -> Void
 
     var body: some View {
-        Label {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(.episodeListRefreshErrorTitle)
-                    .font(.subheadline.weight(.semibold))
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(.episodeListRefreshErrorTitle)
+                        .font(.subheadline.weight(.semibold))
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: "wifi.exclamationmark")
+                    .foregroundStyle(.orange)
             }
-        } icon: {
-            Image(systemName: "wifi.exclamationmark")
-                .foregroundStyle(.orange)
+            .accessibilityIdentifier("episodeList.refreshError")
+
+            Button(.commonRetry) { Task { await retry() } }
+                .buttonStyle(.bordered)
         }
-        .accessibilityIdentifier("episodeList.refreshError")
     }
 }
 
 private struct LastUpdatedLabel: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let date: Date
     let isRefreshing: Bool
 
@@ -190,8 +207,10 @@ private struct LastUpdatedLabel: View {
         }
         .font(.caption)
         .foregroundStyle(.primary.opacity(0.7))
-        // Size to the text so the toolbar doesn't truncate it to "Las…".
-        .fixedSize()
+        // Size to the text so the toolbar doesn't truncate it to "Las…". At accessibility sizes the
+        // text can be wider than the screen, so there it wraps instead.
+        .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: true)
+        .multilineTextAlignment(.center)
     }
 }
 
@@ -208,7 +227,7 @@ private struct LastUpdatedLabel: View {
     let date = Date(timeIntervalSince1970: 1_385_942_400)
     List {
         Section {
-            RefreshErrorBanner(message: RepositoryError.offline.userMessage)
+            RefreshErrorBanner(message: RepositoryError.offline.userMessage) {}
         } header: {
             SeasonHeader(season: 1, count: 11)
         }
