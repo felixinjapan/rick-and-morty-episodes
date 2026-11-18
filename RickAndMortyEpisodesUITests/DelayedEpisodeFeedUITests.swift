@@ -2,6 +2,63 @@ import XCTest
 
 @MainActor
 final class DelayedEpisodeFeedUITests: XCTestCase {
+    func testEmptyCastShowsNoLoadingRows() {
+        let app = launchEdgeCases(episodeID: 2)
+        XCTAssertTrue(app.staticTexts["No Characters"].exists)
+        XCTAssertFalse(app.progressIndicators.firstMatch.exists)
+    }
+
+    func testMixedCastKeepsOrderAndHandlesMissingDetailsAndCorruptPortrait() {
+        let app = launchEdgeCases(episodeID: 3)
+        let missing = app.buttons["character.link.9002"]
+        let corrupt = app.buttons["character.link.9001"]
+        let unicode = app.buttons["character.link.9003"]
+
+        XCTAssertTrue(corrupt.waitForExistence(timeout: 5))
+        XCTAssertTrue(missing.waitForExistence(timeout: 5))
+        XCTAssertTrue(missing.label.contains("Tap for details"))
+        XCTAssertTrue(corrupt.label.contains("Endless Character 9001"))
+        XCTAssertLessThan(missing.frame.minY, corrupt.frame.minY)
+        XCTAssertTrue(unicode.waitForExistence(timeout: 5))
+        XCTAssertTrue(unicode.label.contains("偏遠太空站 🛸"))
+        XCTAssertEqual(app.buttons.matching(identifier: "character.link.9003").count, 1)
+        XCTAssertTrue(app.staticTexts["3 characters"].exists)
+
+        corrupt.tap()
+        XCTAssertTrue(app.images["characterDetail.portraitUnavailable"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.progressIndicators["characterDetail.portraitLoading"].exists)
+    }
+
+    func testMissingCharacterShowsDetailError() {
+        let app = launchEdgeCases(episodeID: 3)
+        let missing = app.buttons["character.link.9002"]
+        XCTAssertTrue(missing.waitForExistence(timeout: 5))
+        missing.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["characterDetail.loadError"].waitForExistence(timeout: 5))
+    }
+
+    func testReopeningCastRecoversFromFailedBatch() {
+        let app = launchEdgeCases(episodeID: 4)
+        let row = app.buttons["character.link.9004"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.label.contains("Tap for details"))
+        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["episode.row.4"].tap()
+        XCTAssertTrue(app.staticTexts["Endless Character 9004"].waitForExistence(timeout: 5))
+    }
+
+    private func launchEdgeCases(episodeID: Int) -> XCUIApplication {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTesting", "-resetCache", "-delayedEpisodeFeed", "-characterEdgeCases"]
+        app.launch()
+        let episode = app.buttons["episode.row.\(episodeID)"]
+        XCTAssertTrue(episode.waitForExistence(timeout: 8))
+        episode.tap()
+        XCTAssertTrue(app.navigationBars["Characters"].waitForExistence(timeout: 5))
+        return app
+    }
+
     func testFastScrollingLoadsAnEndlessCharacterList() {
         continueAfterFailure = false
         let app = XCUIApplication()

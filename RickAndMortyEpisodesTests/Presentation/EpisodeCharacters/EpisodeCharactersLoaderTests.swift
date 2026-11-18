@@ -5,6 +5,28 @@ import Testing
 @MainActor
 @Suite("Episode character loading")
 struct EpisodeCharactersLoaderTests {
+    @Test("Cast IDs keep their original order and discard duplicates and invalid IDs")
+    func normalizesCastIDs() {
+        let episode = Episode(id: 1, name: "Episode", airDate: nil, code: "", characterIDs: [3, 0, 1, -1, 3, 2, 1])
+        #expect(episode.characterIDs == [3, 1, 2])
+    }
+
+    @Test("Widely separated viewports fetch only the visible records")
+    func distantViewports() async {
+        let repository = CharacterBatchRecorder()
+        let loader = EpisodeCharactersLoader()
+        let windows = stride(from: 1, through: 9_998, by: 909).map { Array($0...($0 + 2)) }
+
+        await loader.load(visibleIDs: [], from: repository)
+        for window in windows {
+            await loader.load(visibleIDs: Set(window), from: repository)
+        }
+        await loader.load(visibleIDs: Set(windows[0]), from: repository)
+
+        #expect(await repository.requests == windows)
+        #expect(Set(loader.characters.keys) == Set(windows.joined()))
+    }
+
     @Test("A fling skips intermediate rows and revisiting loaded rows makes no request")
     func skipsIntermediateRows() async throws {
         let repository = CharacterBatchRecorder()

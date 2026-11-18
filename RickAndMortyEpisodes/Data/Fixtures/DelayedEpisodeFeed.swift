@@ -7,10 +7,18 @@ actor DelayedEpisodeFeed: RickAndMortyAPI {
     private let recorded = LiveRickAndMortyAPI.recorded()
     private let logger = Logger(category: "DelayedEpisodeFeed")
     private let endlessCharacters: Bool
+    private let characterEdgeCases: Bool
     private var failedPageFour = false
+    private var failedCharacterBatch = false
 
-    init(endlessCharacters: Bool = false) {
+    private static let corruptPortraitID = 9_001
+    private static let missingCharacterID = 9_002
+    private static let unicodeCharacterID = 9_003
+    private static let transientCharacterID = 9_004
+
+    init(endlessCharacters: Bool = false, characterEdgeCases: Bool = false) {
         self.endlessCharacters = endlessCharacters
+        self.characterEdgeCases = characterEdgeCases
     }
 
     func episodes(page: Int) async throws -> EpisodePage {
@@ -26,27 +34,56 @@ actor DelayedEpisodeFeed: RickAndMortyAPI {
         let totalCount = 120_000
         let firstID = (page - 1) * pageSize + 1
         let episodes = (firstID..<(firstID + pageSize)).map { id in
-            let characterIDs = endlessCharacters && id == 1 ? Array(1...10_000) : [1, 2]
-            return Episode(id: id, name: "Episode \(id)", airDate: nil, code: "E\(id)", characterIDs: characterIDs)
+            Episode(id: id, name: "Episode \(id)", airDate: nil, code: "E\(id)", characterIDs: cast(for: id))
         }
         return EpisodePage(episodes: episodes, hasNextPage: page * pageSize < totalCount, totalCount: totalCount)
     }
 
     func character(id: Int) async throws -> CharacterDetails {
-        if endlessCharacters { return makeCharacter(id) }
+        if characterEdgeCases && id == Self.missingCharacterID { throw APIError.http(statusCode: 404) }
+        if endlessCharacters || characterEdgeCases { return makeCharacter(id) }
         return try await recorded.character(id: id)
     }
     func characters(ids: [Int]) async throws -> [CharacterDetails] {
-        try await Task.sleep(for: endlessCharacters ? .seconds(1) : .seconds(3))
+        try await Task.sleep(for: endlessCharacters || characterEdgeCases ? .seconds(1) : .seconds(3))
+        if characterEdgeCases {
+            if ids.contains(Self.transientCharacterID), !failedCharacterBatch {
+                failedCharacterBatch = true
+                throw APIError.http(statusCode: 503)
+            }
+            return ids.reversed().filter { $0 != Self.missingCharacterID }.map(makeCharacter)
+        }
         if endlessCharacters { return ids.map(makeCharacter) }
         return try await recorded.characters(ids: ids)
     }
-    func portrait(from url: URL) async throws -> Data { try await recorded.portrait(from: url) }
+    func portrait(from url: URL) async throws -> Data {
+        if characterEdgeCases, url.lastPathComponent == "corrupt.png" { return Data("not an image".utf8) }
+        return try await recorded.portrait(from: url)
+    }
+
+    private func cast(for episodeID: Int) -> [Int] {
+        if episodeID == 1 && (endlessCharacters || characterEdgeCases) { return Array(1...10_000) }
+        if characterEdgeCases {
+            switch episodeID {
+            case 2: return []
+            case 3: return [Self.missingCharacterID, Self.corruptPortraitID, Self.unicodeCharacterID, Self.unicodeCharacterID, 0, -1]
+            case 4: return [Self.transientCharacterID]
+            default: break
+            }
+        }
+        return [1, 2]
+    }
 
     private func makeCharacter(_ id: Int) -> CharacterDetails {
-        CharacterDetails(
-            id: id, name: "Endless Character \(id)", status: .unknown,
-            species: "", originName: "", episodeCount: 0, imageURL: nil
+        let name = characterEdgeCases && id == Self.unicodeCharacterID
+            ? "偏遠太空站 🛸 " + String(repeating: "مرحبا بالعالم ", count: 16)
+            : "Endless Character \(id)"
+        let imageURL = characterEdgeCases && id == Self.corruptPortraitID
+            ? URL(string: "https://rickandmortyapi.com/api/character/avatar/corrupt.png")
+            : nil
+        return CharacterDetails(
+            id: id, name: name, status: .unknown,
+            species: "", originName: "", episodeCount: 0, imageURL: imageURL
         )
     }
 }

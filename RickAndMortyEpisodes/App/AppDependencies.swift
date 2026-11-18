@@ -15,7 +15,10 @@ enum AppDependencies {
         if arguments.contains("-uiTesting") {
             let delayedFeed = arguments.contains("-delayedEpisodeFeed")
             let endlessCharacters = delayedFeed && arguments.contains("-endlessCharacters")
-            let cacheName = if endlessCharacters {
+            let characterEdgeCases = delayedFeed && arguments.contains("-characterEdgeCases")
+            let cacheName = if characterEdgeCases {
+                "Character Edge Cases"
+            } else if endlessCharacters {
                 "Endless Characters"
             } else if delayedFeed {
                 "Delayed Episode Feed"
@@ -29,7 +32,7 @@ enum AppDependencies {
             let api: any RickAndMortyAPI = if arguments.contains("-networkUnavailable") {
                 UnavailableRickAndMortyAPI()
             } else if delayedFeed {
-                DelayedEpisodeFeed(endlessCharacters: endlessCharacters)
+                DelayedEpisodeFeed(endlessCharacters: endlessCharacters, characterEdgeCases: characterEdgeCases)
             } else {
                 LiveRickAndMortyAPI.recorded()
             }
