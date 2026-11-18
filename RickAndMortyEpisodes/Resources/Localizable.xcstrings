@@ -157,18 +157,6 @@
         }
       }
     },
-    "characterDetail.status" : {
-      "comment" : "Label for whether the character is alive or dead",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Status"
-          }
-        }
-      }
-    },
     "characterDetail.title" : {
       "comment" : "Navigation title when the character's name is unavailable",
       "extractionState" : "manual",
