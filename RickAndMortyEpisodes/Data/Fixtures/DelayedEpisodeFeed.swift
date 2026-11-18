@@ -4,10 +4,15 @@ import os
 
 /// A long catalogue with 12 episodes per page, one second of latency, and one recoverable error.
 actor DelayedEpisodeFeed: RickAndMortyAPI {
+    enum Cast: String {
+        case recorded = "Delayed Episode Feed"
+        case endless = "Endless Characters"
+        case edgeCases = "Character Edge Cases"
+    }
+
     private let recorded = LiveRickAndMortyAPI.recorded()
     private let logger = Logger(category: "DelayedEpisodeFeed")
-    private let endlessCharacters: Bool
-    private let characterEdgeCases: Bool
+    private let cast: Cast
     private var failedPageFour = false
     private var failedCharacterBatch = false
 
@@ -16,9 +21,8 @@ actor DelayedEpisodeFeed: RickAndMortyAPI {
     private static let unicodeCharacterID = 9_003
     private static let transientCharacterID = 9_004
 
-    init(endlessCharacters: Bool = false, characterEdgeCases: Bool = false) {
-        self.endlessCharacters = endlessCharacters
-        self.characterEdgeCases = characterEdgeCases
+    init(cast: Cast) {
+        self.cast = cast
     }
 
     func episodes(page: Int) async throws -> EpisodePage {
@@ -40,30 +44,30 @@ actor DelayedEpisodeFeed: RickAndMortyAPI {
     }
 
     func character(id: Int) async throws -> CharacterDetails {
-        if characterEdgeCases && id == Self.missingCharacterID { throw APIError.http(statusCode: 404) }
-        if endlessCharacters || characterEdgeCases { return makeCharacter(id) }
+        if cast == .edgeCases && id == Self.missingCharacterID { throw APIError.http(statusCode: 404) }
+        if cast != .recorded { return makeCharacter(id) }
         return try await recorded.character(id: id)
     }
     func characters(ids: [Int]) async throws -> [CharacterDetails] {
-        try await Task.sleep(for: endlessCharacters || characterEdgeCases ? .seconds(1) : .seconds(3))
-        if characterEdgeCases {
+        try await Task.sleep(for: cast == .recorded ? .seconds(3) : .seconds(1))
+        if cast == .edgeCases {
             if ids.contains(Self.transientCharacterID), !failedCharacterBatch {
                 failedCharacterBatch = true
                 throw APIError.http(statusCode: 503)
             }
             return ids.reversed().filter { $0 != Self.missingCharacterID }.map(makeCharacter)
         }
-        if endlessCharacters { return ids.map(makeCharacter) }
+        if cast == .endless { return ids.map(makeCharacter) }
         return try await recorded.characters(ids: ids)
     }
     func portrait(from url: URL) async throws -> Data {
-        if characterEdgeCases, url.lastPathComponent == "corrupt.png" { return Data("not an image".utf8) }
+        if cast == .edgeCases, url.lastPathComponent == "corrupt.png" { return Data("not an image".utf8) }
         return try await recorded.portrait(from: url)
     }
 
     private func cast(for episodeID: Int) -> [Int] {
-        if episodeID == 1 && (endlessCharacters || characterEdgeCases) { return Array(1...10_000) }
-        if characterEdgeCases {
+        if episodeID == 1 && cast != .recorded { return Array(1...10_000) }
+        if cast == .edgeCases {
             switch episodeID {
             case 2: return []
             case 3: return [Self.missingCharacterID, Self.corruptPortraitID, Self.unicodeCharacterID, Self.unicodeCharacterID, 0, -1]
@@ -75,10 +79,10 @@ actor DelayedEpisodeFeed: RickAndMortyAPI {
     }
 
     private func makeCharacter(_ id: Int) -> CharacterDetails {
-        let name = characterEdgeCases && id == Self.unicodeCharacterID
+        let name = cast == .edgeCases && id == Self.unicodeCharacterID
             ? "偏遠太空站 🛸 " + String(repeating: "مرحبا بالعالم ", count: 16)
             : "Endless Character \(id)"
-        let imageURL = characterEdgeCases && id == Self.corruptPortraitID
+        let imageURL = cast == .edgeCases && id == Self.corruptPortraitID
             ? URL(string: "https://rickandmortyapi.com/api/character/avatar/corrupt.png")
             : nil
         return CharacterDetails(
