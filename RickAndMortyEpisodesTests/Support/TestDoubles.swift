@@ -94,6 +94,11 @@ extension FileEpisodeStore {
 }
 
 extension FileCharacterStore {
+    /// Saves one character and throws if it can't be written.
+    func save(_ character: StoredCharacter) throws {
+        if let failure = save([character]).values.first { throw failure }
+    }
+
     static func makeTemporary() -> FileCharacterStore {
         FileCharacterStore(directory: .temporaryDirectory.appending(path: "\(UUID().uuidString)/characters"))
     }

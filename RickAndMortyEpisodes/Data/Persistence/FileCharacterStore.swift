@@ -37,12 +37,6 @@ actor FileCharacterStore {
         return failures
     }
 
-    func save(_ character: StoredCharacter) throws {
-        try CacheFiles.prepareDirectory(directory)
-        let data = try JSONEncoder().encode(CachedCharacter(character))
-        try CacheFiles.write(data, to: fileURL(for: character.details.id))
-    }
-
     private func fileURL(for id: Int) -> URL {
         directory.appending(path: "\(id).json")
     }
