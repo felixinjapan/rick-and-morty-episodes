@@ -162,7 +162,7 @@ e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWith
 
 ## Test fixtures
 
-Debug builds include saved responses for 51 episodes and 826 characters under `Resources/StubData`. UI tests launch with `-uiTesting`, which routes requests through the recorded `LiveRickAndMortyAPI` and uses a dedicated cache. `-resetCache` clears that cache, and `-networkUnavailable` simulates failed requests. These tests run without live network access.
+Debug builds include saved responses for 51 episodes and 826 characters under `Resources/StubData`. Archives leave them out (`DEVELOPMENT_ASSET_PATHS`); a plain Release build still copies them, but nothing reads them outside `#if DEBUG`. UI tests launch with `-uiTesting`, which routes requests through the recorded `LiveRickAndMortyAPI` and uses a dedicated cache. `-resetCache` clears that cache, and `-networkUnavailable` simulates failed requests. These tests run without live network access.
 
 Add `-delayedEpisodeFeed` alongside `-uiTesting` to simulate 10,000 episode pages with a one-second delay per page. Page four fails once with HTTP 503 so the footer's Retry behavior can be exercised.
 
