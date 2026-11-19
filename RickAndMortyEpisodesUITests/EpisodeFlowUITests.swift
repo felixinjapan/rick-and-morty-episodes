@@ -25,6 +25,15 @@ final class EpisodeFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["episodeList.lastUpdated"].exists)
     }
 
+    func testEmptyCatalogueShowsEmptyState() {
+        app.terminate()
+        app.launchArguments = ["-uiTesting", "-resetCache", "-emptyCatalogue"]
+        app.launch()
+
+        XCTAssertTrue(app.descendants(matching: .any)["episodeList.empty"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["episodeList.endOfList"].exists)
+    }
+
     func testRelaunchShowsCachedListImmediately() {
         XCTAssertTrue(app.staticTexts["Pilot"].waitForExistence(timeout: 5))
         scrollToEndOfList()
@@ -55,6 +64,7 @@ final class EpisodeFlowUITests: XCTestCase {
         let name = element(containing: "Rick Sanchez", identifier: "characterDetail.name")
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Earth (C-137)").exists)
+        XCTAssertTrue(element(containing: "Alive", identifier: "characterDetail.status").exists)
         XCTAssertTrue(app.images["characterDetail.portrait"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.progressIndicators["characterDetail.portraitLoading"].exists)
         XCTAssertFalse(app.images["characterDetail.portraitUnavailable"].exists)
