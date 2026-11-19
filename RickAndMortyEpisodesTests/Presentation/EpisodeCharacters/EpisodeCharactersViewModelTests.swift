@@ -62,6 +62,23 @@ struct EpisodeCharactersViewModelTests {
         #expect(Set(viewModel.characters.keys) == Set(1...100))
     }
 
+    @Test("Visible portraits load before the prefetch chunk is requested", .timeLimit(.minutes(1)))
+    func portraitsBeforePrefetch() async throws {
+        let url = try #require(URL(string: "https://example.com/portrait.png"))
+        let gate = Gate()
+        let repository = CharacterBatchRecorder(secondBatchGate: gate, portraitURL: url)
+        let viewModel = makeViewModel(characterIDs: Array(1...300), repository: repository)
+        let loading = Task { await viewModel.loadVisibleCast(visibleIDs: [1, 2, 3]) }
+
+        while await repository.requests.count < 2 { await Task.yield() }
+
+        #expect(await repository.portraitRequests == [url])
+        #expect(Set(viewModel.characters.keys) == Set(1...20))
+        await gate.open()
+        await loading.value
+        #expect(Set(viewModel.characters.keys) == Set(1...100))
+    }
+
     @Test("A short cast is complete after one request")
     func shortCast() async {
         let repository = CharacterBatchRecorder()
@@ -173,15 +190,17 @@ private actor CharacterBatchRecorder: CharacterRepository {
     private(set) var portraitRequests: [URL] = []
     private(set) var singleRequests: [Int] = []
     let firstBatchGate: Gate?
+    let secondBatchGate: Gate?
     let unavailableID: Int?
     let portraitURL: URL?
     let firstPortraitError: RepositoryError?
 
     init(
-        firstBatchGate: Gate? = nil, unavailableID: Int? = nil,
+        firstBatchGate: Gate? = nil, secondBatchGate: Gate? = nil, unavailableID: Int? = nil,
         portraitURL: URL? = nil, firstPortraitError: RepositoryError? = nil
     ) {
         self.firstBatchGate = firstBatchGate
+        self.secondBatchGate = secondBatchGate
         self.unavailableID = unavailableID
         self.portraitURL = portraitURL
         self.firstPortraitError = firstPortraitError
@@ -191,6 +210,8 @@ private actor CharacterBatchRecorder: CharacterRepository {
         requests.append(ids)
         if requests.count == 1 {
             await firstBatchGate?.wait()
+        } else if requests.count == 2 {
+            await secondBatchGate?.wait()
         }
         return Dictionary(uniqueKeysWithValues: ids.filter { $0 != unavailableID }.map { ($0, makeCharacter($0)) })
     }

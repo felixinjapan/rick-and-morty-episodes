@@ -66,8 +66,9 @@ flowchart TD
 ## Viewing a character
 
 The character list tracks rows that are at least half visible. After scrolling settles, it requests
-the chunk of the cast that holds them (the first 20 rows, then 80 per chunk), and the next chunk once
-a row is 80% through its chunk. It lets any batch already sent finish so its results can be reused. The repository reads
+the chunk of the cast that holds them (the first 20 rows, then 80 per chunk), then the portraits of the
+visible rows, then the next chunk once a row is 80% through its chunk, so a prefetch never delays what is
+on screen. It lets any batch already sent finish so its results can be reused. The repository reads
 cached details first and requests missing or stale IDs. Rows with unavailable details remain tappable
 by ID. The detail screen uses `character(id:)` and shows a Retry button if loading fails.
 

@@ -34,12 +34,18 @@ final class EpisodeCharactersViewModel {
         indices = Dictionary(uniqueKeysWithValues: characterIDs.enumerated().map { ($0.element, $0.offset) })
     }
 
+    /// Loads what the visible rows need first, then their portraits, then the next chunk, so a
+    /// prefetch never holds up what is on screen.
     func loadVisibleCast(visibleIDs: Set<Int>) async {
-        await loadCharacters(visibleIDs: visibleIDs)
+        guard await settle(on: visibleIDs) else { return }
+        let plan = chunks(for: visibleIDs)
+        await loadCharacters(in: plan.held, visibleIDs: visibleIDs)
         guard !Task.isCancelled else { return }
         let nearby = nearbyIDs(for: visibleIDs, padding: 2).subtracting(visibleIDs)
         let portraitIDs = visibleIDs.sorted() + nearby.sorted()
         await portraits.load(for: portraitIDs.compactMap { characters[$0] }, using: portraitLoader)
+        guard !Task.isCancelled else { return }
+        await loadCharacters(in: plan.prefetch, visibleIDs: visibleIDs)
     }
 
     private func nearbyIDs(for visibleIDs: Set<Int>, padding: Int) -> Set<Int> {
@@ -64,26 +70,30 @@ final class EpisodeCharactersViewModel {
         return character
     }
 
-    /// SwiftUI cancels this call when the visible IDs change. A batch already sent can finish
-    /// and populate the cache while the next viewport settles.
-    private func loadCharacters(visibleIDs: Set<Int>) async {
-        guard !Task.isCancelled else { return }
+    /// Returns whether to go on loading for these rows. SwiftUI cancels the call when the visible IDs
+    /// change, so only the last viewport of a scroll gets past the sleep. A batch already sent can
+    /// finish and populate the cache while the next viewport settles.
+    private func settle(on visibleIDs: Set<Int>) async -> Bool {
+        guard !Task.isCancelled else { return false }
         guard !visibleIDs.isEmpty else {
             settledIDs = []
-            return
+            return false
         }
 
         // Coalesce the initial layout callbacks without making the first screen wait for a scroll.
         do {
             try await Task.sleep(for: hasSettled ? .milliseconds(200) : .milliseconds(35))
         } catch {
-            return
+            return false
         }
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled else { return false }
         hasSettled = true
         settledIDs = visibleIDs
+        return true
+    }
 
-        for chunk in chunks(for: visibleIDs) {
+    private func loadCharacters(in chunks: [Range<Int>], visibleIDs: Set<Int>) async {
+        for chunk in chunks {
             await waitForInFlightBatch()
             guard !Task.isCancelled else { return }
             let missing = characterIDs[chunk].filter {
@@ -102,22 +112,22 @@ final class EpisodeCharactersViewModel {
         return start..<min(characterIDs.count, start + Self.chunkSize)
     }
 
-    /// The chunks to load for these rows, in order: the ones holding them, then the next one when a
-    /// row is far enough through its chunk. The first chunk always brings the second, so a short
-    /// cast is complete after two requests. A jump far down the list loads the chunk around the
-    /// destination, not every chunk in between.
-    private func chunks(for visibleIDs: Set<Int>) -> [Range<Int>] {
+    /// The chunks to load for these rows: the ones holding them, and the next one when a row is far
+    /// enough through its chunk. The first chunk always brings the second, so a short cast is
+    /// complete after two requests. A jump far down the list loads the chunk around the destination,
+    /// not every chunk in between.
+    private func chunks(for visibleIDs: Set<Int>) -> (held: [Range<Int>], prefetch: [Range<Int>]) {
         let rows = Dictionary(grouping: visibleIDs.compactMap { indices[$0] }, by: chunk(at:))
         let held = rows.keys.sorted { $0.lowerBound < $1.lowerBound }
-        var wanted = held
+        var next: [Range<Int>] = []
         for range in held {
             guard let last = rows[range]?.max() else { continue }
             if range.lowerBound == 0 || Double(last - range.lowerBound) >= Double(range.count) * Self.prefetchFraction {
-                wanted.append(chunk(at: range.upperBound))
+                next.append(chunk(at: range.upperBound))
             }
         }
-        var seen: Set<Range<Int>> = []
-        return wanted.filter { !$0.isEmpty && seen.insert($0).inserted }
+        var seen = Set(held)
+        return (held, next.filter { !$0.isEmpty && seen.insert($0).inserted })
     }
 
     private func load(_ missing: [Int]) async {
