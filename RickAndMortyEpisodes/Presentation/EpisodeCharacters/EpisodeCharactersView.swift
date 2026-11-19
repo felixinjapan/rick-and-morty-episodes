@@ -74,6 +74,7 @@ struct EpisodeCharactersView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .readableListWidth()
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .navigationTitle(.episodeCharactersTitle)
         .navigationBarTitleDisplayMode(.inline)

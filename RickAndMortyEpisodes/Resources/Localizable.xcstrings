@@ -86,13 +86,13 @@
       }
     },
     "characterDetail.exportFailed.message" : {
-      "comment" : "Alert message; the placeholder is the system's reason",
+      "comment" : "Alert message when the export file couldn't be written",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The file couldn't be saved. %@"
+            "value" : "The file couldn't be saved. Make sure this device has free space, then try again."
           }
         }
       }
@@ -297,6 +297,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Characters"
+          }
+        }
+      }
+    },
+    "episodeList.empty.description" : {
+      "comment" : "Shown under the title when the catalogue has no episodes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There are no episodes to show right now. Pull down to refresh."
+          }
+        }
+      }
+    },
+    "episodeList.empty.title" : {
+      "comment" : "Title shown when the catalogue has no episodes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Episodes"
           }
         }
       }

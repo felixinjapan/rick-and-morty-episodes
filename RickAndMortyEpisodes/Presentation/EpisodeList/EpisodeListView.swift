@@ -61,17 +61,29 @@ struct EpisodeListView: View {
                 }
             }
 
-            // The footer's task loads the first page too, so it stays in the list while the
-            // spinner below stands in for its own.
-            EpisodeListFooter(
-                footer: viewModel.footer, isFirstPage: viewModel.isLoadingFirstPage, viewport: viewport
-            ) {
-                await viewModel.loadNextPage()
+            if viewModel.isCatalogueEmpty {
+                // A row, not an overlay, so the list can still be pulled down to refresh.
+                ContentUnavailableView {
+                    Label(.episodeListEmptyTitle, systemImage: "tv.slash")
+                } description: {
+                    Text(.episodeListEmptyDescription)
+                }
+                .listRowBackground(Color.clear)
+                .accessibilityIdentifier("episodeList.empty")
+            } else {
+                // The footer's task loads the first page too, so it stays in the list while the
+                // spinner below stands in for its own.
+                EpisodeListFooter(
+                    footer: viewModel.footer, isFirstPage: viewModel.isLoadingFirstPage, viewport: viewport
+                ) {
+                    await viewModel.loadNextPage()
+                }
+                .listRowBackground(viewModel.isLoadingFirstPage ? Color.clear : nil)
+                .id(viewModel.episodes.last?.id)
             }
-            .listRowBackground(viewModel.isLoadingFirstPage ? Color.clear : nil)
-            .id(viewModel.episodes.last?.id)
         }
         .id(viewModel.listIdentity)
+        .readableListWidth()
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .refreshable { await viewModel.refresh() }
         .onChange(of: viewModel.refreshErrorMessage) { _, message in

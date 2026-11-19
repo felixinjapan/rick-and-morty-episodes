@@ -104,6 +104,7 @@ private struct CharacterDetailContent: View {
                 .accessibilityIdentifier("characterDetail.episodeCount")
             }
         }
+        .readableListWidth()
     }
 }
 

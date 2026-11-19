@@ -69,6 +69,11 @@ final class EpisodeListViewModel {
         return .endReached(count: episodes.count)
     }
 
+    /// True once the catalogue is known to have no episodes, as opposed to still loading or failed.
+    var isCatalogueEmpty: Bool {
+        episodes.isEmpty && footer == .endReached(count: 0)
+    }
+
     /// True while the first page is loading and there is nothing to show yet.
     var isLoadingFirstPage: Bool {
         guard episodes.isEmpty, case .loading = footer else { return false }

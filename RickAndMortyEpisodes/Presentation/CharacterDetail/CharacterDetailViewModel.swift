@@ -1,4 +1,5 @@
 import Observation
+import os
 import UIKit
 
 @MainActor
@@ -20,6 +21,7 @@ final class CharacterDetailViewModel {
     var exportedFile: ExportedFile?
     var exportErrorMessage: String?
 
+    private let logger = Logger(category: "CharacterDetailViewModel")
     private let exporter: any CharacterExporting
     private let portraitLoader: any PortraitLoading
     private let resolveCharacter: () async throws -> CharacterDetails
@@ -74,7 +76,8 @@ final class CharacterDetailViewModel {
             // A few hundred bytes, so writing synchronously on the main actor is fine.
             exportedFile = ExportedFile(url: try exporter.export(character))
         } catch {
-            exportErrorMessage = String(localized: .characterDetailExportFailedMessage(error.localizedDescription))
+            logger.error("Export failed: \(error.localizedDescription, privacy: .public)")
+            exportErrorMessage = String(localized: .characterDetailExportFailedMessage)
         }
     }
 }

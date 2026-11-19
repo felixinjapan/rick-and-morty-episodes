@@ -74,6 +74,7 @@ struct EpisodeListSeasonGroupTests {
         #expect(viewModel.emptyListErrorMessage == nil)
         #expect(viewModel.isLoadingFirstPage == false)
         #expect(viewModel.footer == .endReached(count: 0))
+        #expect(viewModel.isCatalogueEmpty)
         #expect(await api.requestedPages == [1])
     }
 
@@ -85,11 +86,13 @@ struct EpisodeListSeasonGroupTests {
 
         await viewModel.start()
         #expect(viewModel.episodes.count == 3)
+        #expect(!viewModel.isCatalogueEmpty)
         await viewModel.refresh()
 
         #expect(viewModel.episodes.isEmpty)
         #expect(viewModel.refreshErrorMessage == nil)
         #expect(viewModel.footer == .endReached(count: 0))
+        #expect(viewModel.isCatalogueEmpty)
     }
 
     @Test("The first-page spinner gives way to the error when the first page fails")

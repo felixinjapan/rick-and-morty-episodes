@@ -123,7 +123,7 @@ struct CharacterDetailViewModelTests {
         await viewModel.load()
         viewModel.export()
 
-        #expect(viewModel.exportErrorMessage != nil)
+        #expect(viewModel.exportErrorMessage == String(localized: .characterDetailExportFailedMessage))
         #expect(viewModel.exportedFile == nil)
     }
 }
