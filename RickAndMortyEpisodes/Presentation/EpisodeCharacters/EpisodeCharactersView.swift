@@ -36,7 +36,6 @@ struct EpisodeCharactersView: View {
                             .monospacedDigit()
                     } icon: {
                         Image(systemName: "calendar")
-                            .accessibilityHidden(true)
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.tint)
@@ -75,7 +74,6 @@ struct EpisodeCharactersView: View {
                     .foregroundStyle(.primary.opacity(0.7))
             }
         }
-        .listStyle(.insetGrouped)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .navigationTitle(.episodeCharactersTitle)
         .navigationBarTitleDisplayMode(.inline)
@@ -153,7 +151,13 @@ private struct EpisodeCharacterRow: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 if isLoading {
-                    textPlaceholder(font: .headline, width: 104)
+                    Text(verbatim: " ")
+                        .font(.headline)
+                        .hidden()
+                        .frame(maxWidth: 104)
+                        .overlay {
+                            Capsule().fill(.quaternary).frame(height: 7)
+                        }
                 } else {
                     Text(character?.name ?? String(localized: .characterTitle(id)))
                         .font(.headline)
@@ -174,16 +178,6 @@ private struct EpisodeCharacterRow: View {
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
-    }
-
-    private func textPlaceholder(font: Font, width: CGFloat) -> some View {
-        Text(verbatim: " ")
-            .font(font)
-            .hidden()
-            .frame(maxWidth: width)
-            .overlay {
-                Capsule().fill(.quaternary).frame(height: 7)
-            }
     }
 }
 

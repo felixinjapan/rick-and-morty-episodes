@@ -32,7 +32,6 @@ struct CharacterPortraitContent: View {
         }
         .frame(width: size, height: size)
         .clipShape(.rect(cornerRadius: 16))
-        .frame(maxWidth: .infinity)
     }
 }
 

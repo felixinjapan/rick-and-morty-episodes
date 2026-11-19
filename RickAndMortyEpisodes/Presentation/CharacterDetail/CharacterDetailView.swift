@@ -89,6 +89,7 @@ private struct CharacterDetailContent: View {
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("characterDetail.status")
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .listRowBackground(Color.clear)
             }
