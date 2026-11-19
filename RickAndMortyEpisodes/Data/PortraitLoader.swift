@@ -19,37 +19,47 @@ struct PortraitLoader {
     }
 
     func thumbnail(for character: CharacterDetails) async -> PortraitResult? {
-        for attempt in 0...1 {
+        switch await attempt(for: character) {
+        case .finished(let result):
+            return result
+        case .transient(let delay):
             do {
-                try Task.checkCancellation()
-                let data = try await repository.portrait(for: character)
-                try Task.checkCancellation()
-                return Self.thumbnail(from: data, maxPixelSize: maxPixelSize).map(PortraitResult.image)
-                    ?? .unavailable(retryable: false)
-            } catch is CancellationError {
-                return nil
-            } catch let error as RepositoryError {
-                switch error {
-                case .timedOut, .rateLimited, .serverUnavailable:
-                    if attempt == 0 {
-                        do {
-                            try await Task.sleep(for: error == .rateLimited ? .seconds(2) : .milliseconds(500))
-                        } catch {
-                            return nil
-                        }
-                        continue
-                    }
-                    return .unavailable(retryable: true)
-                case .offline, .failed:
-                    return .unavailable(retryable: true)
-                case .notFound, .unreadableData:
-                    return .unavailable(retryable: false)
-                }
+                try await Task.sleep(for: delay)
             } catch {
-                return .unavailable(retryable: false)
+                return nil
+            }
+            switch await attempt(for: character) {
+            case .finished(let result): return result
+            case .transient: return .unavailable(retryable: true)
             }
         }
-        return nil
+    }
+
+    private enum Attempt {
+        case finished(PortraitResult?)
+        case transient(delay: Duration)
+    }
+
+    private func attempt(for character: CharacterDetails) async -> Attempt {
+        do {
+            try Task.checkCancellation()
+            let data = try await repository.portrait(for: character)
+            try Task.checkCancellation()
+            return .finished(
+                Self.thumbnail(from: data, maxPixelSize: maxPixelSize).map(PortraitResult.image)
+                    ?? .unavailable(retryable: false)
+            )
+        } catch is CancellationError {
+            return .finished(nil)
+        } catch let error as RepositoryError {
+            switch PortraitFailure(error) {
+            case .transient(let delay): return .transient(delay: delay)
+            case .retryLater: return .finished(.unavailable(retryable: true))
+            case .permanent: return .finished(.unavailable(retryable: false))
+            }
+        } catch {
+            return .finished(.unavailable(retryable: false))
+        }
     }
 
     private static func thumbnail(from data: Data, maxPixelSize: Int) -> CGImage? {
