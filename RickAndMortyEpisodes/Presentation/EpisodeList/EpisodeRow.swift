@@ -20,7 +20,7 @@ struct EpisodeRow: View {
                     .accessibilityLabel(episode.spokenCode)
                 Text(episode.airedDateLabel)
                     .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary.opacity(0.7))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

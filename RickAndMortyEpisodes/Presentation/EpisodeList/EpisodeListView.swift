@@ -104,18 +104,26 @@ struct EpisodeListView: View {
 }
 
 private struct SeasonHeader: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let season: Int?
     let count: Int
 
     var body: some View {
-        HStack {
+        // Stacked at accessibility sizes, where side by side the title breaks mid-word.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout())
+        layout {
             Text(season.map { .episodeListSeason($0) } ?? .episodeListOtherEpisodes)
                 .textCase(.uppercase)
-            Spacer(minLength: 8)
+            if !dynamicTypeSize.isAccessibilitySize {
+                Spacer(minLength: 8)
+            }
             Text(.episodeListSeasonCount(count))
                 .textCase(nil)
                 .multilineTextAlignment(.trailing)
         }
+        .foregroundStyle(.primary.opacity(0.7))
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
     }
