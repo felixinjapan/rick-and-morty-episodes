@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Keeps a list's rows at a readable width on wide screens, such as an iPad in landscape. The list
 /// itself stays full width, so its background and scroll bar still reach the screen edges; only
-/// the content is inset. On an iPhone the margin is zero and nothing changes.
+/// the content is inset. On an iPhone the system's margins are left as they are.
 private struct ReadableListWidth: ViewModifier {
     /// Grows with Dynamic Type, so larger text gets a wider column.
     @ScaledMetric(relativeTo: .body) private var maxWidth: CGFloat = 640
@@ -11,7 +11,6 @@ private struct ReadableListWidth: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-            .contentMargins(.horizontal, max(0, (width - maxWidth) / 2), for: .scrollContent)
     }
 }
 
