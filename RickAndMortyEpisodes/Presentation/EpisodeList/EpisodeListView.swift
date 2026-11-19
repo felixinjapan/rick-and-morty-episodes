@@ -82,7 +82,6 @@ struct EpisodeListView: View {
             }
         }
         .id(viewModel.listIdentity)
-        .readableListWidth()
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewport = $0 }
         .refreshable { await viewModel.refresh() }
         .onChange(of: viewModel.refreshErrorMessage) { _, message in
