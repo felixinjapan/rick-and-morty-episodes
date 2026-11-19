@@ -85,14 +85,19 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
         XCTAssertTrue(loaded.label.contains("Endless Character 101"))
     }
 
-    func testShowsCastProgressUntilCharactersLoad() {
+    func testShowsCharacterIDsBeforeCharactersLoad() {
         let app = launch(opening: 1)
 
-        let progress = app.descendants(matching: .any)["episodeCharacters.loading.1"]
-        XCTAssertTrue(progress.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Character #1"].exists)
-        XCTAssertTrue(app.staticTexts["Rick Sanchez"].waitForExistence(timeout: 5))
-        XCTAssertFalse(progress.exists)
+        // The IDs come from the episode, so they are listed and tappable while details are loading.
+        let loading = app.buttons["episodeCharacters.loading.1"]
+        XCTAssertTrue(loading.waitForExistence(timeout: 5))
+        XCTAssertTrue(loading.label.contains("Character #1"))
+        XCTAssertTrue(loading.isHittable)
+
+        let loaded = app.buttons["character.link.1"]
+        XCTAssertTrue(loaded.waitForExistence(timeout: 5))
+        XCTAssertTrue(loaded.label.contains("Rick Sanchez"))
+        XCTAssertFalse(loading.exists)
     }
 
     func testFastScrollingAndRetryInLongDelayedFeed() {

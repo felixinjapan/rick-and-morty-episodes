@@ -106,21 +106,12 @@ private struct EpisodeCharacterRow: View {
     var body: some View {
         // The transform captures a copy so it doesn't capture the view itself.
         let viewport = viewport
-        Group {
-            if isLoading {
-                label
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(.characterDetailLoading)
-                    .accessibilityIdentifier("episodeCharacters.loading.\(id)")
-                    .transition(.opacity)
-            } else {
-                NavigationLink(value: CharacterRoute(id: id, character: character)) {
-                    label
-                }
-                .accessibilityIdentifier("character.link.\(id)")
-                .transition(.opacity)
-            }
+        // Tappable while loading: the ID is already known, and the detail screen resolves it itself.
+        NavigationLink(value: CharacterRoute(id: id, character: character)) {
+            label
         }
+        .accessibilityIdentifier(isLoading ? "episodeCharacters.loading.\(id)" : "character.link.\(id)")
+        .accessibilityValue(isLoading ? Text(.characterDetailLoading) : Text(verbatim: ""))
         .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: character != nil)
         // Reports only when the answer changes, so scrolling doesn't re-render every row.
         .onGeometryChange(for: Bool.self) { proxy in
@@ -162,21 +153,20 @@ private struct EpisodeCharacterRow: View {
             VStack(alignment: .leading, spacing: 5) {
                 if isLoading {
                     textPlaceholder(font: .headline, width: 104)
-                    textPlaceholder(font: .caption, width: 64)
                 } else {
                     Text(character?.name ?? String(localized: .characterTitle(id)))
                         .font(.headline)
-                    Group {
-                        if character != nil {
-                            Text(.characterTitle(id))
-                                .font(.caption.monospacedDigit())
-                        } else {
-                            Text(.episodeCharactersUnavailable)
-                                .font(.subheadline)
-                        }
-                    }
-                    .foregroundStyle(.primary.opacity(0.7))
                 }
+                Group {
+                    if character != nil || isLoading {
+                        Text(.characterTitle(id))
+                            .font(.caption.monospacedDigit())
+                    } else {
+                        Text(.episodeCharactersUnavailable)
+                            .font(.subheadline)
+                    }
+                }
+                .foregroundStyle(.primary.opacity(0.7))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
