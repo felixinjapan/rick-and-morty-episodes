@@ -1,14 +1,14 @@
 import Foundation
 
 struct AppConfiguration: Sendable {
-    var apiBaseURL: URL
+    let apiBaseURL: URL
     /// Shared by foreground staleness checks and background scheduling.
-    var freshnessInterval: TimeInterval
+    let freshnessInterval: TimeInterval
     /// Character details also expire when the catalogue changes size.
-    var characterMaxAge: TimeInterval
+    let characterMaxAge: TimeInterval
     /// Short timeouts suit a small JSON API; the 60 s default would leave a spinner up too long.
-    var requestTimeout: TimeInterval
-    var resourceTimeout: TimeInterval
+    let requestTimeout: TimeInterval
+    let resourceTimeout: TimeInterval
 
     static let production = AppConfiguration(
         apiBaseURL: URL(string: "https://rickandmortyapi.com/api")!,
