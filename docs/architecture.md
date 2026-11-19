@@ -45,7 +45,7 @@ Rules that decide when to ask again are small, pure types in `Domain`, so they a
 | Load character details in chunks: 20, then 80, then 80 at a time | The first request is small so the first screen fills quickly, and the next 80 follow at once. Later chunks start when a visible row is 80% through the loaded chunk. A request holds at most 80 IDs, so the URL and response stay small for any cast, and a short cast needs one or two requests. A jump loads the chunk around its destination, not the chunks in between. Later viewports wait 200 ms so a fling can skip rows. Portraits stay lazy: only rows near the viewport start a download. |
 | Schedule background refresh and check freshness in the foreground | iOS decides whether the background task runs. Checking freshness on launch and return gives the app another chance to refresh while cached episodes stay visible. |
 | No use-case layer, no SwiftData | Each screen calls one repository method, so a use case would only forward the call. Episodes and characters are small and read whole or by ID, so JSON files behind actor stores cover offline use without a database schema or migrations. Revisit both if a screen needs to combine several repositories or query the cache. |
-| Export a text file to `Documents/Exports` | Files exposes the saved file and the iOS share sheet hands it to other apps. The app writes the small export synchronously on the main actor. |
+| Export through the share sheet, writing the file only when a destination is picked | The export button is a `ShareLink`, so it behaves like the share control users expect and saves nothing by itself. `CharacterExportFile` is `Transferable` and writes the small text file to the temporary folder when the user chooses Save to Files, AirDrop or another app. |
 
 ## Episode refresh
 
@@ -134,7 +134,7 @@ flowchart TD
     CastVM -- "thumbnails" --> Loader
     DetailVM -- "character" --> ChRepo
     DetailVM -- "portrait" --> Loader
-    DetailVM -- "sync call" --> Exporter
+    DetailVM -- "on share" --> Exporter
     BG -- await --> EpRepo
     Loader -- "portrait bytes" --> PortRepo
     EpRepo --> API

@@ -37,18 +37,6 @@ final class AccessibilityAuditUITests: XCTestCase {
         try audit()
     }
 
-    func testExportConfirmation() throws {
-        app.buttons["episode.row.1"].tap()
-        XCTAssertTrue(castRow.waitForExistence(timeout: 5))
-        castRow.tap()
-        let export = app.buttons["characterDetail.export"]
-        XCTAssertTrue(export.waitForExistence(timeout: 5))
-        XCTAssertTrue(export.wait(for: \.isEnabled, toEqual: true, timeout: 5))
-        export.tap()
-        XCTAssertTrue(app.staticTexts["export.confirmation"].waitForExistence(timeout: 5))
-        try audit()
-    }
-
     func testOfflineEpisodeList() throws {
         app.terminate()
         app.launchArguments = ["-uiTesting", "-resetCache", "-networkUnavailable"]

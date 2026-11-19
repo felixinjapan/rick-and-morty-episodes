@@ -11,31 +11,30 @@ struct CharacterDetailView: View {
     private var viewModel: CharacterDetailViewModel { lazyViewModel.value }
 
     var body: some View {
-        @Bindable var viewModel = viewModel
         content
             .navigationTitle(viewModel.character?.name ?? String(localized: .characterDetailTitle))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        viewModel.export()
-                    } label: {
-                        Label(.characterDetailExport, systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                    }
-                    .disabled(viewModel.character == nil)
-                    .accessibilityIdentifier("characterDetail.export")
+                    exportButton
                 }
             }
             .task { await viewModel.load() }
-            .sheet(item: $viewModel.exportedFile) { file in
-                ExportConfirmationView(fileURL: file.url)
-            }
-            .alert(.characterDetailExportFailedTitle, item: $viewModel.exportErrorMessage) { _ in
-                Button(role: .cancel) {} label: { Text(.commonOk) }
-            } message: { message in
-                Text(message)
-            }
+    }
+
+    /// The share sheet opens straight away; the file is written when a destination is picked.
+    @ViewBuilder
+    private var exportButton: some View {
+        let label = Label(.characterDetailExport, systemImage: "square.and.arrow.up")
+            .labelStyle(.iconOnly)
+        if let file = viewModel.exportFile {
+            ShareLink(item: file, preview: SharePreview(file.title)) { label }
+                .accessibilityIdentifier("characterDetail.export")
+        } else {
+            Button {} label: { label }
+                .disabled(true)
+                .accessibilityIdentifier("characterDetail.export")
+        }
     }
 
     @ViewBuilder

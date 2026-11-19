@@ -19,7 +19,7 @@ xcodebuild test -project RickAndMortyEpisodes.xcodeproj -scheme RickAndMortyEpis
 
 - Episode list with name, air date (`dd/mm/yyyy`) and code, grouped by season and loaded page by page, with an end-of-list message once every episode is on screen.
 - Tap an episode to see its characters by ID, with names and portraits as they load. Tap a character for the image, name, status, species, origin and episode count.
-- Export a character's details to a text file in `Documents/Exports`, which the Files app shows and the share sheet can hand to other apps.
+- Export a character's details as a text file. The export button opens the iOS share sheet, and the file is written only when you pick a destination there (Save to Files, AirDrop, Mail, another app).
 - Episodes, character details and portraits are saved on disk, so the list opens offline. Pull to refresh, and a "last updated" timestamp.
 - Unit tests and UI tests that run on recorded API responses, without the network.
 

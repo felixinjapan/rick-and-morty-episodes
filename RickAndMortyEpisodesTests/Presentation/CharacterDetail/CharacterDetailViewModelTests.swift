@@ -5,7 +5,7 @@ import Testing
 @MainActor
 @Suite("Character detail view model")
 struct CharacterDetailViewModelTests {
-    @Test("Loads the character, then exports it")
+    @Test("Loads the character, then offers an export file that is written only when asked for")
     func loadAndExport() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -21,9 +21,12 @@ struct CharacterDetailViewModelTests {
         await viewModel.load()
         #expect(viewModel.state == .loaded(.rick))
 
-        viewModel.export()
-        let file = try #require(viewModel.exportedFile)
-        #expect(FileManager.default.fileExists(atPath: file.url.path(percentEncoded: false)))
+        let file = try #require(viewModel.exportFile)
+        #expect(!FileManager.default.fileExists(atPath: directory.path(percentEncoded: false)))
+
+        let url = try file.write()
+        #expect(url.lastPathComponent == "Character-1-Rick-Sanchez.txt")
+        #expect(try String(contentsOf: url, encoding: .utf8) == CharacterExporter.text(for: .rick))
     }
 
     @Test("A failed load shows an error and export stays unavailable")
@@ -38,10 +41,9 @@ struct CharacterDetailViewModelTests {
         }
 
         await viewModel.load()
-        viewModel.export()
 
         #expect(viewModel.state == .failed(message: RepositoryError.notFound.userMessage))
-        #expect(viewModel.exportedFile == nil)
+        #expect(viewModel.exportFile == nil)
     }
 
     @Test("An invalid portrait shows a fallback while keeping the character details")
@@ -109,7 +111,7 @@ struct CharacterDetailViewModelTests {
         }
     }
 
-    @Test("Passed details are ready to export without resolving the character again")
+    @Test("Passed details are ready to export without resolving the character again, and a failed write throws")
     func exportFailure() async throws {
         let blocker = try makeTemporaryBlockingFile()
         defer { try? FileManager.default.removeItem(at: blocker) }
@@ -124,9 +126,8 @@ struct CharacterDetailViewModelTests {
 
         #expect(viewModel.state == .loaded(.rick))
         await viewModel.load()
-        viewModel.export()
 
-        #expect(viewModel.exportErrorMessage == String(localized: .characterDetailExportFailedMessage))
-        #expect(viewModel.exportedFile == nil)
+        let file = try #require(viewModel.exportFile)
+        #expect(throws: (any Error).self) { try file.write() }
     }
 }

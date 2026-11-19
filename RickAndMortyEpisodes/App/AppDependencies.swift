@@ -77,9 +77,9 @@ enum AppDependencies {
         )
     }
 
-    /// Exports go to `Documents/Exports`, which the Files app shows (`UIFileSharingEnabled`,
-    /// `LSSupportsOpeningDocumentsInPlace`); the share sheet can hand them to other apps.
+    /// The share sheet asks for the file when the user picks a destination (Save to Files, AirDrop,
+    /// another app), so it only has to exist briefly; the temporary folder is cleared by the system.
     static func makeExporter() -> CharacterExporter {
-        CharacterExporter(directory: URL.documentsDirectory.appending(path: "Exports", directoryHint: .isDirectory))
+        CharacterExporter(directory: URL.temporaryDirectory.appending(path: "Exports", directoryHint: .isDirectory))
     }
 }

@@ -85,30 +85,6 @@
         }
       }
     },
-    "characterDetail.exportFailed.message" : {
-      "comment" : "Alert message when the export file couldn't be written",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The file couldn't be saved. Make sure this device has free space, then try again."
-          }
-        }
-      }
-    },
-    "characterDetail.exportFailed.title" : {
-      "comment" : "Alert title when the export file couldn't be written",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Export Failed"
-          }
-        }
-      }
-    },
     "characterDetail.loadError.title" : {
       "comment" : "Full-screen error title when a character couldn't be loaded",
       "extractionState" : "manual",
@@ -169,30 +145,6 @@
         }
       }
     },
-    "common.close" : {
-      "comment" : "Button that closes a sheet",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
-          }
-        }
-      }
-    },
-    "common.ok" : {
-      "comment" : "Button that dismisses an alert",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
-          }
-        }
-      }
-    },
     "common.retry" : {
       "comment" : "Button that tries a failed load again",
       "extractionState" : "manual",
@@ -205,14 +157,14 @@
         }
       }
     },
-    "episode.airDate.aired": {
-      "comment": "Air date below the episode title; the argument is the formatted date",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aired %@"
+    "episode.airDate.aired" : {
+      "comment" : "Air date below the episode title; the argument is the formatted date",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aired %@"
           }
         }
       }
@@ -397,14 +349,14 @@
         }
       }
     },
-    "episodeList.otherEpisodes": {
-      "comment": "Section header for episodes without a recognized season code",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Other Episodes"
+    "episodeList.otherEpisodes" : {
+      "comment" : "Section header for episodes without a recognized season code",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Episodes"
           }
         }
       }
@@ -421,35 +373,35 @@
         }
       }
     },
-    "episodeList.season": {
-      "comment": "Season section heading; the argument is the season number",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Season %lld"
+    "episodeList.season" : {
+      "comment" : "Season section heading; the argument is the season number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Season %lld"
           }
         }
       }
     },
-    "episodeList.seasonCount": {
-      "comment": "Count of episodes currently loaded in the section",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld episode"
+    "episodeList.seasonCount" : {
+      "comment" : "Count of episodes currently loaded in the section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld episode"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld episodes"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld episodes"
                 }
               }
             }
@@ -561,54 +513,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The server's data could not be read. Try again later."
-          }
-        }
-      }
-    },
-    "export.fileName" : {
-      "comment" : "VoiceOver description of the exported file name",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File name: %@"
-          }
-        }
-      }
-    },
-    "export.message" : {
-      "comment" : "Where to find the exported file in Files; keep the app and folder names unchanged",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Find this file in Files → Rick & Morty Episode Guide → Exports."
-          }
-        }
-      }
-    },
-    "export.saved" : {
-      "comment" : "Title of the confirmation sheet after exporting",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File saved"
-          }
-        }
-      }
-    },
-    "export.share" : {
-      "comment" : "Button that opens the share sheet for the exported file",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share file"
           }
         }
       }

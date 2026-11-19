@@ -65,9 +65,9 @@ final class EpisodeFlowUITests: XCTestCase {
         if !episodeCount.exists { app.swipeUp() }
         XCTAssertTrue(episodeCount.waitForExistence(timeout: 5))
 
+        // The share sheet opens at once; nothing is saved until a destination is picked in it.
         app.buttons["characterDetail.export"].tap()
-        XCTAssertTrue(app.staticTexts["export.confirmation"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["export.share"].exists)
+        XCTAssertTrue(shareSheet.waitForExistence(timeout: 5), "The share sheet should open for the export")
     }
 
     func testOpenedCharacterStaysAvailableOffline() {
@@ -189,19 +189,9 @@ final class EpisodeFlowUITests: XCTestCase {
         let export = app.buttons["characterDetail.export"]
         XCTAssertTrue(export.waitForExistence(timeout: 5))
         XCTAssertTrue(export.wait(for: \.isEnabled, toEqual: true, timeout: 5))
+        XCTAssertTrue(export.isHittable)
         export.tap()
-        XCTAssertTrue(app.staticTexts["export.confirmation"].waitForExistence(timeout: 5))
-
-        let share = app.buttons["export.share"]
-        let content = app.scrollViews["export.content"]
-        for _ in 0..<8 {
-            if share.isHittable && content.frame.contains(share.frame) { break }
-            content.swipeUp()
-        }
-        XCTAssertTrue(share.isHittable)
-        XCTAssertTrue(content.frame.contains(share.frame))
+        XCTAssertTrue(shareSheet.waitForExistence(timeout: 5), "The share sheet should open for the export")
         capture("Export at largest accessibility text size")
-        share.tap()
-        XCTAssertTrue(shareSheet.waitForExistence(timeout: 5), "The share sheet should open for the exported file")
     }
 }

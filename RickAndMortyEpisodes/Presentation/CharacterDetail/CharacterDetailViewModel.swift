@@ -12,15 +12,8 @@ final class CharacterDetailViewModel {
         case failed(message: String)
     }
 
-    struct ExportedFile: Identifiable, Equatable {
-        let url: URL
-        var id: URL { url }
-    }
-
     private(set) var state: State = .loading
     private var portrait: (url: URL, phase: CharacterPortraitPhase)?
-    var exportedFile: ExportedFile?
-    var exportErrorMessage: String?
 
     private let logger = Logger(category: "CharacterDetailViewModel")
     private let exportCharacter: ExportCharacter
@@ -72,14 +65,18 @@ final class CharacterDetailViewModel {
         }
     }
 
-    func export() {
-        guard let character else { return }
-        do {
-            // A few hundred bytes, so writing synchronously on the main actor is fine.
-            exportedFile = ExportedFile(url: try exportCharacter(character))
-        } catch {
-            logger.error("Export failed: \(error.localizedDescription, privacy: .public)")
-            exportErrorMessage = String(localized: .characterDetailExportFailedMessage)
+    /// What the share sheet offers for the loaded character; `nil` until there is one.
+    var exportFile: CharacterExportFile? {
+        guard let character else { return nil }
+        let exportCharacter = exportCharacter
+        let logger = logger
+        return CharacterExportFile(title: character.name) {
+            do {
+                return try exportCharacter(character)
+            } catch {
+                logger.error("Export failed: \(error.localizedDescription, privacy: .public)")
+                throw error
+            }
         }
     }
 }
