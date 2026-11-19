@@ -164,7 +164,9 @@ e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWith
 
 Debug builds include saved responses for 51 episodes and 826 characters under `Resources/StubData`. Archives leave them out (`DEVELOPMENT_ASSET_PATHS`); a plain Release build still copies them, but nothing reads them outside `#if DEBUG`. UI tests launch with `-uiTesting`, which routes requests through the recorded `LiveRickAndMortyAPI` and uses a dedicated cache. `-resetCache` clears that cache, and `-networkUnavailable` simulates failed requests. These tests run without live network access.
 
-Add `-delayedEpisodeFeed` alongside `-uiTesting` to simulate 10,000 episode pages with a one-second delay per page. Page four fails once with HTTP 503 so the footer's Retry behavior can be exercised.
+Add `-delayedEpisodeFeed` alongside `-uiTesting` to simulate 10,000 episode pages with a one-second delay per page. Page four fails once with HTTP 503 so the footer's Retry behavior can be exercised. Two more flags change the casts in that feed: `-endlessCharacters` gives episode 1 a cast of 10,000 generated characters, and `-characterEdgeCases` does the same and adds an empty cast (episode 2), a missing character, a corrupt portrait, a long mixed-script name, a duplicate and invalid IDs (episode 3), and a character batch that fails once (episode 4).
+
+`-emptyCatalogue` serves a catalogue with no episodes, so the empty state can be tested.
 
 ## Known limitations
 

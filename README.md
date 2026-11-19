@@ -4,7 +4,7 @@ A SwiftUI app for browsing *Rick and Morty* episodes, viewing their characters, 
 
 ## UI map
 
-[![Five iPhone screens show how to open Pilot, select Rick Sanchez, export his details, and open the iOS share sheet.](docs/ui-map.png)](docs/ui-map.png)
+[![Four iPhone screens show how to open Pilot, select Rick Sanchez, and export his details through the iOS share sheet.](docs/ui-map.png)](docs/ui-map.png)
 
 ## Run and test
 
