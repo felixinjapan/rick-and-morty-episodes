@@ -15,7 +15,7 @@ struct EpisodeListView: View {
                     } description: {
                         Text(message)
                     } actions: {
-                        Button(.commonRetry) { Task { await viewModel.loadNextPage() } }
+                        Button(.commonRetry) { Task { await viewModel.retryAfterEmptyListError() } }
                             .buttonStyle(.bordered)
                     }
                     .accessibilityIdentifier("episodeList.loadError")

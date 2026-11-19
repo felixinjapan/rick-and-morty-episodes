@@ -140,6 +140,16 @@ final class EpisodeListViewModel {
 
     // MARK: - Refresh
 
+    /// Retry for the full-screen error. Once a snapshot exists the list has no page left to load,
+    /// so the failed attempt was a refresh and only a refresh can recover.
+    func retryAfterEmptyListError() async {
+        if snapshot == nil {
+            await loadNextPage()
+        } else {
+            await refresh()
+        }
+    }
+
     func refresh() async {
         activeRefreshCount += 1
         defer { activeRefreshCount -= 1 }

@@ -78,6 +78,24 @@ struct EpisodeListSeasonGroupTests {
         #expect(await api.requestedPages == [1])
     }
 
+    @Test("Retry after an empty catalogue's failed refresh fetches page 1 again")
+    func retryAfterEmptyCatalogueRefreshFailure() async {
+        let api = StubAPI(pages: [1: .success(EpisodePage(episodes: [], hasNextPage: false, totalCount: 0))])
+        let viewModel = makeViewModel(api: api)
+        await viewModel.start()
+        await viewModel.loadNextPage()
+        await api.setPage(1, .failure(APIError.offline))
+        await viewModel.refresh()
+        #expect(viewModel.emptyListErrorMessage == RepositoryError.offline.userMessage)
+
+        await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true)))
+        await viewModel.retryAfterEmptyListError()
+
+        #expect(viewModel.emptyListErrorMessage == nil)
+        #expect(viewModel.episodes.count == 20)
+        #expect(await api.requestedPages == [1, 1, 1])
+    }
+
     @Test("A refresh that returns an empty first page replaces the cached list without crashing")
     func refreshToEmptyCatalogue() async throws {
         let cached = EpisodeSnapshot(episodes: (1...3).map(Episode.make), refreshedAt: fixedDate)
