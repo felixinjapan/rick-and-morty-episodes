@@ -22,7 +22,6 @@ struct CharacterDetailView: View {
             .task { await viewModel.load() }
     }
 
-    /// The share sheet opens straight away; the file is written when a destination is picked.
     @ViewBuilder
     private var exportButton: some View {
         let label = Label(.characterDetailExport, systemImage: "square.and.arrow.up")

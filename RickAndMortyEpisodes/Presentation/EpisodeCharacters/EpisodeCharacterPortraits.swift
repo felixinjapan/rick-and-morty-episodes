@@ -9,14 +9,11 @@ final class PortraitSlot {
     fileprivate(set) var phase: CharacterPortraitPhase = .loading
 }
 
-/// The portraits the cast rows show. `PortraitLoadPolicy` decides what to request and what to
-/// remember; this keeps the images and tells the rows.
 @MainActor
 final class EpisodeCharacterPortraits {
     private var slots: [URL: PortraitSlot] = [:]
     private var policy = PortraitLoadPolicy()
 
-    /// Reading the phase observes only this URL's slot.
     func phase(for url: URL?) -> CharacterPortraitPhase {
         guard let url else { return .failed }
         return slot(for: url).phase

@@ -4,7 +4,6 @@ import SwiftUI
 /// itself stays full width, so its background and scroll bar still reach the screen edges; only
 /// the content is inset. On an iPhone the system's margins are left as they are.
 private struct ReadableListWidth: ViewModifier {
-    /// Grows with Dynamic Type, so larger text gets a wider column.
     @ScaledMetric(relativeTo: .body) private var maxWidth: CGFloat = 640
     @State private var width: CGFloat = 0
 

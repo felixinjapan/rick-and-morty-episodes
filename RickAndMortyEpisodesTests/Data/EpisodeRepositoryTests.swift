@@ -116,7 +116,6 @@ struct EpisodeRepositoryTests {
 
         #expect(try await first.value == second.value)
         #expect(await api.requestedPages == [1])
-        // Finished, so the next refresh is a new request.
         _ = try await repository.refreshFirstPage()
         #expect(await api.requestedPages == [1, 1])
     }

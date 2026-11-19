@@ -3,7 +3,6 @@ import Foundation
 /// Load failures throw `RepositoryError`; cancellation propagates as `CancellationError`.
 /// Saving is best effort: a returned snapshot may not have reached disk.
 protocol EpisodeRepository: Sendable {
-    /// The saved list or the one last loaded, whichever is newer; `nil` if there is neither.
     func loadCurrentSnapshot() async -> EpisodeSnapshot?
 
     /// Loads the page after `current` (page 1 if `nil`), appends it, saves and returns the list.

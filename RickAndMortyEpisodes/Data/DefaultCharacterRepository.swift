@@ -72,8 +72,6 @@ actor DefaultCharacterRepository: CharacterRepository {
         return available
     }
 
-    /// Splits the IDs into saved details that are still fresh, saved details that have expired
-    /// (kept as a fallback if the fetch fails), and the IDs to ask the API for.
     private func partition(
         _ ids: [Int], saved: [Int: StoredCharacter], catalogueCount current: Int?
     ) -> (fresh: [Int: CharacterDetails], stale: [Int: CharacterDetails], toFetch: [Int]) {
@@ -104,7 +102,6 @@ actor DefaultCharacterRepository: CharacterRepository {
         await savedCharacters(ids: [id])[id]
     }
 
-    /// Reads the files for every ID missing from memory in one store call.
     private func savedCharacters(ids: [Int]) async -> [Int: StoredCharacter] {
         var saved: [Int: StoredCharacter] = [:]
         var uncached: [Int] = []

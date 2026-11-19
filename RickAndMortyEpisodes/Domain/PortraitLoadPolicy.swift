@@ -8,7 +8,6 @@ struct PortraitLoadPolicy {
     static let retryDelay: Duration = .seconds(30)
 
     private enum Remembered {
-        /// A loaded portrait, or one that can't be loaded and isn't worth asking for again.
         case final
         case retry(after: ContinuousClock.Instant)
     }
@@ -16,8 +15,6 @@ struct PortraitLoadPolicy {
     private var remembered: [URL: Remembered] = [:]
     private var order: [URL] = []
 
-    /// False while an outcome stands: a loaded or permanently failed portrait, or a temporary
-    /// failure whose retry delay hasn't passed.
     func needsLoad(_ url: URL, at now: ContinuousClock.Instant) -> Bool {
         switch remembered[url] {
         case nil: true

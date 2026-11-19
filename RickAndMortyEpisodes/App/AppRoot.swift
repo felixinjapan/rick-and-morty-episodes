@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// Owns the root screen's state for the app's lifetime and turns scene-phase changes into refreshes.
 /// Navigation stays in the views' `NavigationStack`, because every route is a push from one screen.
 @MainActor
 final class AppRoot {

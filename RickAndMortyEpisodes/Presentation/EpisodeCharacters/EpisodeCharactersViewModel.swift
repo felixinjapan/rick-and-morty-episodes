@@ -14,7 +14,6 @@ final class EpisodeCharactersViewModel {
     private let planner: CastChunkPlanner
     private let repository: any CharacterRepository
     private let loadThumbnail: LoadThumbnail
-    /// Waits out the debounce; tests pass one that returns at once.
     private let sleep: @Sendable (Duration) async throws -> Void
 
     init(
@@ -59,7 +58,6 @@ final class EpisodeCharactersViewModel {
         guard !Task.isCancelled else { return false }
         guard !visibleIDs.isEmpty else { return false }
 
-        // Coalesce the initial layout callbacks without making the first screen wait for a scroll.
         do {
             try await sleep(hasSettled ? .milliseconds(200) : .milliseconds(35))
         } catch {

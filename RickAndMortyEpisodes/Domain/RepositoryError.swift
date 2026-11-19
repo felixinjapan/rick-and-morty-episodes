@@ -1,6 +1,5 @@
 import Foundation
 
-/// Failures exposed by repositories when loading resources.
 enum RepositoryError: Error, Equatable {
     case offline
     case timedOut

@@ -27,7 +27,6 @@ enum AppDependencies {
                 resourceTimeout: configuration.resourceTimeout
             ))
         )
-        // Application Support keeps downloaded episodes, details and portraits available offline.
         return makeRepositories(
             api: api, cacheDirectory: .applicationSupportDirectory, characterMaxAge: configuration.characterMaxAge
         )

@@ -88,7 +88,6 @@ final class DelayedEpisodeFeedUITests: XCTestCase {
     func testShowsCharacterIDsBeforeCharactersLoad() {
         let app = launch(opening: 1)
 
-        // The IDs come from the episode, so they are listed and tappable while details are loading.
         let loading = app.buttons["episodeCharacters.loading.1"]
         XCTAssertTrue(loading.waitForExistence(timeout: 5))
         XCTAssertTrue(loading.label.contains("Character #1"))

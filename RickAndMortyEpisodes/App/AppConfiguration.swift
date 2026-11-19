@@ -2,9 +2,7 @@ import Foundation
 
 struct AppConfiguration: Sendable {
     let apiBaseURL: URL
-    /// Shared by foreground staleness checks and background scheduling.
     let freshnessInterval: TimeInterval
-    /// Character details also expire when the catalogue changes size.
     let characterMaxAge: TimeInterval
     /// Short timeouts suit a small JSON API; the 60 s default would leave a spinner up too long.
     let requestTimeout: TimeInterval

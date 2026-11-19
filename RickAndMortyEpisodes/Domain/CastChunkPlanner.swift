@@ -6,7 +6,6 @@ import Foundation
 struct CastChunkPlanner {
     static let firstChunkSize = 20
     static let chunkSize = 80
-    /// The next chunk is requested once a visible row is this far through the chunk holding it.
     static let prefetchFraction = 0.8
 
     private let characterIDs: [Int]
@@ -21,7 +20,6 @@ struct CastChunkPlanner {
         characterIDs[chunk]
     }
 
-    /// The visible IDs plus the IDs within `padding` rows of them.
     func nearbyIDs(for visibleIDs: Set<Int>, padding: Int) -> Set<Int> {
         var nearby = visibleIDs
         for id in visibleIDs {
@@ -33,8 +31,6 @@ struct CastChunkPlanner {
         return nearby
     }
 
-    /// The chunk of the cast that holds the row at `index`: the first `firstChunkSize` rows, then
-    /// `chunkSize` rows each.
     func chunk(at index: Int) -> Range<Int> {
         if index < Self.firstChunkSize { return 0..<min(characterIDs.count, Self.firstChunkSize) }
         let start = Self.firstChunkSize + (index - Self.firstChunkSize) / Self.chunkSize * Self.chunkSize

@@ -13,7 +13,6 @@ struct PortraitLoader {
         self.maxPixelSize = maxPixelSize
     }
 
-    /// The loader as a function, for the view models that only need to call it.
     var loadThumbnail: LoadThumbnail {
         { await thumbnail(for: $0) }
     }

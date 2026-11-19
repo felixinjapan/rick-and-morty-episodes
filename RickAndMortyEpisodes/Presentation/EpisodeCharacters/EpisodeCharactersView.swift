@@ -178,7 +178,6 @@ private struct EpisodeCharacterRow: View {
     }
 
     private func textPlaceholder(font: Font, width: CGFloat) -> some View {
-        // Keep the height of the text line at the current Dynamic Type size.
         Text(verbatim: " ")
             .font(font)
             .hidden()

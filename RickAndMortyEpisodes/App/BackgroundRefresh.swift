@@ -16,7 +16,6 @@ enum BackgroundRefresh {
         let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
         request.earliestBeginDate = now.addingTimeInterval(minimumInterval)
         do {
-            // Submitting again replaces the pending request for this identifier.
             try submit(request)
         } catch {
             // Expected in the Simulator and when Background App Refresh is turned off.
@@ -26,7 +25,6 @@ enum BackgroundRefresh {
 
     /// Runs when iOS launches the task; SwiftUI cancels it when time runs out. A request still in
     /// flight then fails and saves nothing, but a page that already arrived is saved.
-    /// The composition root supplies scheduling with the same interval as foreground refresh.
     static func perform(
         using repository: any EpisodeRepository,
         scheduleNext: () -> Void
@@ -37,7 +35,6 @@ enum BackgroundRefresh {
             let snapshot = try await repository.refreshFirstPage()
             logger.info("Background refresh fetched \(snapshot.episodes.count) episodes")
         } catch is CancellationError {
-            // The system's time ran out: expected, not a failure.
             logger.info("Background refresh cancelled")
         } catch {
             logger.error("Background refresh failed: \(String(describing: error), privacy: .public)")

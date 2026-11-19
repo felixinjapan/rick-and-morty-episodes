@@ -12,7 +12,6 @@ final class EpisodeListViewModel {
         case endReached(count: Int)
     }
 
-    /// The episodes of one season, in list order. Episodes without a recognized code share one group.
     struct SeasonGroup: Identifiable, Equatable {
         let season: Int?
         let episodes: [Episode]
@@ -21,7 +20,6 @@ final class EpisodeListViewModel {
 
     private var snapshot: EpisodeSnapshot?
     var episodes: [Episode] { snapshot?.episodes ?? [] }
-    /// Grouped once per snapshot rather than on every view update.
     private(set) var seasonGroups: [SeasonGroup] = []
     var lastRefreshedAt: Date? { snapshot?.refreshedAt }
     var isRefreshing: Bool { activeRefreshCount > 0 }
@@ -31,7 +29,6 @@ final class EpisodeListViewModel {
     /// Page loads and pull-to-refresh don't change it.
     private(set) var listIdentity = 0
 
-    /// A failed page load or a failed refresh of an empty list, with the call that retries it.
     private struct LoadFailure {
         enum Retry { case nextPage, refresh }
         let message: String
@@ -76,12 +73,10 @@ final class EpisodeListViewModel {
         return .endReached(count: episodes.count)
     }
 
-    /// True once the catalogue is known to have no episodes, as opposed to still loading or failed.
     var isCatalogueEmpty: Bool {
         episodes.isEmpty && footer == .endReached(count: 0)
     }
 
-    /// True while the first page is loading and there is nothing to show yet.
     var isLoadingFirstPage: Bool {
         guard episodes.isEmpty, case .loading = footer else { return false }
         return true
@@ -147,7 +142,6 @@ final class EpisodeListViewModel {
 
     // MARK: - Refresh
 
-    /// Retries whatever failed last, which for an empty list may be a refresh rather than a page load.
     func retryFailedLoad() async {
         switch loadFailure?.retry {
         case .refresh: await refresh()

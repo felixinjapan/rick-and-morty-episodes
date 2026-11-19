@@ -12,7 +12,6 @@ enum RecordedResponses {
         return try Data(contentsOf: url)
     }
 
-    /// A small solid-colour image that stands in for every avatar.
     static let portrait = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGPQmtuPFTEMLQkAT3dVgRdrT9YAAAAASUVORK5CYII=")!
 
     static func characters(ids: [Int]) throws -> Data? {

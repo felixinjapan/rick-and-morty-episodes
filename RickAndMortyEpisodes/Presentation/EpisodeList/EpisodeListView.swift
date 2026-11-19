@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct EpisodeListView: View {
-    /// Owned by AppRoot, which also forwards foreground refreshes to this instance.
     let viewModel: EpisodeListViewModel
     let screens: CharacterScreens
     @State private var viewport: CGRect = .zero

@@ -14,12 +14,10 @@ actor FileCharacterStore {
             .toDomain()
     }
 
-    /// Reads several characters in one actor hop. A failure affects only the ID it belongs to.
     func load(ids: [Int]) -> [Int: Result<StoredCharacter?, any Error>] {
         Dictionary(uniqueKeysWithValues: ids.map { id in (id, Result { try load(id: id) }) })
     }
 
-    /// Writes several characters in one actor hop and returns the failures by ID.
     func save(_ characters: [StoredCharacter]) -> [Int: any Error] {
         var failures: [Int: any Error] = [:]
         do {

@@ -1,6 +1,5 @@
 import Foundation
 
-/// When the episode list is old enough to check again on launch or when returning to the app.
 struct EpisodeRefreshPolicy: Sendable {
     let staleInterval: TimeInterval
 

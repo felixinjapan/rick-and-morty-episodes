@@ -6,7 +6,6 @@ struct EpisodeSnapshot: Sendable, Equatable {
     /// How many episodes exist in all, as the API last reported. A refresh compares it with the new
     /// value to tell whether the catalogue grew.
     let totalCount: Int
-    /// When page 1 was fetched; drives "Last updated" and the staleness check.
     let refreshedAt: Date
 
     init(episodes: [Episode], nextPage: Int? = nil, totalCount: Int? = nil, refreshedAt: Date) {

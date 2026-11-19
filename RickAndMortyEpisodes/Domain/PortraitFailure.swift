@@ -1,12 +1,10 @@
 import Foundation
 
-/// How a failed portrait load is handled.
 enum PortraitFailure: Equatable {
     /// Likely to pass on its own: try once more after the delay.
     case transient(delay: Duration)
     /// Worth asking for again later, such as when the device is back online.
     case retryLater
-    /// Asking again won't help.
     case permanent
 
     init(_ error: RepositoryError) {

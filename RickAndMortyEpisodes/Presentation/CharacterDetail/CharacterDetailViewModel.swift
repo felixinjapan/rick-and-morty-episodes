@@ -65,7 +65,6 @@ final class CharacterDetailViewModel {
         }
     }
 
-    /// What the share sheet offers for the loaded character; `nil` until there is one.
     var exportFile: CharacterExportFile? {
         guard let character else { return nil }
         let exportCharacter = exportCharacter

@@ -81,7 +81,6 @@ actor DelayedEpisodeFeed: RickAndMortyAPI {
 
     private func makeCharacter(_ id: Int) -> CharacterDetails {
         if cast == .endless {
-            // Every character has a portrait, so scrolling exercises the lazy image loading too.
             return CharacterDetails(
                 id: id, name: "Endless Character \(id)", status: [.alive, .dead, .unknown][id % 3],
                 species: id.isMultiple(of: 2) ? "Human" : "Alien", originName: "Earth (C-137)",

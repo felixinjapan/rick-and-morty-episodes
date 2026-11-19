@@ -1,5 +1,3 @@
-/// Builds the view models for the character screens, so views never see repositories or the
-/// exporter. `AppRoot` supplies the real dependencies.
 @MainActor
 struct CharacterScreens {
     let makeCast: (Episode) -> EpisodeCharactersViewModel
