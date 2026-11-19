@@ -1,13 +1,17 @@
 import SwiftUI
 
 struct CharacterDetailView: View {
-    @State private var viewModel: CharacterDetailViewModel
+    @State private var lazyViewModel: LazyValue<CharacterDetailViewModel>
 
-    init(viewModel: CharacterDetailViewModel) {
-        _viewModel = State(initialValue: viewModel)
+    /// Called at most once per presentation, however often the destination is re-evaluated.
+    init(makeViewModel: @escaping () -> CharacterDetailViewModel) {
+        _lazyViewModel = State(initialValue: LazyValue(makeViewModel))
     }
 
+    private var viewModel: CharacterDetailViewModel { lazyViewModel.value }
+
     var body: some View {
+        @Bindable var viewModel = viewModel
         content
             .navigationTitle(viewModel.character?.name ?? String(localized: .characterDetailTitle))
             .navigationBarTitleDisplayMode(.inline)
@@ -129,11 +133,11 @@ private func characterDetailPreview(networkUnavailable: Bool = false) -> some Vi
     let screens = AppDependencies.makePreviewScreens(networkUnavailable: networkUnavailable)
     let cast = screens.makeCast(PreviewData.episode)
     return NavigationStack {
-        CharacterDetailView(
-            viewModel: screens.makeDetail(CharacterRoute(id: 1, character: nil)) {
+        CharacterDetailView {
+            screens.makeDetail(CharacterRoute(id: 1, character: nil)) {
                 try await cast.character(id: 1)
             }
-        )
+        }
     }
 }
 #endif

@@ -8,15 +8,17 @@ struct CharacterRoute: Hashable {
 struct EpisodeCharactersView: View {
     let episode: Episode
     let screens: CharacterScreens
-    @State private var viewModel: EpisodeCharactersViewModel
+    @State private var lazyViewModel: LazyValue<EpisodeCharactersViewModel>
     @State private var visibleIDs: Set<Int> = []
     @State private var viewport: CGRect = .zero
 
     init(episode: Episode, screens: CharacterScreens) {
         self.episode = episode
         self.screens = screens
-        _viewModel = State(initialValue: screens.makeCast(episode))
+        _lazyViewModel = State(initialValue: LazyValue { screens.makeCast(episode) })
     }
+
+    private var viewModel: EpisodeCharactersViewModel { lazyViewModel.value }
 
     var body: some View {
         List {
@@ -79,9 +81,9 @@ struct EpisodeCharactersView: View {
         .navigationTitle(.episodeCharactersTitle)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: CharacterRoute.self) { route in
-            CharacterDetailView(
-                viewModel: screens.makeDetail(route) { try await viewModel.character(id: route.id) }
-            )
+            CharacterDetailView {
+                screens.makeDetail(route) { try await viewModel.character(id: route.id) }
+            }
         }
         .task(id: visibleIDs) { [visibleIDs] in
             await viewModel.loadVisibleCast(visibleIDs: visibleIDs)
@@ -206,7 +208,7 @@ private struct EpisodeCharacterRow: View {
             EpisodeCharacterRow(id: 3, character: nil, isUnavailable: true, portraits: portraits, viewport: .zero) { _ in }
         }
         .navigationDestination(for: CharacterRoute.self) { route in
-            CharacterDetailView(viewModel: screens.makeDetail(route) { try await cast.character(id: route.id) })
+            CharacterDetailView { screens.makeDetail(route) { try await cast.character(id: route.id) } }
         }
         .task { await portraits.load(for: [PreviewData.character], using: portraitLoader) }
     }
