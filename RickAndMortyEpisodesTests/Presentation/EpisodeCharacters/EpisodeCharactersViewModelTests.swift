@@ -185,7 +185,7 @@ private func makeViewModel(
     )
 }
 
-private actor CharacterBatchRecorder: CharacterRepository {
+private actor CharacterBatchRecorder: CharacterRepository, PortraitRepository {
     private(set) var requests: [[Int]] = []
     private(set) var portraitRequests: [URL] = []
     private(set) var singleRequests: [Int] = []

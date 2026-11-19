@@ -12,7 +12,8 @@ struct AppRootTests {
         AppRoot(
             repositories: .init(
                 episodes: repository,
-                characters: DefaultCharacterRepository.makeTemporary(api: StubAPI())
+                characters: DefaultCharacterRepository.makeTemporary(api: StubAPI()),
+                portraits: DefaultPortraitRepository.makeTemporary(api: StubAPI())
             ),
             exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString)),
             freshnessInterval: 3600,

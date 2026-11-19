@@ -128,14 +128,21 @@ extension DefaultCharacterRepository {
     static func makeTemporary(
         api: any RickAndMortyAPI,
         store: FileCharacterStore = .makeTemporary(),
-        portraits: PortraitStore = .makeTemporary(),
         catalogueCount: @escaping @Sendable () async -> Int? = { nil },
         maxAge: TimeInterval = 3600,
         now: @escaping @Sendable () -> Date = { fixedDate }
     ) -> DefaultCharacterRepository {
         DefaultCharacterRepository(
-            api: api, store: store, portraits: portraits, catalogueCount: catalogueCount, maxAge: maxAge, now: now
+            api: api, store: store, catalogueCount: catalogueCount, maxAge: maxAge, now: now
         )
+    }
+}
+
+extension DefaultPortraitRepository {
+    static func makeTemporary(
+        api: any RickAndMortyAPI, store: PortraitStore = .makeTemporary()
+    ) -> DefaultPortraitRepository {
+        DefaultPortraitRepository(api: api, store: store)
     }
 }
 

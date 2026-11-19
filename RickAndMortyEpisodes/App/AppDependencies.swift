@@ -4,6 +4,7 @@ enum AppDependencies {
     struct Repositories {
         let episodes: any EpisodeRepository
         let characters: any CharacterRepository
+        let portraits: any PortraitRepository
     }
 
     static func makeRepositories(
@@ -60,20 +61,23 @@ enum AppDependencies {
             characters: DefaultCharacterRepository(
                 api: api,
                 store: FileCharacterStore(directory: cacheDirectory.appending(path: "characters", directoryHint: .isDirectory)),
-                portraits: PortraitStore(directory: cacheDirectory.appending(path: "portraits", directoryHint: .isDirectory)),
                 catalogueCount: { await episodes.loadCurrentSnapshot()?.totalCount },
                 maxAge: characterMaxAge
+            ),
+            portraits: DefaultPortraitRepository(
+                api: api,
+                store: PortraitStore(directory: cacheDirectory.appending(path: "portraits", directoryHint: .isDirectory))
             )
         )
     }
 
     @MainActor
     static func makeCharacterScreens(
-        characters: any CharacterRepository, exporter: any CharacterExporting
+        characters: any CharacterRepository, portraits: any PortraitRepository, exporter: any CharacterExporting
     ) -> CharacterScreens {
-        let thumbnails = PortraitLoader(repository: characters)
+        let thumbnails = PortraitLoader(repository: portraits)
         // The detail portrait is 200 points, or 600 pixels on a 3x display.
-        let detailPortraits = PortraitLoader(repository: characters, maxPixelSize: 600)
+        let detailPortraits = PortraitLoader(repository: portraits, maxPixelSize: 600)
         return CharacterScreens(
             makeCast: { episode in
                 EpisodeCharactersViewModel(

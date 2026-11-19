@@ -6,25 +6,21 @@ import os
 actor DefaultCharacterRepository: CharacterRepository {
     private let api: any RickAndMortyAPI
     private let store: FileCharacterStore
-    private let portraits: PortraitStore
     private let catalogueCount: @Sendable () async -> Int?
     private let maxAge: TimeInterval
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultCharacterRepository")
     private var cache: [Int: StoredCharacter] = [:]
-    private var portraitLoads: [URL: Task<Data, any Error>] = [:]
 
     init(
         api: any RickAndMortyAPI,
         store: FileCharacterStore,
-        portraits: PortraitStore,
         catalogueCount: @escaping @Sendable () async -> Int?,
         maxAge: TimeInterval,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.api = api
         self.store = store
-        self.portraits = portraits
         self.catalogueCount = catalogueCount
         self.maxAge = maxAge
         self.now = now
@@ -85,39 +81,6 @@ actor DefaultCharacterRepository: CharacterRepository {
             // Cancellation and not-found responses leave only the fresh cached details.
         }
         return available
-    }
-
-    /// Reuses a readable saved portrait without an age limit. A missing, unreadable, or invalid
-    /// file is downloaded again; a successful download replaces it. Fetch failures propagate.
-    /// Callers asking for the same URL share one load, because the actor can interleave them at
-    /// each `await` and both would miss the saved file.
-    func portrait(for character: CharacterDetails) async throws -> Data {
-        guard let url = character.imageURL else { throw RepositoryError.notFound }
-        if let running = portraitLoads[url] { return try await running.value }
-        let load = Task<Data, any Error> {
-            defer { portraitLoads[url] = nil }
-            return try await loadPortrait(for: character, from: url)
-        }
-        portraitLoads[url] = load
-        return try await load.value
-    }
-
-    private func loadPortrait(for character: CharacterDetails, from url: URL) async throws -> Data {
-        do {
-            if let saved = try await portraits.load(for: url) {
-                if ImageValidation.isImage(saved) { return saved }
-                logger.error("Saved portrait \(character.id) is not a readable image")
-            }
-        } catch {
-            logger.error("Failed to read saved portrait \(character.id): \(error.localizedDescription, privacy: .public)")
-        }
-        let data = try await translatingErrors(logger: logger) { try await api.portrait(from: url) }
-        do {
-            try await portraits.save(data, for: url)
-        } catch {
-            logger.error("Failed to save portrait \(character.id): \(error.localizedDescription, privacy: .public)")
-        }
-        return data
     }
 
     private func isFresh(_ saved: StoredCharacter, catalogueCount current: Int?) -> Bool {

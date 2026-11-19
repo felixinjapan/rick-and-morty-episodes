@@ -29,15 +29,16 @@ extension AppDependencies {
 
     @MainActor
     static func makePreviewScreens(networkUnavailable: Bool = false) -> CharacterScreens {
-        makeCharacterScreens(
-            characters: makePreviewRepositories(configuration: .production, networkUnavailable: networkUnavailable)
-                .characters,
-            exporter: makePreviewExporter()
+        let repositories = makePreviewRepositories(
+            configuration: .production, networkUnavailable: networkUnavailable
+        )
+        return makeCharacterScreens(
+            characters: repositories.characters, portraits: repositories.portraits, exporter: makePreviewExporter()
         )
     }
 
     static func makePreviewPortraitLoader() -> any PortraitLoading {
-        PortraitLoader(repository: makePreviewRepositories(configuration: .production).characters)
+        PortraitLoader(repository: makePreviewRepositories(configuration: .production).portraits)
     }
 
     static func makePreviewExporter() -> CharacterExporter {

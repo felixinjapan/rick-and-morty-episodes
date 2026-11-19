@@ -4,11 +4,11 @@ import ImageIO
 /// Turns saved or downloaded portrait bytes into display-sized images. Temporary failures are
 /// retried once here, so callers only see the final outcome.
 struct PortraitLoader: PortraitLoading {
-    private let repository: any CharacterRepository
+    private let repository: any PortraitRepository
     private let maxPixelSize: Int
 
     /// The default fits the largest cast portrait: 80 points, or 240 pixels on a 3x display.
-    init(repository: any CharacterRepository, maxPixelSize: Int = 240) {
+    init(repository: any PortraitRepository, maxPixelSize: Int = 240) {
         self.repository = repository
         self.maxPixelSize = maxPixelSize
     }

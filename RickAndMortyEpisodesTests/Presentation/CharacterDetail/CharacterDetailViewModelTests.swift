@@ -9,9 +9,11 @@ struct CharacterDetailViewModelTests {
     func loadAndExport() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(characters: [1: .success(.rick)]))
+        let api = StubAPI(characters: [1: .success(.rick)])
+        let repository = DefaultCharacterRepository.makeTemporary(api: api)
         let viewModel = CharacterDetailViewModel(
-            portraitLoader: PortraitLoader(repository: repository), exporter: CharacterExporter(directory: directory)
+            portraitLoader: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: api)),
+            exporter: CharacterExporter(directory: directory)
         ) {
             try await repository.character(id: 1)
         }
@@ -26,9 +28,10 @@ struct CharacterDetailViewModelTests {
 
     @Test("A failed load shows an error and export stays unavailable")
     func loadFailure() async {
-        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI())
+        let api = StubAPI()
+        let repository = DefaultCharacterRepository.makeTemporary(api: api)
         let viewModel = CharacterDetailViewModel(
-            portraitLoader: PortraitLoader(repository: repository),
+            portraitLoader: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: api)),
             exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
         ) {
             try await repository.character(id: 99999)
@@ -44,7 +47,7 @@ struct CharacterDetailViewModelTests {
     @Test("An invalid portrait shows a fallback while keeping the character details")
     func invalidPortrait() async throws {
         let url = try #require(CharacterDetails.rick.imageURL)
-        let repository = DefaultCharacterRepository.makeTemporary(api: StubAPI(portraits: [url: .success(Data([0]))]))
+        let repository = DefaultPortraitRepository.makeTemporary(api: StubAPI(portraits: [url: .success(Data([0]))]))
         let viewModel = CharacterDetailViewModel(
             character: .rick, portraitLoader: PortraitLoader(repository: repository),
             exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
@@ -71,7 +74,7 @@ struct CharacterDetailViewModelTests {
         let api = StubAPI()
         let repository = DefaultCharacterRepository.makeTemporary(api: api)
         let viewModel = CharacterDetailViewModel(
-            portraitLoader: PortraitLoader(repository: repository),
+            portraitLoader: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: api)),
             exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
         ) {
             try await repository.character(id: 1)
@@ -88,7 +91,7 @@ struct CharacterDetailViewModelTests {
     @Test("A downloaded portrait is shown at the detail size")
     func portraitLoads() async throws {
         let url = try #require(CharacterDetails.rick.imageURL)
-        let repository = DefaultCharacterRepository.makeTemporary(
+        let repository = DefaultPortraitRepository.makeTemporary(
             api: StubAPI(portraits: [url: .success(RecordedResponses.portrait)])
         )
         let viewModel = CharacterDetailViewModel(
@@ -112,7 +115,7 @@ struct CharacterDetailViewModelTests {
         defer { try? FileManager.default.removeItem(at: blocker) }
         let viewModel = CharacterDetailViewModel(
             character: .rick,
-            portraitLoader: PortraitLoader(repository: DefaultCharacterRepository.makeTemporary(api: StubAPI())),
+            portraitLoader: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: StubAPI())),
             exporter: CharacterExporter(directory: blocker.appending(path: "Exports"))
         ) {
             Issue.record("Loaded details should never be resolved again")

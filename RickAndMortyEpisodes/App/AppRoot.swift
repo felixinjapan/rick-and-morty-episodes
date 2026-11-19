@@ -19,7 +19,9 @@ final class AppRoot {
             repository: repositories.episodes,
             staleInterval: freshnessInterval
         )
-        screens = AppDependencies.makeCharacterScreens(characters: repositories.characters, exporter: exporter)
+        screens = AppDependencies.makeCharacterScreens(
+            characters: repositories.characters, portraits: repositories.portraits, exporter: exporter
+        )
         self.scheduleBackgroundRefresh = scheduleBackgroundRefresh
     }
 

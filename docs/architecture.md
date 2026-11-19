@@ -16,7 +16,7 @@ flowchart TD
         Proto["Entities, RepositoryError,<br/>repository and exporter protocols"]
     end
     subgraph Data
-        Repos["DefaultEpisodeRepository<br/>DefaultCharacterRepository<br/>(actors)"]
+        Repos["DefaultEpisodeRepository<br/>DefaultCharacterRepository<br/>DefaultPortraitRepository<br/>(actors)"]
         Net["Networking<br/>RickAndMortyAPI · URLSession"]
         Store["Persistence<br/>JSON files"]
     end
@@ -30,7 +30,7 @@ flowchart TD
     Deps -.->|wires| Repos
 ```
 
-Views take only view models. `CharacterScreens` (built in `AppDependencies`) creates the cast and detail view models, so no view holds a repository or the exporter. `PortraitLoader` in the data layer turns portrait bytes into display-sized images and owns the retry policy. The cast and detail view models both load portraits through it, at thumbnail and detail sizes. The cast view model keeps the results per URL, so a finished portrait redraws only its own row.
+Views take only view models. `CharacterScreens` (built in `AppDependencies`) creates the cast and detail view models, so no view holds a repository or the exporter. `DefaultPortraitRepository` downloads and saves portrait bytes, and `PortraitLoader` in the data layer turns them into display-sized images and owns the retry policy. The cast and detail view models both load portraits through it, at thumbnail and detail sizes. The cast view model keeps the results per URL, so a finished portrait redraws only its own row.
 
 `APIError` is translated to `RepositoryError` in the data layer. `Presentation/Shared/ErrorMessages.swift` maps repository errors to user-facing messages. Cancellation stays silent.
 
@@ -68,7 +68,7 @@ flowchart TD
 The character list tracks rows that are at least half visible. After scrolling settles, it requests
 the chunk of the cast that holds them (the first 20 rows, then 80 per chunk), then the portraits of the
 visible rows, then the next chunk once a row is 80% through its chunk, so a prefetch never delays what is
-on screen. It lets any batch already sent finish so its results can be reused. The repository reads
+on screen. `CastChunkPlanner` holds the chunk sizes and the 80% rule as plain values, so the view model only sequences the loads. It lets any batch already sent finish so its results can be reused. The repository reads
 cached details first and requests missing or stale IDs. Rows with unavailable details remain tappable
 by ID. The detail screen uses `character(id:)` and shows a Retry button if loading fails.
 
@@ -87,8 +87,9 @@ flowchart TD
     G -- no --> E
 ```
 
-The repository reuses any readable portrait it has saved, regardless of age. If the file is missing
-or unreadable, the repository downloads and saves a replacement.
+`DefaultPortraitRepository`, separate from the character repository, reuses any readable portrait it has
+saved, regardless of age. If the file is missing or unreadable, it downloads and saves a replacement.
+Callers asking for the same portrait at once share one download.
 
 ## Concurrency map
 
@@ -107,6 +108,7 @@ flowchart TD
     subgraph Actors["Actors (own their state, serialise access)"]
         EpRepo[DefaultEpisodeRepository]
         ChRepo[DefaultCharacterRepository]
+        PortRepo[DefaultPortraitRepository]
         EpStore[FileEpisodeStore]
         ChStore[FileCharacterStore]
         Portraits[PortraitStore]
@@ -132,12 +134,13 @@ flowchart TD
     DetailVM -- "portrait" --> Loader
     DetailVM -- "sync call" --> Exporter
     BG -- await --> EpRepo
-    Loader -- "portrait bytes" --> ChRepo
+    Loader -- "portrait bytes" --> PortRepo
     EpRepo --> API
     EpRepo --> EpStore
     ChRepo --> API
     ChRepo --> ChStore
-    ChRepo --> Portraits
+    PortRepo --> API
+    PortRepo --> Portraits
     ChRepo -. "catalogue size" .-> EpRepo
 ```
 
