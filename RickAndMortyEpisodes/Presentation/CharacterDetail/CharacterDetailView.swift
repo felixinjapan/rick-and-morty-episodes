@@ -120,7 +120,7 @@ private struct CharacterDetailContent: View {
 #Preview("Character content") {
     CharacterDetailContent(
         character: PreviewData.character,
-        portraitPhase: UIImage(data: RecordedResponses.portrait).map(CharacterPortraitPhase.loaded) ?? .failed
+        portraitPhase: UIImage(data: RecordedResponses.portrait)?.cgImage.map(CharacterPortraitPhase.loaded) ?? .failed
     )
 }
 

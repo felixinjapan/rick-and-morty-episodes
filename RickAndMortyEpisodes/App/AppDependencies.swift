@@ -62,7 +62,7 @@ enum AppDependencies {
                 api: api,
                 store: FileCharacterStore(directory: cacheDirectory.appending(path: "characters", directoryHint: .isDirectory)),
                 catalogueCount: { await episodes.loadCurrentSnapshot()?.totalCount },
-                maxAge: characterMaxAge
+                policy: CharacterCachePolicy(maxAge: characterMaxAge)
             ),
             portraits: DefaultPortraitRepository(
                 api: api,
@@ -73,20 +73,21 @@ enum AppDependencies {
 
     @MainActor
     static func makeCharacterScreens(
-        characters: any CharacterRepository, portraits: any PortraitRepository, exporter: any CharacterExporting
+        characters: any CharacterRepository, portraits: any PortraitRepository,
+        exporter: @escaping ExportCharacter
     ) -> CharacterScreens {
-        let thumbnails = PortraitLoader(repository: portraits)
+        let thumbnails = PortraitLoader(repository: portraits).loadThumbnail
         // The detail portrait is 200 points, or 600 pixels on a 3x display.
-        let detailPortraits = PortraitLoader(repository: portraits, maxPixelSize: 600)
+        let detailPortraits = PortraitLoader(repository: portraits, maxPixelSize: 600).loadThumbnail
         return CharacterScreens(
             makeCast: { episode in
                 EpisodeCharactersViewModel(
-                    characterIDs: episode.characterIDs, repository: characters, portraitLoader: thumbnails
+                    characterIDs: episode.characterIDs, repository: characters, loadThumbnail: thumbnails
                 )
             },
             makeDetail: { route, resolveCharacter in
                 CharacterDetailViewModel(
-                    character: route.character, portraitLoader: detailPortraits, exporter: exporter,
+                    character: route.character, loadThumbnail: detailPortraits, exporter: exporter,
                     resolveCharacter: resolveCharacter
                 )
             }

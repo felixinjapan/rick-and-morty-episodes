@@ -1,6 +1,6 @@
 import Foundation
 
-struct CharacterExporter: CharacterExporting {
+struct CharacterExporter {
     let directory: URL
 
     static func text(for character: CharacterDetails) -> String {

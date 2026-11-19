@@ -33,12 +33,12 @@ extension AppDependencies {
             configuration: .production, networkUnavailable: networkUnavailable
         )
         return makeCharacterScreens(
-            characters: repositories.characters, portraits: repositories.portraits, exporter: makePreviewExporter()
+            characters: repositories.characters, portraits: repositories.portraits, exporter: makePreviewExporter().export
         )
     }
 
-    static func makePreviewPortraitLoader() -> any PortraitLoading {
-        PortraitLoader(repository: makePreviewRepositories(configuration: .production).portraits)
+    static func makePreviewPortraitLoader() -> LoadThumbnail {
+        PortraitLoader(repository: makePreviewRepositories(configuration: .production).portraits).loadThumbnail
     }
 
     static func makePreviewExporter() -> CharacterExporter {

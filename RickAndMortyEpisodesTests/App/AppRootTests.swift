@@ -15,7 +15,7 @@ struct AppRootTests {
                 characters: DefaultCharacterRepository.makeTemporary(api: StubAPI()),
                 portraits: DefaultPortraitRepository.makeTemporary(api: StubAPI())
             ),
-            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString)),
+            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString)).export,
             freshnessInterval: 3600,
             scheduleBackgroundRefresh: schedule
         )

@@ -133,7 +133,8 @@ extension DefaultCharacterRepository {
         now: @escaping @Sendable () -> Date = { fixedDate }
     ) -> DefaultCharacterRepository {
         DefaultCharacterRepository(
-            api: api, store: store, catalogueCount: catalogueCount, maxAge: maxAge, now: now
+            api: api, store: store, catalogueCount: catalogueCount,
+            policy: CharacterCachePolicy(maxAge: maxAge), now: now
         )
     }
 }

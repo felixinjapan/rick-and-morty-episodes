@@ -2,7 +2,7 @@ import SwiftUI
 
 enum CharacterPortraitPhase {
     case loading
-    case loaded(UIImage)
+    case loaded(CGImage)
     case failed
 }
 
@@ -15,8 +15,8 @@ struct CharacterPortraitContent: View {
         Group {
             switch phase {
             case .loaded(let image):
-                Image(uiImage: image).resizable().scaledToFill()
-                    .accessibilityLabel(.portraitImage(name))
+                Image(image, scale: 1, label: Text(.portraitImage(name)))
+                    .resizable().scaledToFill()
                     .accessibilityIdentifier("characterDetail.portrait")
             case .loading:
                 ProgressView()
@@ -39,7 +39,7 @@ struct CharacterPortraitContent: View {
 #if DEBUG
 #Preview("Portrait states", traits: .sizeThatFitsLayout) {
     HStack {
-        if let image = UIImage(data: RecordedResponses.portrait) {
+        if let image = UIImage(data: RecordedResponses.portrait)?.cgImage {
             CharacterPortraitContent(name: PreviewData.character.name, size: 52, phase: .loaded(image))
         }
         CharacterPortraitContent(name: PreviewData.character.name, size: 52, phase: .loading)

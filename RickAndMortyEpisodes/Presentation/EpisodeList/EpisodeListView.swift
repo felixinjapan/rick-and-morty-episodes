@@ -266,7 +266,7 @@ private func episodeListPreview(networkUnavailable: Bool = false) -> some View {
     )
     return AppRoot(
         repositories: repositories,
-        exporter: AppDependencies.makePreviewExporter(),
+        exporter: AppDependencies.makePreviewExporter().export,
         freshnessInterval: configuration.freshnessInterval,
         scheduleBackgroundRefresh: {}
     ).content

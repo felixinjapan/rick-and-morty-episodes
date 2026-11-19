@@ -1,6 +1,7 @@
+import CoreGraphics
+import Foundation
 import Observation
 import os
-import UIKit
 
 @MainActor
 @Observable
@@ -22,17 +23,18 @@ final class CharacterDetailViewModel {
     var exportErrorMessage: String?
 
     private let logger = Logger(category: "CharacterDetailViewModel")
-    private let exporter: any CharacterExporting
-    private let portraitLoader: any PortraitLoading
+    private let exportCharacter: ExportCharacter
+    private let loadThumbnail: LoadThumbnail
     private let resolveCharacter: () async throws -> CharacterDetails
 
     init(
-        character: CharacterDetails? = nil, portraitLoader: any PortraitLoading, exporter: any CharacterExporting,
+        character: CharacterDetails? = nil, loadThumbnail: @escaping LoadThumbnail,
+        exporter: @escaping ExportCharacter,
         resolveCharacter: @escaping () async throws -> CharacterDetails
     ) {
         state = character.map(State.loaded) ?? .loading
-        self.portraitLoader = portraitLoader
-        self.exporter = exporter
+        self.loadThumbnail = loadThumbnail
+        exportCharacter = exporter
         self.resolveCharacter = resolveCharacter
     }
 
@@ -63,9 +65,9 @@ final class CharacterDetailViewModel {
         if case .loaded = portraitPhase { return }
         portrait = (url, .loading)
         // `nil` means the load was cancelled; `.task` starts it again if the screen reappears.
-        guard let result = await portraitLoader.thumbnail(for: character), !Task.isCancelled else { return }
+        guard let result = await loadThumbnail(character), !Task.isCancelled else { return }
         switch result {
-        case .image(let image): portrait = (url, .loaded(UIImage(cgImage: image)))
+        case .image(let image): portrait = (url, .loaded(image))
         case .unavailable: portrait = (url, .failed)
         }
     }
@@ -74,7 +76,7 @@ final class CharacterDetailViewModel {
         guard let character else { return }
         do {
             // A few hundred bytes, so writing synchronously on the main actor is fine.
-            exportedFile = ExportedFile(url: try exporter.export(character))
+            exportedFile = ExportedFile(url: try exportCharacter(character))
         } catch {
             logger.error("Export failed: \(error.localizedDescription, privacy: .public)")
             exportErrorMessage = String(localized: .characterDetailExportFailedMessage)

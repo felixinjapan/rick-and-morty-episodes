@@ -41,16 +41,16 @@ final class EpisodeListViewModel {
     private var listGeneration = 0
 
     private let repository: any EpisodeRepository
-    private let staleInterval: TimeInterval
+    private let refreshPolicy: EpisodeRefreshPolicy
     private let now: () -> Date
 
     init(
         repository: any EpisodeRepository,
-        staleInterval: TimeInterval,
+        refreshPolicy: EpisodeRefreshPolicy,
         now: @escaping () -> Date = { .now }
     ) {
         self.repository = repository
-        self.staleInterval = staleInterval
+        self.refreshPolicy = refreshPolicy
         self.now = now
     }
 
@@ -159,8 +159,7 @@ final class EpisodeListViewModel {
     }
 
     private var isStale: Bool {
-        guard let lastRefreshedAt else { return false }
-        return now().timeIntervalSince(lastRefreshedAt) > staleInterval
+        refreshPolicy.isStale(refreshedAt: lastRefreshedAt, now: now())
     }
 
     private func apply(_ snapshot: EpisodeSnapshot) {

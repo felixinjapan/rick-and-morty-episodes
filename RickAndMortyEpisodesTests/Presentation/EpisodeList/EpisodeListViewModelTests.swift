@@ -12,7 +12,7 @@ struct EpisodeListViewModelTests {
     ) -> EpisodeListViewModel {
         // One clock for both, so a fetch made "later" is stamped later.
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { now })
-        return EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { now })
+        return EpisodeListViewModel(repository: repository, refreshPolicy: .init(staleInterval: 3600), now: { now })
     }
 
     @Test("Without a cache, pages load one at a time until the end is reached")
@@ -276,7 +276,7 @@ struct EpisodeListViewModelTests {
         let api = makeThreePageAPI()
         let repository = DefaultEpisodeRepository(api: api, store: try .makeUnwritable(), now: { fixedDate })
         var currentDate = fixedDate
-        let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { currentDate })
+        let viewModel = EpisodeListViewModel(repository: repository, refreshPolicy: .init(staleInterval: 3600), now: { currentDate })
         await viewModel.start()
         for _ in 0..<3 { await viewModel.loadNextPage() }
         try #require(viewModel.episodes.count == 45)
@@ -294,7 +294,7 @@ struct EpisodeListViewModelTests {
         await api.holdPage(3, until: gate)
         let store = FileEpisodeStore.makeTemporary()
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
-        let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { fixedDate })
+        let viewModel = EpisodeListViewModel(repository: repository, refreshPolicy: .init(staleInterval: 3600), now: { fixedDate })
         await viewModel.start()
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
@@ -335,7 +335,7 @@ struct EpisodeListViewModelTests {
         let api = makeThreePageAPI()
         let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary(), now: { fixedDate })
         var currentDate = fixedDate
-        let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { currentDate })
+        let viewModel = EpisodeListViewModel(repository: repository, refreshPolicy: .init(staleInterval: 3600), now: { currentDate })
         await viewModel.start()
         await viewModel.loadNextPage()
         await viewModel.loadNextPage()
@@ -366,7 +366,7 @@ struct EpisodeListViewModelTests {
         let slowGate = Gate()
         await api.holdPage(1, until: slowGate)
         let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary())
-        let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600)
+        let viewModel = EpisodeListViewModel(repository: repository, refreshPolicy: .init(staleInterval: 3600))
 
         let slow = Task { await viewModel.refresh() }
         while await api.requestedPages.isEmpty { await Task.yield() }

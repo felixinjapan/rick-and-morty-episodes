@@ -1,22 +1,20 @@
+import CoreGraphics
 import Observation
-import UIKit
+import Foundation
 
 /// One slot per portrait URL, so a finished portrait redraws only the rows showing it.
 @MainActor
 @Observable
 final class PortraitSlot {
     fileprivate(set) var phase: CharacterPortraitPhase = .loading
-    @ObservationIgnored fileprivate var hasResult = false
-    @ObservationIgnored fileprivate var retryAfter: ContinuousClock.Instant?
 }
 
+/// The portraits the cast rows show. `PortraitLoadPolicy` decides what to request and what to
+/// remember; this keeps the images and tells the rows.
 @MainActor
 final class EpisodeCharacterPortraits {
-    private static let capacity = 128
-    private static let concurrentLoads = 3
-
     private var slots: [URL: PortraitSlot] = [:]
-    private var insertionOrder: [URL] = []
+    private var policy = PortraitLoadPolicy()
 
     /// Reading the phase observes only this URL's slot.
     func phase(for url: URL?) -> CharacterPortraitPhase {
@@ -24,25 +22,22 @@ final class EpisodeCharacterPortraits {
         return slot(for: url).phase
     }
 
-    func load(for characters: [CharacterDetails], using loader: any PortraitLoading) async {
+    func load(for characters: [CharacterDetails], using loadThumbnail: @escaping LoadThumbnail) async {
         guard !Task.isCancelled else { return }
         var seen: Set<URL> = []
         let now = ContinuousClock.now
         var pending = characters.compactMap { character -> (URL, CharacterDetails)? in
             guard let url = character.imageURL, seen.insert(url).inserted else { return nil }
-            let slot = slot(for: url)
-            if slot.hasResult {
-                guard let retryAfter = slot.retryAfter, retryAfter <= now else { return nil }
-            }
-            return (url, character)
+            _ = slot(for: url)
+            return policy.needsLoad(url, at: now) ? (url, character) : nil
         }.makeIterator()
 
         await withTaskGroup(of: (URL, PortraitResult)?.self) { group in
             func addNext() {
                 guard let (url, character) = pending.next() else { return }
-                group.addTask { await loader.thumbnail(for: character).map { (url, $0) } }
+                group.addTask { await loadThumbnail(character).map { (url, $0) } }
             }
-            for _ in 0..<Self.concurrentLoads { addNext() }
+            for _ in 0..<PortraitLoadPolicy.concurrentLoads { addNext() }
             for await result in group {
                 guard !Task.isCancelled else { return }
                 addNext()
@@ -59,27 +54,14 @@ final class EpisodeCharacterPortraits {
     }
 
     private func store(_ outcome: PortraitResult, for url: URL) {
+        // Resets the evicted slot too, so a row still showing it asks for a fresh one on its next update.
+        if let evicted = policy.remember(outcome, for: url, at: .now) {
+            slots.removeValue(forKey: evicted)?.phase = .loading
+        }
         let slot = slot(for: url)
-        if !slot.hasResult {
-            if insertionOrder.count == Self.capacity { evictOldest() }
-            insertionOrder.append(url)
-            slot.hasResult = true
-        }
         switch outcome {
-        case .image(let image):
-            slot.phase = .loaded(UIImage(cgImage: image))
-            slot.retryAfter = nil
-        case .unavailable(let retryable):
-            slot.phase = .failed
-            slot.retryAfter = retryable ? ContinuousClock.now.advanced(by: .seconds(30)) : nil
+        case .image(let image): slot.phase = .loaded(image)
+        case .unavailable: slot.phase = .failed
         }
-    }
-
-    /// Resets the slot too, so a row still showing it asks for a fresh one on its next update.
-    private func evictOldest() {
-        let url = insertionOrder.removeFirst()
-        guard let slot = slots.removeValue(forKey: url) else { return }
-        slot.hasResult = false
-        slot.phase = .loading
     }
 }

@@ -7,7 +7,7 @@ actor DefaultCharacterRepository: CharacterRepository {
     private let api: any RickAndMortyAPI
     private let store: FileCharacterStore
     private let catalogueCount: @Sendable () async -> Int?
-    private let maxAge: TimeInterval
+    private let policy: CharacterCachePolicy
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultCharacterRepository")
     private var cache: [Int: StoredCharacter] = [:]
@@ -16,13 +16,13 @@ actor DefaultCharacterRepository: CharacterRepository {
         api: any RickAndMortyAPI,
         store: FileCharacterStore,
         catalogueCount: @escaping @Sendable () async -> Int?,
-        maxAge: TimeInterval,
+        policy: CharacterCachePolicy,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.api = api
         self.store = store
         self.catalogueCount = catalogueCount
-        self.maxAge = maxAge
+        self.policy = policy
         self.now = now
     }
 
@@ -84,8 +84,10 @@ actor DefaultCharacterRepository: CharacterRepository {
     }
 
     private func isFresh(_ saved: StoredCharacter, catalogueCount current: Int?) -> Bool {
-        let sameCatalogue = current == nil || saved.catalogueCount == nil || saved.catalogueCount == current
-        return sameCatalogue && now().timeIntervalSince(saved.savedAt) < maxAge
+        policy.isFresh(
+            savedAt: saved.savedAt, savedCatalogueCount: saved.catalogueCount,
+            currentCatalogueCount: current, now: now()
+        )
     }
 
     private func savedCharacter(id: Int) async -> StoredCharacter? {

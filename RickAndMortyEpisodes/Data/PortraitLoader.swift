@@ -3,7 +3,7 @@ import ImageIO
 
 /// Turns saved or downloaded portrait bytes into display-sized images. Temporary failures are
 /// retried once here, so callers only see the final outcome.
-struct PortraitLoader: PortraitLoading {
+struct PortraitLoader {
     private let repository: any PortraitRepository
     private let maxPixelSize: Int
 
@@ -11,6 +11,11 @@ struct PortraitLoader: PortraitLoading {
     init(repository: any PortraitRepository, maxPixelSize: Int = 240) {
         self.repository = repository
         self.maxPixelSize = maxPixelSize
+    }
+
+    /// The loader as a function, for the view models that only need to call it.
+    var loadThumbnail: LoadThumbnail {
+        { await thumbnail(for: $0) }
     }
 
     func thumbnail(for character: CharacterDetails) async -> PortraitResult? {

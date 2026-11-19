@@ -12,8 +12,8 @@ struct CharacterDetailViewModelTests {
         let api = StubAPI(characters: [1: .success(.rick)])
         let repository = DefaultCharacterRepository.makeTemporary(api: api)
         let viewModel = CharacterDetailViewModel(
-            portraitLoader: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: api)),
-            exporter: CharacterExporter(directory: directory)
+            loadThumbnail: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: api)).loadThumbnail,
+            exporter: CharacterExporter(directory: directory).export
         ) {
             try await repository.character(id: 1)
         }
@@ -31,8 +31,8 @@ struct CharacterDetailViewModelTests {
         let api = StubAPI()
         let repository = DefaultCharacterRepository.makeTemporary(api: api)
         let viewModel = CharacterDetailViewModel(
-            portraitLoader: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: api)),
-            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
+            loadThumbnail: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: api)).loadThumbnail,
+            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString)).export
         ) {
             try await repository.character(id: 99999)
         }
@@ -49,8 +49,8 @@ struct CharacterDetailViewModelTests {
         let url = try #require(CharacterDetails.rick.imageURL)
         let repository = DefaultPortraitRepository.makeTemporary(api: StubAPI(portraits: [url: .success(Data([0]))]))
         let viewModel = CharacterDetailViewModel(
-            character: .rick, portraitLoader: PortraitLoader(repository: repository),
-            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
+            character: .rick, loadThumbnail: PortraitLoader(repository: repository).loadThumbnail,
+            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString)).export
         ) {
             Issue.record("Loaded details should never be resolved again")
             throw RepositoryError.notFound
@@ -74,8 +74,8 @@ struct CharacterDetailViewModelTests {
         let api = StubAPI()
         let repository = DefaultCharacterRepository.makeTemporary(api: api)
         let viewModel = CharacterDetailViewModel(
-            portraitLoader: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: api)),
-            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
+            loadThumbnail: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: api)).loadThumbnail,
+            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString)).export
         ) {
             try await repository.character(id: 1)
         }
@@ -95,8 +95,8 @@ struct CharacterDetailViewModelTests {
             api: StubAPI(portraits: [url: .success(RecordedResponses.portrait)])
         )
         let viewModel = CharacterDetailViewModel(
-            character: .rick, portraitLoader: PortraitLoader(repository: repository),
-            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString))
+            character: .rick, loadThumbnail: PortraitLoader(repository: repository).loadThumbnail,
+            exporter: CharacterExporter(directory: .temporaryDirectory.appending(path: UUID().uuidString)).export
         ) {
             throw RepositoryError.notFound
         }
@@ -115,8 +115,8 @@ struct CharacterDetailViewModelTests {
         defer { try? FileManager.default.removeItem(at: blocker) }
         let viewModel = CharacterDetailViewModel(
             character: .rick,
-            portraitLoader: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: StubAPI())),
-            exporter: CharacterExporter(directory: blocker.appending(path: "Exports"))
+            loadThumbnail: PortraitLoader(repository: DefaultPortraitRepository.makeTemporary(api: StubAPI())).loadThumbnail,
+            exporter: CharacterExporter(directory: blocker.appending(path: "Exports")).export
         ) {
             Issue.record("Loaded details should never be resolved again")
             throw RepositoryError.notFound

@@ -41,7 +41,7 @@ struct ForegroundRefreshTests {
     func overlappingChecksStartOneRefresh() async {
         let repository = GatedRepository(snapshot: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate))
         var clock = fixedDate.addingTimeInterval(7200)
-        let viewModel = EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { clock })
+        let viewModel = EpisodeListViewModel(repository: repository, refreshPolicy: .init(staleInterval: 3600), now: { clock })
         await viewModel.start()                       // stale at launch: one refresh runs and finishes
         let callsAfterLaunch = await repository.refreshCalls
         clock = fixedDate.addingTimeInterval(100_000)  // stale again

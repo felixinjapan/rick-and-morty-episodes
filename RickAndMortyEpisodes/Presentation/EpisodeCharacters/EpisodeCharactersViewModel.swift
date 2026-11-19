@@ -6,8 +6,6 @@ import Observation
 final class EpisodeCharactersViewModel {
     let portraits = EpisodeCharacterPortraits()
     private(set) var characters: [Int: CharacterDetails] = [:]
-    /// The visible IDs once scrolling paused. No view reads it; tests wait on it.
-    private(set) var settledIDs: Set<Int> = []
     private(set) var unavailableIDs: Set<Int> = []
 
     @ObservationIgnored private var hasSettled = false
@@ -15,14 +13,18 @@ final class EpisodeCharactersViewModel {
     @ObservationIgnored private var batchCount = 0
     private let planner: CastChunkPlanner
     private let repository: any CharacterRepository
-    private let portraitLoader: any PortraitLoading
+    private let loadThumbnail: LoadThumbnail
+    /// Waits out the debounce; tests pass one that returns at once.
+    private let sleep: @Sendable (Duration) async throws -> Void
 
     init(
-        characterIDs: [Int] = [], repository: any CharacterRepository, portraitLoader: any PortraitLoading
+        characterIDs: [Int] = [], repository: any CharacterRepository, loadThumbnail: @escaping LoadThumbnail,
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         planner = CastChunkPlanner(characterIDs: characterIDs)
         self.repository = repository
-        self.portraitLoader = portraitLoader
+        self.loadThumbnail = loadThumbnail
+        self.sleep = sleep
     }
 
     /// Loads what the visible rows need first, then their portraits, then the next chunk, so a
@@ -34,7 +36,7 @@ final class EpisodeCharactersViewModel {
         guard !Task.isCancelled else { return }
         let nearby = planner.nearbyIDs(for: visibleIDs, padding: 2).subtracting(visibleIDs)
         let portraitIDs = visibleIDs.sorted() + nearby.sorted()
-        await portraits.load(for: portraitIDs.compactMap { characters[$0] }, using: portraitLoader)
+        await portraits.load(for: portraitIDs.compactMap { characters[$0] }, using: loadThumbnail)
         guard !Task.isCancelled else { return }
         await loadCharacters(in: plan.prefetch, visibleIDs: visibleIDs)
     }
@@ -55,20 +57,16 @@ final class EpisodeCharactersViewModel {
     /// finish and populate the cache while the next viewport settles.
     private func settle(on visibleIDs: Set<Int>) async -> Bool {
         guard !Task.isCancelled else { return false }
-        guard !visibleIDs.isEmpty else {
-            settledIDs = []
-            return false
-        }
+        guard !visibleIDs.isEmpty else { return false }
 
         // Coalesce the initial layout callbacks without making the first screen wait for a scroll.
         do {
-            try await Task.sleep(for: hasSettled ? .milliseconds(200) : .milliseconds(35))
+            try await sleep(hasSettled ? .milliseconds(200) : .milliseconds(35))
         } catch {
             return false
         }
         guard !Task.isCancelled else { return false }
         hasSettled = true
-        settledIDs = visibleIDs
         return true
     }
 

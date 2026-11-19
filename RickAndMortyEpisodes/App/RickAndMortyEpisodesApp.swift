@@ -17,7 +17,7 @@ struct RickAndMortyEpisodesApp: App {
         self.scheduleBackgroundRefresh = scheduleBackgroundRefresh
         _root = State(initialValue: AppRoot(
             repositories: repositories,
-            exporter: AppDependencies.makeExporter(),
+            exporter: AppDependencies.makeExporter().export,
             freshnessInterval: configuration.freshnessInterval,
             scheduleBackgroundRefresh: scheduleBackgroundRefresh
         ))

@@ -11,13 +11,13 @@ final class AppRoot {
 
     init(
         repositories: AppDependencies.Repositories,
-        exporter: any CharacterExporting,
+        exporter: @escaping ExportCharacter,
         freshnessInterval: TimeInterval,
         scheduleBackgroundRefresh: @escaping @MainActor () -> Void
     ) {
         episodeListViewModel = EpisodeListViewModel(
             repository: repositories.episodes,
-            staleInterval: freshnessInterval
+            refreshPolicy: EpisodeRefreshPolicy(staleInterval: freshnessInterval)
         )
         screens = AppDependencies.makeCharacterScreens(
             characters: repositories.characters, portraits: repositories.portraits, exporter: exporter

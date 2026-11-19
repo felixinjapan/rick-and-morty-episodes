@@ -9,7 +9,7 @@ struct EpisodeListSeasonGroupTests {
         api: StubAPI = makeThreePageAPI(), store: FileEpisodeStore = .makeTemporary()
     ) -> EpisodeListViewModel {
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
-        return EpisodeListViewModel(repository: repository, staleInterval: 3600, now: { fixedDate })
+        return EpisodeListViewModel(repository: repository, refreshPolicy: .init(staleInterval: 3600), now: { fixedDate })
     }
 
     private func episode(id: Int, code: String) -> Episode {

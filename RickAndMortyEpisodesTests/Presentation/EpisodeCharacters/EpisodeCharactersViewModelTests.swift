@@ -141,12 +141,10 @@ struct EpisodeCharactersViewModelTests {
 
         let passingRows = Task { await viewModel.loadVisibleCast(visibleIDs: [200, 201]) }
         try await Task.sleep(for: .milliseconds(35))
-        #expect(viewModel.settledIDs == [1, 2])
         passingRows.cancel()
         await passingRows.value
 
         await viewModel.loadVisibleCast(visibleIDs: [599, 600])
-        #expect(viewModel.settledIDs == [599, 600])
         await viewModel.loadVisibleCast(visibleIDs: [1, 2])
 
         #expect(await repository.requests == [Array(1...20), Array(21...100), Array(581...660)])
@@ -157,14 +155,15 @@ struct EpisodeCharactersViewModelTests {
     func reusesInFlightBatch() async throws {
         let gate = Gate()
         let repository = CharacterBatchRecorder(firstBatchGate: gate, unavailableID: 3)
-        let viewModel = makeViewModel(characterIDs: Array(1...300), repository: repository)
+        let viewModel = makeViewModel(characterIDs: Array(1...300), repository: repository, sleep: { _ in })
         let first = Task { await viewModel.loadVisibleCast(visibleIDs: [1, 2]) }
         while await repository.requests.isEmpty { await Task.yield() }
         #expect(viewModel.unavailableIDs.isEmpty)
 
         first.cancel()
         let last = Task { await viewModel.loadVisibleCast(visibleIDs: [2, 3]) }
-        while viewModel.settledIDs != [2, 3] { await Task.yield() }
+        // With no delay to wait out, `last` goes straight to waiting for the running batch.
+        for _ in 0..<100 { await Task.yield() }
         #expect(await repository.requests == [Array(1...20)])
         await gate.open()
         await first.value
@@ -178,10 +177,12 @@ struct EpisodeCharactersViewModelTests {
 
 @MainActor
 private func makeViewModel(
-    characterIDs: [Int] = [], repository: CharacterBatchRecorder
+    characterIDs: [Int] = [], repository: CharacterBatchRecorder,
+    sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
 ) -> EpisodeCharactersViewModel {
     EpisodeCharactersViewModel(
-        characterIDs: characterIDs, repository: repository, portraitLoader: PortraitLoader(repository: repository)
+        characterIDs: characterIDs, repository: repository,
+        loadThumbnail: PortraitLoader(repository: repository).loadThumbnail, sleep: sleep
     )
 }
 

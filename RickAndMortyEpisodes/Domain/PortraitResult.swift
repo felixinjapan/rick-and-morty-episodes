@@ -6,7 +6,5 @@ enum PortraitResult: Sendable {
     case unavailable(retryable: Bool)
 }
 
-protocol PortraitLoading: Sendable {
-    /// A display-sized portrait, or `nil` if the load was cancelled.
-    func thumbnail(for character: CharacterDetails) async -> PortraitResult?
-}
+/// Loads a display-sized portrait, or returns `nil` if the load was cancelled.
+typealias LoadThumbnail = @Sendable (CharacterDetails) async -> PortraitResult?

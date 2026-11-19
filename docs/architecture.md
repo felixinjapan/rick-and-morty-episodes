@@ -13,7 +13,7 @@ flowchart TD
         Views[SwiftUI views] --> VM["@MainActor @Observable<br/>view models"]
     end
     subgraph Domain
-        Proto["Entities, RepositoryError,<br/>repository and exporter protocols"]
+        Proto["Entities, RepositoryError,<br/>repository protocols, cache and<br/>load policies, CastChunkPlanner"]
     end
     subgraph Data
         Repos["DefaultEpisodeRepository<br/>DefaultCharacterRepository<br/>DefaultPortraitRepository<br/>(actors)"]
@@ -30,7 +30,9 @@ flowchart TD
     Deps -.->|wires| Repos
 ```
 
-Views take only view models. `CharacterScreens` (built in `AppDependencies`) creates the cast and detail view models, so no view holds a repository or the exporter. `DefaultPortraitRepository` downloads and saves portrait bytes, and `PortraitLoader` in the data layer turns them into display-sized images and owns the retry policy. The cast and detail view models both load portraits through it, at thumbnail and detail sizes. The cast view model keeps the results per URL, so a finished portrait redraws only its own row.
+Views take only view models. `CharacterScreens` (built in `AppDependencies`) creates the cast and detail view models, so no view holds a repository or the exporter. `DefaultPortraitRepository` downloads and saves portrait bytes, and `PortraitLoader` in the data layer turns them into display-sized images and retries temporary failures once. The view models receive it, and the exporter, as plain function types (`LoadThumbnail`, `ExportCharacter`), because each has one method and one implementation. The cast view model keeps the results per URL, so a finished portrait redraws only its own row.
+
+Rules that decide when to ask again are small, pure types in `Domain`, so they are tested without a view model or a store: `CharacterCachePolicy` (details expire by age or when the catalogue changes size), `EpisodeRefreshPolicy` (the list is stale after 12 hours), `PortraitLoadPolicy` (which portraits to request, the 30-second retry delay, and how many outcomes to remember) and `CastChunkPlanner` (the 20, then 80 chunking). The repositories and view models call them and keep the side effects.
 
 `APIError` is translated to `RepositoryError` in the data layer. `Presentation/Shared/ErrorMessages.swift` maps repository errors to user-facing messages. Cancellation stays silent.
 
