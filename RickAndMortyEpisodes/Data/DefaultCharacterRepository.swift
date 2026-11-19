@@ -47,24 +47,13 @@ actor DefaultCharacterRepository: CharacterRepository {
     func characters(ids: [Int]) async -> [Int: CharacterDetails] {
         guard !ids.isEmpty else { return [:] }
         let current = await catalogueCount()
-        var available: [Int: CharacterDetails] = [:]
-        var stale: [Int: CharacterDetails] = [:]
-        var idsToFetch: [Int] = []
         let sortedIDs = Set(ids).sorted()
         let saved = await savedCharacters(ids: sortedIDs)
-        guard !Task.isCancelled else { return available }
-        for id in sortedIDs {
-            if let saved = saved[id] {
-                if isFresh(saved, catalogueCount: current) {
-                    available[id] = saved.details
-                    continue
-                }
-                stale[id] = saved.details
-            }
-            idsToFetch.append(id)
-        }
-        guard !idsToFetch.isEmpty else { return available }
+        guard !Task.isCancelled else { return [:] }
+        let (fresh, stale, idsToFetch) = partition(sortedIDs, saved: saved, catalogueCount: current)
+        guard !idsToFetch.isEmpty else { return fresh }
 
+        var available = fresh
         do {
             try Task.checkCancellation()
             let fetched = try await translatingErrors(logger: logger) {
@@ -83,6 +72,27 @@ actor DefaultCharacterRepository: CharacterRepository {
         return available
     }
 
+    /// Splits the IDs into saved details that are still fresh, saved details that have expired
+    /// (kept as a fallback if the fetch fails), and the IDs to ask the API for.
+    private func partition(
+        _ ids: [Int], saved: [Int: StoredCharacter], catalogueCount current: Int?
+    ) -> (fresh: [Int: CharacterDetails], stale: [Int: CharacterDetails], toFetch: [Int]) {
+        var fresh: [Int: CharacterDetails] = [:]
+        var stale: [Int: CharacterDetails] = [:]
+        var toFetch: [Int] = []
+        for id in ids {
+            if let saved = saved[id] {
+                if isFresh(saved, catalogueCount: current) {
+                    fresh[id] = saved.details
+                    continue
+                }
+                stale[id] = saved.details
+            }
+            toFetch.append(id)
+        }
+        return (fresh, stale, toFetch)
+    }
+
     private func isFresh(_ saved: StoredCharacter, catalogueCount current: Int?) -> Bool {
         policy.isFresh(
             savedAt: saved.savedAt, savedCatalogueCount: saved.catalogueCount,
@@ -91,15 +101,7 @@ actor DefaultCharacterRepository: CharacterRepository {
     }
 
     private func savedCharacter(id: Int) async -> StoredCharacter? {
-        if let cached = cache[id] { return cached }
-        do {
-            guard let loaded = try await store.load(id: id) else { return nil }
-            cache[id] = loaded
-            return loaded
-        } catch {
-            logger.error("Failed to read saved character \(id): \(error.localizedDescription, privacy: .public)")
-            return nil
-        }
+        await savedCharacters(ids: [id])[id]
     }
 
     /// Reads the files for every ID missing from memory in one store call.
