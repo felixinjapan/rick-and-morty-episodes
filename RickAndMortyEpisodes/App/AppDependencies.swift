@@ -12,28 +12,11 @@ enum AppDependencies {
         arguments: [String] = ProcessInfo.processInfo.arguments
     ) -> Repositories {
         #if DEBUG
-        // UI tests use recorded data and a separate cache.
-        if arguments.contains("-uiTesting") {
-            let delayedFeed = arguments.contains("-delayedEpisodeFeed")
-            let cast: DelayedEpisodeFeed.Cast = if arguments.contains("-characterEdgeCases") {
-                .edgeCases
-            } else if arguments.contains("-endlessCharacters") {
-                .endless
-            } else {
-                .recorded
-            }
-            let directory = URL.temporaryDirectory.appending(path: delayedFeed ? cast.rawValue : "UI Testing")
-            if arguments.contains("-resetCache") {
-                try? FileManager.default.removeItem(at: directory)
-            }
-            let api: any RickAndMortyAPI = if arguments.contains("-networkUnavailable") {
-                UnavailableRickAndMortyAPI()
-            } else if delayedFeed {
-                DelayedEpisodeFeed(cast: cast)
-            } else {
-                LiveRickAndMortyAPI.recorded()
-            }
-            return makeRepositories(api: api, cacheDirectory: directory, characterMaxAge: configuration.characterMaxAge)
+        if let uiTesting = UITestEnvironment(arguments: arguments) {
+            return makeRepositories(
+                api: uiTesting.api, cacheDirectory: uiTesting.cacheDirectory,
+                characterMaxAge: configuration.characterMaxAge
+            )
         }
         #endif
 
