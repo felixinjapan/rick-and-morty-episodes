@@ -61,6 +61,37 @@ struct EpisodeListSeasonGroupTests {
         #expect(viewModel.isLoadingFirstPage == false)
     }
 
+    @Test("A catalogue the API reports as empty ends the list at once, with no error")
+    func emptyCatalogue() async {
+        let api = StubAPI(pages: [1: .success(EpisodePage(episodes: [], hasNextPage: false, totalCount: 0))])
+        let viewModel = makeViewModel(api: api)
+
+        await viewModel.start()
+        await viewModel.loadNextPage()
+
+        #expect(viewModel.episodes.isEmpty)
+        #expect(viewModel.seasonGroups.isEmpty)
+        #expect(viewModel.emptyListErrorMessage == nil)
+        #expect(viewModel.isLoadingFirstPage == false)
+        #expect(viewModel.footer == .endReached(count: 0))
+        #expect(await api.requestedPages == [1])
+    }
+
+    @Test("A refresh that returns an empty first page replaces the cached list without crashing")
+    func refreshToEmptyCatalogue() async throws {
+        let cached = EpisodeSnapshot(episodes: (1...3).map(Episode.make), refreshedAt: fixedDate)
+        let api = StubAPI(pages: [1: .success(EpisodePage(episodes: [], hasNextPage: false, totalCount: 0))])
+        let viewModel = makeViewModel(api: api, store: try await .makeTemporary(containing: cached))
+
+        await viewModel.start()
+        #expect(viewModel.episodes.count == 3)
+        await viewModel.refresh()
+
+        #expect(viewModel.episodes.isEmpty)
+        #expect(viewModel.refreshErrorMessage == nil)
+        #expect(viewModel.footer == .endReached(count: 0))
+    }
+
     @Test("The first-page spinner gives way to the error when the first page fails")
     func firstPageSpinnerStopsOnFailure() async {
         let api = StubAPI(pages: [1: .failure(APIError.offline)])
