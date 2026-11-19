@@ -8,6 +8,9 @@ actor DefaultEpisodeRepository: EpisodeRepository {
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultEpisodeRepository")
     private var latest: EpisodeSnapshot?
+    private var refresh: Task<EpisodeSnapshot, any Error>?
+    /// Callers awaiting `refresh`; the request is cancelled only when all of them are.
+    private(set) var refreshCallers = 0
 
     init(
         api: any RickAndMortyAPI,
@@ -52,7 +55,35 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         return snapshot
     }
 
+    /// Callers that overlap share one request: pull-to-refresh, the banner's Retry and the background
+    /// task can all ask at once, and the actor interleaves them at each `await`.
     func refreshFirstPage() async throws -> EpisodeSnapshot {
+        let task: Task<EpisodeSnapshot, any Error>
+        if let running = refresh {
+            task = running
+        } else {
+            task = Task {
+                defer { refresh = nil; refreshCallers = 0 }
+                return try await fetchFirstPage()
+            }
+            refresh = task
+        }
+        refreshCallers += 1
+        // The request runs in its own task, so one caller leaving doesn't cancel it for the others.
+        return try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            Task { await self.leaveRefresh(task) }
+        }
+    }
+
+    private func leaveRefresh(_ task: Task<EpisodeSnapshot, any Error>) {
+        guard refresh == task else { return }
+        refreshCallers -= 1
+        if refreshCallers == 0 { task.cancel() }
+    }
+
+    private func fetchFirstPage() async throws -> EpisodeSnapshot {
         // Read the saved list first: in a new process (the background task) memory is still empty,
         // and refreshing without it would save a list that has lost its cached pages.
         _ = await loadCurrentSnapshot()

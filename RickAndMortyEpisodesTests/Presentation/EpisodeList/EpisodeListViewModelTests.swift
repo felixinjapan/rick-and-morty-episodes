@@ -360,25 +360,24 @@ struct EpisodeListViewModelTests {
         #expect(viewModel.listIdentity == 1)
     }
 
-    @Test("The refresh indicator stays visible until every overlapping refresh finishes", .timeLimit(.minutes(1)))
+    @Test("Overlapping refreshes share one request, and the indicator stays until it finishes", .timeLimit(.minutes(1)))
     func overlappingRefreshIndicator() async {
         let api = makeThreePageAPI()
-        let slowGate = Gate()
-        await api.holdPage(1, until: slowGate)
+        let gate = Gate()
+        await api.holdPage(1, until: gate)
         let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary())
         let viewModel = EpisodeListViewModel(repository: repository, refreshPolicy: .init(staleInterval: 3600))
 
-        let slow = Task { await viewModel.refresh() }
-        while await api.requestedPages.isEmpty { await Task.yield() }
-
-        // The second refresh isn't held, so it finishes while the first is still running.
-        await api.holdPage(1, until: nil)
-        await viewModel.refresh()
+        let first = Task { await viewModel.refresh() }
+        let second = Task { await viewModel.refresh() }
+        while await repository.refreshCallers < 2 { await Task.yield() }
         #expect(viewModel.isRefreshing)
 
-        await slowGate.open()
-        await slow.value
+        await gate.open()
+        await first.value
+        await second.value
         #expect(viewModel.isRefreshing == false)
         #expect(viewModel.episodes.count == 20)
+        #expect(await api.requestedPages == [1])
     }
 }

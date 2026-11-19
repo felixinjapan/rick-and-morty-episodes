@@ -102,6 +102,45 @@ struct EpisodeRepositoryTests {
         #expect(try await store.load() == nil)
     }
 
+    @Test("Overlapping refreshes make one request and return the same snapshot", .timeLimit(.minutes(1)))
+    func overlappingRefreshesShareOneRequest() async throws {
+        let api = makeThreePageAPI()
+        let gate = Gate()
+        await api.holdPage(1, until: gate)
+        let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary(), now: { fixedDate })
+
+        let first = Task { try await repository.refreshFirstPage() }
+        let second = Task { try await repository.refreshFirstPage() }
+        while await repository.refreshCallers < 2 { await Task.yield() }
+        await gate.open()
+
+        #expect(try await first.value == second.value)
+        #expect(await api.requestedPages == [1])
+        // Finished, so the next refresh is a new request.
+        _ = try await repository.refreshFirstPage()
+        #expect(await api.requestedPages == [1, 1])
+    }
+
+    @Test("One caller cancelling doesn't cancel the refresh the others wait for", .timeLimit(.minutes(1)))
+    func oneCancelledCallerKeepsSharedRefresh() async throws {
+        let api = makeThreePageAPI()
+        let gate = Gate()
+        await api.holdPage(1, until: gate)
+        let store = FileEpisodeStore.makeTemporary()
+        let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
+
+        let leaving = Task { try await repository.refreshFirstPage() }
+        let staying = Task { try await repository.refreshFirstPage() }
+        while await repository.refreshCallers < 2 { await Task.yield() }
+        leaving.cancel()
+        while await repository.refreshCallers > 1 { await Task.yield() }
+        await gate.open()
+
+        let snapshot = try await staying.value
+        #expect(snapshot.episodes.count == 20)
+        #expect(try await store.load() == snapshot)
+    }
+
     @Test("A refresh cancelled after the response arrived still saves page 1")
     func refreshCancelledAfterResponseStillSaves() async throws {
         let store = FileEpisodeStore.makeTemporary()
