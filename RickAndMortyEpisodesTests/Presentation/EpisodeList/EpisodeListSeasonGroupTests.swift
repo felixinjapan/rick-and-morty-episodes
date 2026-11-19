@@ -79,7 +79,7 @@ struct EpisodeListSeasonGroupTests {
     }
 
     @Test("Retry after an empty catalogue's failed refresh fetches page 1 again")
-    func retryAfterEmptyCatalogueRefreshFailure() async {
+    func retryRefreshesAfterEmptyCatalogueFailure() async {
         let api = StubAPI(pages: [1: .success(EpisodePage(episodes: [], hasNextPage: false, totalCount: 0))])
         let viewModel = makeViewModel(api: api)
         await viewModel.start()
@@ -89,7 +89,7 @@ struct EpisodeListSeasonGroupTests {
         #expect(viewModel.emptyListErrorMessage == RepositoryError.offline.userMessage)
 
         await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true)))
-        await viewModel.retryAfterEmptyListError()
+        await viewModel.retryFailedLoad()
 
         #expect(viewModel.emptyListErrorMessage == nil)
         #expect(viewModel.episodes.count == 20)

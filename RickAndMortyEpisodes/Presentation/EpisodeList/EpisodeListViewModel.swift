@@ -31,7 +31,14 @@ final class EpisodeListViewModel {
     /// Page loads and pull-to-refresh don't change it.
     private(set) var listIdentity = 0
 
-    private var pageErrorMessage: String?
+    /// A failed page load or a failed refresh of an empty list, with the call that retries it.
+    private struct LoadFailure {
+        enum Retry { case nextPage, refresh }
+        let message: String
+        let retry: Retry
+    }
+
+    private var loadFailure: LoadFailure?
     private var isLoadingPage = false
     private var hasStarted = false
     private var hasCheckedCache = false
@@ -55,7 +62,7 @@ final class EpisodeListViewModel {
     }
 
     var emptyListErrorMessage: String? {
-        episodes.isEmpty ? pageErrorMessage : nil
+        episodes.isEmpty ? loadFailure?.message : nil
     }
 
     private var nextPage: Int? {
@@ -64,7 +71,7 @@ final class EpisodeListViewModel {
 
     var footer: Footer {
         guard hasCheckedCache, emptyListErrorMessage == nil else { return .none }
-        if let pageErrorMessage { return .failed(message: pageErrorMessage) }
+        if let loadFailure { return .failed(message: loadFailure.message) }
         if let nextPage { return .loading(page: nextPage) }
         return .endReached(count: episodes.count)
     }
@@ -117,7 +124,7 @@ final class EpisodeListViewModel {
     func loadNextPage() async {
         guard !isLoadingPage, nextPage != nil else { return }
         isLoadingPage = true
-        pageErrorMessage = nil
+        loadFailure = nil
         let generation = listGeneration
         let current = snapshot
         let repository = self.repository
@@ -134,19 +141,17 @@ final class EpisodeListViewModel {
         case .failure(let error):
             isLoadingPage = false
             guard !(error is CancellationError) else { return }
-            pageErrorMessage = error.userMessage
+            loadFailure = LoadFailure(message: error.userMessage, retry: .nextPage)
         }
     }
 
     // MARK: - Refresh
 
-    /// Retry for the full-screen error. Once a snapshot exists the list has no page left to load,
-    /// so the failed attempt was a refresh and only a refresh can recover.
-    func retryAfterEmptyListError() async {
-        if snapshot == nil {
-            await loadNextPage()
-        } else {
-            await refresh()
+    /// Retries whatever failed last, which for an empty list may be a refresh rather than a page load.
+    func retryFailedLoad() async {
+        switch loadFailure?.retry {
+        case .refresh: await refresh()
+        case .nextPage, nil: await loadNextPage()
         }
     }
 
@@ -161,7 +166,7 @@ final class EpisodeListViewModel {
             // The gesture or view went away; nothing to report.
         } catch {
             if episodes.isEmpty {
-                pageErrorMessage = error.userMessage
+                loadFailure = LoadFailure(message: error.userMessage, retry: .refresh)
             } else {
                 refreshErrorMessage = error.userMessage
             }
@@ -183,7 +188,7 @@ final class EpisodeListViewModel {
         seasonGroups = Dictionary(grouping: snapshot.episodes, by: \.seasonNumber)
             .map { SeasonGroup(season: $0.key, episodes: $0.value) }
             .sorted { ($0.season ?? .max) < ($1.season ?? .max) }
-        pageErrorMessage = nil
+        loadFailure = nil
         isLoadingPage = false
     }
 }
