@@ -43,6 +43,11 @@ actor DefaultEpisodeRepository: EpisodeRepository {
         if latest != current, let latest {
             return latest
         }
+        // Fewer episodes than when the earlier pages loaded: some were removed, so every later
+        // episode moved back and this page would skip one. Start again from a fresh page 1.
+        if let current, loaded.totalCount < current.totalCount {
+            return try await refreshFirstPage()
+        }
 
         let snapshot = EpisodeSnapshot(
             episodes: (current?.episodes ?? []) + loaded.episodes,

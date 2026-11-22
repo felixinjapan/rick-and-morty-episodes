@@ -150,7 +150,7 @@ flowchart TD
 ```
 
 - The UI and the background task share the `DefaultEpisodeRepository` actor. Refresh requests can overlap, and the file store writes snapshots one at a time.
-- **Paging starts near the viewport.** The footer starts a request when it comes within 120 points of the visible list. After each append it measures its new position before another page can start. `loadNextPage()` lets a request already sent finish when the footer scrolls away. A generation counter drops results for a list that a refresh has replaced.
+- **Paging starts near the viewport.** The footer starts a request when it comes within 120 points of the visible list. After each append it measures its new position before another page can start. `loadNextPage()` lets a request already sent finish when the footer scrolls away. A generation counter drops results for a list that a refresh has replaced. If a page reports fewer episodes than the earlier pages did, some were removed and the loaded pages have shifted, so the repository drops that page and starts again from a fresh page 1 rather than skip an episode. A bigger total keeps the pages, because new episodes are added at the end.
 - **Refresh errors leave the footer alone.** A failed pull-to-refresh or stale check with rows on screen sets a separate message and the cached list stays usable. A cancelled request shows nothing.
 
 ## Background refresh

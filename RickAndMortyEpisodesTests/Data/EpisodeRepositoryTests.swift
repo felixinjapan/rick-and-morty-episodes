@@ -74,6 +74,51 @@ struct EpisodeRepositoryTests {
         #expect(snapshot.nextPage == 2)
     }
 
+    @Test("A smaller catalogue while paging starts again from page 1 instead of skipping an episode")
+    func pagingWhenCatalogueShrank() async throws {
+        let api = makeThreePageAPI()
+        let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary(), now: { fixedDate })
+        var snapshot = try await repository.loadNextPage(after: nil)
+        snapshot = try await repository.loadNextPage(after: snapshot)
+
+        // Episode 25 was removed, so episode 41 moved onto page 2, which is already loaded.
+        let remaining = (1...45).filter { $0 != 25 }.map(Episode.make)
+        for (page, start) in [(1, 0), (2, 20), (3, 40)] {
+            let end = min(start + 20, remaining.count)
+            await api.setPage(page, .success(EpisodePage(
+                episodes: Array(remaining[start..<end]), hasNextPage: end < remaining.count, totalCount: 44
+            )))
+        }
+
+        snapshot = try await repository.loadNextPage(after: snapshot)
+
+        #expect(snapshot.episodes == Array(remaining.prefix(20)))
+        #expect(snapshot.nextPage == 2)
+        #expect(snapshot.totalCount == 44)
+
+        snapshot = try await repository.loadNextPage(after: snapshot)
+        snapshot = try await repository.loadNextPage(after: snapshot)
+
+        #expect(snapshot.episodes == remaining)
+        #expect(snapshot.nextPage == nil)
+        #expect(await api.requestedPages == [1, 2, 3, 1, 2, 3])
+    }
+
+    @Test("A bigger catalogue while paging keeps the loaded pages, because new episodes are added at the end")
+    func pagingWhenCatalogueGrew() async throws {
+        let api = makeThreePageAPI()
+        let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary(), now: { fixedDate })
+        var snapshot = try await repository.loadNextPage(after: nil)
+        snapshot = try await repository.loadNextPage(after: snapshot)
+        await api.setPage(3, .success(.make(ids: 41...46, hasNextPage: false, totalCount: 46)))
+
+        snapshot = try await repository.loadNextPage(after: snapshot)
+
+        #expect(snapshot.episodes.map(\.id) == Array(1...46))
+        #expect(snapshot.totalCount == 46)
+        #expect(await api.requestedPages == [1, 2, 3])
+    }
+
     @Test("A page that arrives after a refresh doesn't overwrite the refreshed list", .timeLimit(.minutes(1)))
     func latePageAfterRefresh() async throws {
         let api = makeThreePageAPI()
