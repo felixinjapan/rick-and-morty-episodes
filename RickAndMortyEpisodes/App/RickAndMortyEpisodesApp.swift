@@ -25,10 +25,14 @@ struct RickAndMortyEpisodesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            root.content
+            EpisodeListView(viewModel: root.episodeListViewModel, screens: root.characterScreens)
         }
         .onChange(of: scenePhase) { _, newPhase in
-            Task { await root.handle(newPhase) }
+            switch newPhase {
+            case .active: Task { await root.appBecameActive() }
+            case .background: root.appEnteredBackground()
+            default: break
+            }
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.taskIdentifier)) {
             [episodes = repositories.episodes, scheduleNext = scheduleBackgroundRefresh] in

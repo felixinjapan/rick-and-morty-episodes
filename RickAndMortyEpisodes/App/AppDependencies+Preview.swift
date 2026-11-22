@@ -32,7 +32,7 @@ extension AppDependencies {
         let repositories = makePreviewRepositories(
             configuration: .production, networkUnavailable: networkUnavailable
         )
-        return makeCharacterScreens(
+        return CharacterScreens(
             characters: repositories.characters, portraits: repositories.portraits, exporter: makePreviewExporter().export
         )
     }

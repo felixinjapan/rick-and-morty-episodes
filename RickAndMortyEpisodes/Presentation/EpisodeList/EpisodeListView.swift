@@ -270,11 +270,12 @@ private func episodeListPreview(networkUnavailable: Bool = false) -> some View {
     let repositories = AppDependencies.makePreviewRepositories(
         configuration: configuration, networkUnavailable: networkUnavailable
     )
-    return AppRoot(
+    let root = AppRoot(
         repositories: repositories,
         exporter: AppDependencies.makePreviewExporter().export,
         freshnessInterval: configuration.freshnessInterval,
         scheduleBackgroundRefresh: {}
-    ).content
+    )
+    return EpisodeListView(viewModel: root.episodeListViewModel, screens: root.characterScreens)
 }
 #endif

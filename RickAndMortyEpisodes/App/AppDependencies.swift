@@ -53,29 +53,6 @@ enum AppDependencies {
         )
     }
 
-    @MainActor
-    static func makeCharacterScreens(
-        characters: any CharacterRepository, portraits: any PortraitRepository,
-        exporter: @escaping ExportCharacter
-    ) -> CharacterScreens {
-        let thumbnails = PortraitLoader(repository: portraits).loadThumbnail
-        // The detail portrait is 200 points, or 600 pixels on a 3x display.
-        let detailPortraits = PortraitLoader(repository: portraits, maxPixelSize: 600).loadThumbnail
-        return CharacterScreens(
-            makeCast: { episode in
-                EpisodeCharactersViewModel(
-                    characterIDs: episode.characterIDs, repository: characters, loadThumbnail: thumbnails
-                )
-            },
-            makeDetail: { route, resolveCharacter in
-                CharacterDetailViewModel(
-                    character: route.character, loadThumbnail: detailPortraits, exporter: exporter,
-                    resolveCharacter: resolveCharacter
-                )
-            }
-        )
-    }
-
     /// The share sheet asks for the file when the user picks a destination (Save to Files, AirDrop,
     /// another app), so it only has to exist briefly; the temporary folder is cleared by the system.
     static func makeExporter() -> CharacterExporter {

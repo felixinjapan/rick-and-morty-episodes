@@ -35,7 +35,7 @@ struct AppRootTests {
 
         let newer = EpisodeSnapshot(episodes: [.make(id: 2)], refreshedAt: initial.refreshedAt.addingTimeInterval(60))
         try await store.save(newer)
-        await root.handle(.active)
+        await root.appBecameActive()
 
         #expect(root.episodeListViewModel === viewModel)
         #expect(viewModel.episodes == newer.episodes)
@@ -43,8 +43,8 @@ struct AppRootTests {
         #expect(await api.requestedPages.isEmpty)
     }
 
-    @Test("Background schedules once and inactive does nothing; neither refreshes the list")
-    func backgroundAndInactive() async throws {
+    @Test("Entering the background schedules once and doesn't refresh the list")
+    func backgroundSchedulesWithoutRefreshing() async throws {
         let initial = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: .now)
         let store = try await FileEpisodeStore.makeTemporary(containing: initial)
         let api = StubAPI()
@@ -56,15 +56,13 @@ struct AppRootTests {
             episodes: [.make(id: 2)], refreshedAt: initial.refreshedAt.addingTimeInterval(60)
         ))
 
-        await root.handle(.inactive)
-        #expect(schedules == 0)
-        await root.handle(.background)
+        root.appEnteredBackground()
 
         #expect(schedules == 1)
         #expect(root.episodeListViewModel.episodes == initial.episodes)
         #expect(await api.requestedPages.isEmpty)
 
-        await root.handle(.active)
+        await root.appBecameActive()
         #expect(root.episodeListViewModel.episodes.map(\.id) == [2])
     }
 }

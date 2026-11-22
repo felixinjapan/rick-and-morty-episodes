@@ -1,11 +1,12 @@
-import SwiftUI
+import Foundation
 
 /// Navigation stays in the views' `NavigationStack`, because every route is a push from one screen.
+/// The app entry point turns scene phases into the calls below, so the root doesn't depend on SwiftUI.
 @MainActor
 final class AppRoot {
     let episodeListViewModel: EpisodeListViewModel
+    let characterScreens: CharacterScreens
 
-    private let screens: CharacterScreens
     private let scheduleBackgroundRefresh: @MainActor () -> Void
 
     init(
@@ -18,24 +19,17 @@ final class AppRoot {
             repository: repositories.episodes,
             refreshPolicy: EpisodeRefreshPolicy(staleInterval: freshnessInterval)
         )
-        screens = AppDependencies.makeCharacterScreens(
+        characterScreens = CharacterScreens(
             characters: repositories.characters, portraits: repositories.portraits, exporter: exporter
         )
         self.scheduleBackgroundRefresh = scheduleBackgroundRefresh
     }
 
-    var content: some View {
-        EpisodeListView(viewModel: episodeListViewModel, screens: screens)
+    func appBecameActive() async {
+        await episodeListViewModel.refreshIfNeeded()
     }
 
-    func handle(_ phase: ScenePhase) async {
-        switch phase {
-        case .active:
-            await episodeListViewModel.refreshIfNeeded()
-        case .background:
-            scheduleBackgroundRefresh()
-        default:
-            break
-        }
+    func appEnteredBackground() {
+        scheduleBackgroundRefresh()
     }
 }

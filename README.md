@@ -29,7 +29,7 @@ The app asks iOS for a `BGAppRefreshTask` when it goes to the background. The ta
 
 ## Architecture
 
-MVVM with plain folders: `Presentation` (views and view models), `Domain` (entities and protocols), `Data` (API client, repositories, JSON file stores) and `App` (composition root). Views hold only view models; repositories are reached through protocols. There is no use-case layer and no database, because each screen calls one repository method and the data is small. See the [architecture and decision log](docs/architecture.md) for the dependency map, concurrency model and trade-offs.
+MVVM with plain folders: `Presentation` (views, view models and portrait loading), `Domain` (entities, protocols and cache rules), `Data` (API client, repositories, JSON file stores) and `App` (composition root). Views hold only view models; repositories are reached through protocols. There is no use-case layer and no database, because each screen calls one repository method and the data is small. See the [architecture and decision log](docs/architecture.md) for the dependency map, concurrency model and trade-offs.
 
 ## Known limitations
 
