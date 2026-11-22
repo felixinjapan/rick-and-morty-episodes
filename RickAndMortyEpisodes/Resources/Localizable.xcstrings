@@ -49,6 +49,18 @@
         }
       }
     },
+    "characterDetail.appearsIn" : {
+      "comment" : "Label for the number of episodes the character appears in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appears in"
+          }
+        }
+      }
+    },
     "characterDetail.details" : {
       "comment" : "Section header above the character's details",
       "extractionState" : "manual",
@@ -61,14 +73,26 @@
         }
       }
     },
-    "characterDetail.episodes" : {
-      "comment" : "Label for the number of episodes the character appears in",
+    "characterDetail.episodeCount" : {
+      "comment" : "Total number of episodes the character appears in, shown next to the Appears in label",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Episodes"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld episode"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld episodes"
+                }
+              }
+            }
           }
         }
       }

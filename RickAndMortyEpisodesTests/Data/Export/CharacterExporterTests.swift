@@ -11,7 +11,7 @@ struct CharacterExporterTests {
         Status: Alive
         Species: Human
         Origin: Earth (C-137)
-        Episodes: 51
+        Appears in: 51 episodes
 
         """)
     }

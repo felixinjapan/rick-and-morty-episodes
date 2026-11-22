@@ -9,7 +9,7 @@ struct CharacterExporter {
         Status: \(exportValue(of: character.status))
         Species: \(character.species)
         Origin: \(character.originName)
-        Episodes: \(character.episodeCount)
+        Appears in: \(exportValue(ofEpisodeCount: character.episodeCount))
 
         """
     }
@@ -37,5 +37,9 @@ struct CharacterExporter {
         case .dead: "Dead"
         case .unknown: "unknown"
         }
+    }
+
+    private static func exportValue(ofEpisodeCount count: Int) -> String {
+        count == 1 ? "1 episode" : "\(count) episodes"
     }
 }

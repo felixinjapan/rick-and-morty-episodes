@@ -101,8 +101,8 @@ private struct CharacterDetailContent: View {
                 LabeledContent(String(localized: .characterDetailOrigin)) {
                     Text(character.originName).foregroundStyle(.primary)
                 }
-                LabeledContent(String(localized: .characterDetailEpisodes)) {
-                    Text(character.episodeCount, format: .number).foregroundStyle(.primary)
+                LabeledContent(String(localized: .characterDetailAppearsIn)) {
+                    Text(.characterDetailEpisodeCount(character.episodeCount)).foregroundStyle(.primary)
                 }
                 .accessibilityIdentifier("characterDetail.episodeCount")
             }
