@@ -2,7 +2,7 @@ import Foundation
 import os
 
 /// Shared by the UI and the background refresh task.
-actor DefaultEpisodeRepository: EpisodeRepository {
+actor DefaultEpisodeRepository: EpisodeRepository, EpisodeCatalogue {
     private let api: any RickAndMortyAPI
     private let store: FileEpisodeStore
     private let now: @Sendable () -> Date
@@ -31,6 +31,13 @@ actor DefaultEpisodeRepository: EpisodeRepository {
             logger.error("Failed to read episode cache: \(error.localizedDescription, privacy: .public)")
         }
         return latest
+    }
+
+    /// Every save goes through this actor, so once the list is in memory the file isn't read again
+    /// for each character request.
+    func knownEpisodeCount() async -> Int? {
+        if let latest { return latest.totalCount }
+        return await loadCurrentSnapshot()?.totalCount
     }
 
     func loadNextPage(after current: EpisodeSnapshot?) async throws -> EpisodeSnapshot {

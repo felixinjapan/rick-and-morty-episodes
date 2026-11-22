@@ -123,16 +123,24 @@ func makeTemporaryBlockingFile() throws -> URL {
     return url
 }
 
+struct StubCatalogue: EpisodeCatalogue {
+    let count: @Sendable () async -> Int?
+
+    func knownEpisodeCount() async -> Int? {
+        await count()
+    }
+}
+
 extension DefaultCharacterRepository {
     static func makeTemporary(
         api: any RickAndMortyAPI,
         store: FileCharacterStore = .makeTemporary(),
-        catalogueCount: @escaping @Sendable () async -> Int? = { nil },
+        catalogue: any EpisodeCatalogue = StubCatalogue { nil },
         maxAge: TimeInterval = 3600,
         now: @escaping @Sendable () -> Date = { fixedDate }
     ) -> DefaultCharacterRepository {
         DefaultCharacterRepository(
-            api: api, store: store, catalogueCount: catalogueCount,
+            api: api, store: store, catalogue: catalogue,
             policy: CharacterCachePolicy(maxAge: maxAge), now: now
         )
     }

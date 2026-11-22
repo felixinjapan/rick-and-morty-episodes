@@ -43,7 +43,7 @@ enum AppDependencies {
             characters: DefaultCharacterRepository(
                 api: api,
                 store: FileCharacterStore(directory: cacheDirectory.appending(path: "characters", directoryHint: .isDirectory)),
-                catalogueCount: { await episodes.loadCurrentSnapshot()?.totalCount },
+                catalogue: episodes,
                 policy: CharacterCachePolicy(maxAge: characterMaxAge)
             ),
             portraits: DefaultPortraitRepository(

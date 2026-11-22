@@ -119,6 +119,28 @@ struct EpisodeRepositoryTests {
         #expect(await api.requestedPages == [1, 2, 3])
     }
 
+    @Test("The known episode count is read from the saved list once, then follows the list in memory")
+    func knownEpisodeCount() async throws {
+        #expect(await DefaultEpisodeRepository(api: StubAPI(), store: .makeTemporary()).knownEpisodeCount() == nil)
+
+        let api = makeThreePageAPI()
+        await api.setPage(1, .success(.make(ids: 1...20, hasNextPage: true, totalCount: 46)))
+        let saved = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
+        let store = try await FileEpisodeStore.makeTemporary(containing: saved)
+        let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate.addingTimeInterval(60) })
+
+        #expect(await repository.knownEpisodeCount() == 45)
+
+        // Answered from memory: a file changed behind the repository's back isn't read again.
+        try await store.save(EpisodeSnapshot(
+            episodes: [], totalCount: 99, refreshedAt: fixedDate.addingTimeInterval(30)
+        ))
+        #expect(await repository.knownEpisodeCount() == 45)
+
+        _ = try await repository.refreshFirstPage()
+        #expect(await repository.knownEpisodeCount() == 46)
+    }
+
     @Test("A page that arrives after a refresh doesn't overwrite the refreshed list", .timeLimit(.minutes(1)))
     func latePageAfterRefresh() async throws {
         let api = makeThreePageAPI()

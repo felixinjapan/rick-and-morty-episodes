@@ -6,7 +6,7 @@ import os
 actor DefaultCharacterRepository: CharacterRepository {
     private let api: any RickAndMortyAPI
     private let store: FileCharacterStore
-    private let catalogueCount: @Sendable () async -> Int?
+    private let catalogue: any EpisodeCatalogue
     private let policy: CharacterCachePolicy
     private let now: @Sendable () -> Date
     private let logger = Logger(category: "DefaultCharacterRepository")
@@ -15,19 +15,19 @@ actor DefaultCharacterRepository: CharacterRepository {
     init(
         api: any RickAndMortyAPI,
         store: FileCharacterStore,
-        catalogueCount: @escaping @Sendable () async -> Int?,
+        catalogue: any EpisodeCatalogue,
         policy: CharacterCachePolicy,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.api = api
         self.store = store
-        self.catalogueCount = catalogueCount
+        self.catalogue = catalogue
         self.policy = policy
         self.now = now
     }
 
     func character(id: Int) async throws -> CharacterDetails {
-        let current = await catalogueCount()
+        let current = await catalogue.knownEpisodeCount()
         let saved = await savedCharacter(id: id)
         if let saved, isFresh(saved, catalogueCount: current) {
             return saved.details
@@ -46,7 +46,7 @@ actor DefaultCharacterRepository: CharacterRepository {
 
     func characters(ids: [Int]) async -> [Int: CharacterDetails] {
         guard !ids.isEmpty else { return [:] }
-        let current = await catalogueCount()
+        let current = await catalogue.knownEpisodeCount()
         let sortedIDs = Set(ids).sorted()
         let saved = await savedCharacters(ids: sortedIDs)
         guard !Task.isCancelled else { return [:] }

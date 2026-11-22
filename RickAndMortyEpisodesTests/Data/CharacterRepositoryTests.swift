@@ -86,7 +86,9 @@ struct CharacterRepositoryTests {
         let store = FileCharacterStore.makeTemporary()
         try await store.save(StoredCharacter(details: .rick, catalogueCount: 45, savedAt: fixedDate))
         let api = StubAPI(characters: [1: .failure(APIError.http(statusCode: 429))])
-        let repository = DefaultCharacterRepository.makeTemporary(api: api, store: store, catalogueCount: { 46 })
+        let repository = DefaultCharacterRepository.makeTemporary(
+            api: api, store: store, catalogue: StubCatalogue { 46 }
+        )
 
         #expect(await repository.characters(ids: [1, 2]) == [1: .rick])
         #expect(await api.requestedCharacterBatches == [[1, 2]])
@@ -96,7 +98,9 @@ struct CharacterRepositoryTests {
     func catalogueSizeChanged() async throws {
         let size = OSAllocatedUnfairLock<Int?>(initialState: 45)
         let api = StubAPI(characters: [1: .success(.rick)])
-        let repository = DefaultCharacterRepository.makeTemporary(api: api, catalogueCount: { size.withLock { $0 } })
+        let repository = DefaultCharacterRepository.makeTemporary(
+            api: api, catalogue: StubCatalogue { size.withLock { $0 } }
+        )
         _ = try await repository.character(id: 1)
 
         size.withLock { $0 = 46 }
@@ -108,7 +112,7 @@ struct CharacterRepositoryTests {
     @Test("Details saved under the same catalogue size are not fetched again")
     func catalogueSizeUnchanged() async throws {
         let api = StubAPI(characters: [1: .success(.rick)])
-        let repository = DefaultCharacterRepository.makeTemporary(api: api, catalogueCount: { 45 })
+        let repository = DefaultCharacterRepository.makeTemporary(api: api, catalogue: StubCatalogue { 45 })
 
         _ = try await repository.character(id: 1)
         _ = try await repository.character(id: 1)
@@ -159,7 +163,9 @@ struct CharacterRepositoryTests {
     private func makeRepositoryWithStaleDetails(failingWith error: any Error) async throws -> DefaultCharacterRepository {
         let size = OSAllocatedUnfairLock<Int?>(initialState: 45)
         let api = StubAPI(characters: [1: .success(.rick)])
-        let repository = DefaultCharacterRepository.makeTemporary(api: api, catalogueCount: { size.withLock { $0 } })
+        let repository = DefaultCharacterRepository.makeTemporary(
+            api: api, catalogue: StubCatalogue { size.withLock { $0 } }
+        )
         _ = try await repository.character(id: 1)
 
         size.withLock { $0 = 46 }
