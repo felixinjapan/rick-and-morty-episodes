@@ -49,13 +49,15 @@ Rules that decide when to ask again are small, pure types in `Domain`, so they a
 
 ## Episode refresh
 
-`DefaultEpisodeRepository.refreshFirstPage()` fetches page 1 only. It uses the episode count to decide which cached pages to keep and assumes new episodes are appended.
+`DefaultEpisodeRepository.refreshFirstPage()` fetches page 1 only. It compares page 1's episode IDs and the episode count with the cache to decide which cached pages to keep, and assumes new episodes are appended. Different IDs on page 1 mean the later pages have shifted, so they are dropped even when the count is the same.
 
 ```mermaid
 flowchart TD
     A[Fetch page 1] --> B{Cached list exists?}
     B -- no --> C[Keep page 1 only]
-    B -- yes --> D{Cached total vs new total}
+    B -- yes --> P{Same episode IDs<br/>as cached page 1?}
+    P -- no --> C
+    P -- yes --> D{Cached total vs new total}
     D -- unchanged --> E["Keep every cached page<br/>(page 1 replaced with fresh data)"]
     D -- grew --> F["Keep whole cached pages,<br/>drop a partial last page"]
     D -- shrank --> C
@@ -171,6 +173,7 @@ Add `-delayedEpisodeFeed` alongside `-uiTesting` to simulate 10,000 episode page
 ## Known limitations
 
 - Offline, the episode list includes the pages already loaded. Character details and portraits must have been loaded previously.
+- A refresh fetches only page 1, so an edit or removal on a later page isn't seen while page 1 and the total stay the same. "Last updated" is when page 1 was last fetched.
 - Users retry failed requests manually.
 - The app uses English and a fixed `dd/MM/yyyy` date format.
 - Background refresh logic is unit-tested. Scheduled execution on a physical device remains unverified.

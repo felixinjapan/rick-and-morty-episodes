@@ -23,10 +23,14 @@ extension EpisodeSnapshot {
     /// - Larger total: whole cached pages stay; the last one is dropped if it was partly filled,
     ///   because new episodes land on it. `nextPage` points at the first page to load again.
     /// - Smaller total, or nothing cached: only the new page 1.
+    /// - Page 1 holds other episodes than the cached page 1: only the new page 1. An episode was
+    ///   removed or inserted near the start, so every later page has shifted and keeping them
+    ///   would repeat or skip episodes, even when the total is the same.
     static func refreshed(_ previous: EpisodeSnapshot?, with firstPage: EpisodePage, at date: Date) -> EpisodeSnapshot {
         let pageSize = firstPage.episodes.count
         var episodes = firstPage.episodes
-        if let previous, pageSize > 0, previous.totalCount <= firstPage.totalCount {
+        if let previous, pageSize > 0, previous.totalCount <= firstPage.totalCount,
+           previous.episodes.prefix(pageSize).map(\.id) == firstPage.episodes.map(\.id) {
             let unchanged = previous.totalCount == firstPage.totalCount
             let kept = unchanged ? previous.episodes.count : previous.episodes.count / pageSize * pageSize
             episodes += previous.episodes.prefix(kept).dropFirst(pageSize)

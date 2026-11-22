@@ -34,5 +34,6 @@ MVVM with plain folders: `Presentation` (views and view models), `Domain` (entit
 ## Known limitations
 
 - Offline, the list shows the pages already loaded, and character details and portraits must have been opened before.
+- A refresh fetches only page 1, so an edit or removal on a later page isn't seen while page 1 and the total stay the same. "Last updated" is when page 1 was last fetched.
 - Scheduled background refresh is unit-tested but not verified on a physical device.
 - English only, with a fixed `dd/MM/yyyy` air date format.

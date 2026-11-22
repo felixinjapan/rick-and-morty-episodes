@@ -7,7 +7,10 @@ struct EpisodeRepositoryTests {
     @Test("Refresh makes one request and saves a fresh page 1 with the cached pages after it")
     func refreshKeepsCachedPagesWhenCatalogueIsUnchanged() async throws {
         let api = makeThreePageAPI()
-        await api.setPage(1, .success(.make(ids: 101...120, hasNextPage: true)))
+        let freshFirstPage = (1...20).map {
+            Episode(id: $0, name: "Renamed \($0)", airDate: nil, code: "S01E\($0)", characterIDs: [1])
+        }
+        await api.setPage(1, .success(EpisodePage(episodes: freshFirstPage, hasNextPage: true, totalCount: 45)))
         let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
         let store = try await FileEpisodeStore.makeTemporary(containing: previous)
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate.addingTimeInterval(60) })
@@ -15,7 +18,7 @@ struct EpisodeRepositoryTests {
         let snapshot = try await repository.refreshFirstPage()
 
         #expect(await api.requestedPages == [1])
-        #expect(snapshot.episodes.map(\.id) == Array(101...120) + Array(21...45))
+        #expect(snapshot.episodes == freshFirstPage + previous.episodes.dropFirst(20))
         #expect(snapshot.nextPage == nil)
         #expect(snapshot.refreshedAt == fixedDate.addingTimeInterval(60))
         #expect(try await store.load() == snapshot)
@@ -35,6 +38,25 @@ struct EpisodeRepositoryTests {
         #expect(snapshot.episodes.map(\.id) == Array(1...40))
         #expect(snapshot.nextPage == 3)
         #expect(snapshot.totalCount == 46)
+    }
+
+    @Test("A page 1 with other episodes keeps only the new page 1, even when the total is the same")
+    func refreshWhenFirstPageShifted() async throws {
+        // Episode 5 was removed and episode 46 added, so every page starts one episode later.
+        let shiftedFirstPage = (1...21).filter { $0 != 5 }.map(Episode.make)
+        let api = StubAPI(pages: [
+            1: .success(EpisodePage(episodes: shiftedFirstPage, hasNextPage: true, totalCount: 45)),
+        ])
+        let previous = EpisodeSnapshot(episodes: (1...45).map(Episode.make), totalCount: 45, refreshedAt: fixedDate)
+        let repository = DefaultEpisodeRepository(
+            api: api, store: try await FileEpisodeStore.makeTemporary(containing: previous)
+        )
+
+        let snapshot = try await repository.refreshFirstPage()
+
+        #expect(snapshot.episodes == shiftedFirstPage)
+        #expect(snapshot.nextPage == 2)
+        #expect(snapshot.totalCount == 45)
     }
 
     @Test("A smaller catalogue keeps only the new page 1")

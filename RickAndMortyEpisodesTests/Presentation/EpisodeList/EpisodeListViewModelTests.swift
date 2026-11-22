@@ -183,7 +183,10 @@ struct EpisodeListViewModelTests {
     @Test("Stale cached content is shown, then page 1 is refreshed and the cached pages after it stay")
     func staleCache() async throws {
         let api = makeThreePageAPI()
-        await api.setPage(1, .success(.make(ids: 101...120, hasNextPage: true)))
+        let freshFirstPage = (1...20).map {
+            Episode(id: $0, name: "Renamed \($0)", airDate: nil, code: "S01E\($0)", characterIDs: [1])
+        }
+        await api.setPage(1, .success(EpisodePage(episodes: freshFirstPage, hasNextPage: true, totalCount: 45)))
         let cached = EpisodeSnapshot(episodes: (1...45).map(Episode.make), refreshedAt: fixedDate)
         let viewModel = makeViewModel(
             api: api, store: try await .makeTemporary(containing: cached), now: fixedDate.addingTimeInterval(7200)
@@ -191,7 +194,7 @@ struct EpisodeListViewModelTests {
 
         await viewModel.start()
 
-        #expect(viewModel.episodes.map(\.id) == Array(101...120) + Array(21...45))
+        #expect(viewModel.episodes == freshFirstPage + cached.episodes.dropFirst(20))
         #expect(viewModel.footer == .endReached(count: 45))
         #expect(viewModel.refreshErrorMessage == nil)
         #expect(await api.requestedPages == [1])
