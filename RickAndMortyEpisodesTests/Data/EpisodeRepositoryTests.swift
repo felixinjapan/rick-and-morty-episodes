@@ -78,8 +78,8 @@ struct EpisodeRepositoryTests {
     func pagingWhenCatalogueShrank() async throws {
         let api = makeThreePageAPI()
         let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary(), now: { fixedDate })
-        var snapshot = try await repository.loadNextPage(after: nil)
-        snapshot = try await repository.loadNextPage(after: snapshot)
+        var snapshot = try await repository.loadNextPage()
+        snapshot = try await repository.loadNextPage()
 
         // Episode 25 was removed, so episode 41 moved onto page 2, which is already loaded.
         let remaining = (1...45).filter { $0 != 25 }.map(Episode.make)
@@ -90,14 +90,14 @@ struct EpisodeRepositoryTests {
             )))
         }
 
-        snapshot = try await repository.loadNextPage(after: snapshot)
+        snapshot = try await repository.loadNextPage()
 
         #expect(snapshot.episodes == Array(remaining.prefix(20)))
         #expect(snapshot.nextPage == 2)
         #expect(snapshot.totalCount == 44)
 
-        snapshot = try await repository.loadNextPage(after: snapshot)
-        snapshot = try await repository.loadNextPage(after: snapshot)
+        snapshot = try await repository.loadNextPage()
+        snapshot = try await repository.loadNextPage()
 
         #expect(snapshot.episodes == remaining)
         #expect(snapshot.nextPage == nil)
@@ -108,18 +108,35 @@ struct EpisodeRepositoryTests {
     func pagingWhenCatalogueGrew() async throws {
         let api = makeThreePageAPI()
         let repository = DefaultEpisodeRepository(api: api, store: .makeTemporary(), now: { fixedDate })
-        var snapshot = try await repository.loadNextPage(after: nil)
-        snapshot = try await repository.loadNextPage(after: snapshot)
+        var snapshot = try await repository.loadNextPage()
+        snapshot = try await repository.loadNextPage()
         await api.setPage(3, .success(.make(ids: 41...46, hasNextPage: false, totalCount: 46)))
 
-        snapshot = try await repository.loadNextPage(after: snapshot)
+        snapshot = try await repository.loadNextPage()
 
         #expect(snapshot.episodes.map(\.id) == Array(1...46))
         #expect(snapshot.totalCount == 46)
         #expect(await api.requestedPages == [1, 2, 3])
     }
 
-    @Test("The known episode count is read from the saved list once, then follows the list in memory")
+    @Test("Paging continues from the saved list, so a new launch doesn't start again from page 1")
+    func pagingContinuesFromSavedList() async throws {
+        let api = makeThreePageAPI()
+        let saved = EpisodeSnapshot(
+            episodes: (1...20).map(Episode.make), nextPage: 2, totalCount: 45, refreshedAt: fixedDate
+        )
+        let store = try await FileEpisodeStore.makeTemporary(containing: saved)
+        let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate.addingTimeInterval(60) })
+
+        let snapshot = try await repository.loadNextPage()
+
+        #expect(snapshot.episodes.map(\.id) == Array(1...40))
+        #expect(snapshot.refreshedAt == fixedDate)
+        #expect(await api.requestedPages == [2])
+        #expect(try await store.load() == snapshot)
+    }
+
+    @Test("The saved list is read once, then the list and episode count come from memory")
     func knownEpisodeCount() async throws {
         #expect(await DefaultEpisodeRepository(api: StubAPI(), store: .makeTemporary()).knownEpisodeCount() == nil)
 
@@ -136,6 +153,7 @@ struct EpisodeRepositoryTests {
             episodes: [], totalCount: 99, refreshedAt: fixedDate.addingTimeInterval(30)
         ))
         #expect(await repository.knownEpisodeCount() == 45)
+        #expect(await repository.loadCurrentSnapshot() == saved)
 
         _ = try await repository.refreshFirstPage()
         #expect(await repository.knownEpisodeCount() == 46)
@@ -146,11 +164,11 @@ struct EpisodeRepositoryTests {
         let api = makeThreePageAPI()
         let store = FileEpisodeStore.makeTemporary()
         let repository = DefaultEpisodeRepository(api: api, store: store, now: { fixedDate })
-        let first = try await repository.loadNextPage(after: nil)
+        _ = try await repository.loadNextPage()
 
         let gate = Gate()
         await api.holdPage(2, until: gate)
-        let lateLoad = Task { try await repository.loadNextPage(after: first) }
+        let lateLoad = Task { try await repository.loadNextPage() }
         while !(await api.requestedPages.contains(2)) { await Task.yield() }
         await api.setPage(1, .success(.make(ids: 101...120, hasNextPage: true)))
         let refreshed = try await repository.refreshFirstPage()

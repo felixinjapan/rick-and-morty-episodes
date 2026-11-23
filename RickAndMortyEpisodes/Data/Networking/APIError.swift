@@ -11,7 +11,10 @@ enum APIError: Error, Equatable {
 
     static func from(_ error: URLError) -> APIError {
         switch error.code {
-        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
+        // Failing to find or reach the host usually means the connection itself is down, such as
+        // Wi-Fi without internet access or behind a captive portal.
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff,
+             .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
             .offline
         case .timedOut:
             .timedOut

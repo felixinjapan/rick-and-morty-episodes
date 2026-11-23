@@ -11,7 +11,7 @@ struct AppDependenciesTests {
         let repositories = AppDependencies.makeRepositories(
             api: api, cacheDirectory: .temporaryDirectory.appending(path: UUID().uuidString), characterMaxAge: 3600
         )
-        _ = try await repositories.episodes.loadNextPage(after: nil)
+        _ = try await repositories.episodes.loadNextPage()
         _ = try await repositories.characters.character(id: 1)
         _ = try await repositories.characters.character(id: 1)
         #expect(await api.requestedCharacters == [1])

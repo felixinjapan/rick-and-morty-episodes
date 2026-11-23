@@ -259,19 +259,24 @@ struct EpisodeListViewModelTests {
         let store = try await FileEpisodeStore.makeTemporary(
             containing: EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: fixedDate)
         )
-        let viewModel = makeViewModel(api: api, store: store)
+        let later = fixedDate.addingTimeInterval(60)
+        let repository = DefaultEpisodeRepository(api: api, store: store, now: { later })
+        let viewModel = EpisodeListViewModel(
+            repository: repository, refreshPolicy: .init(staleInterval: 3600), now: { fixedDate }
+        )
         await viewModel.start()
         await viewModel.refresh()
         try #require(viewModel.refreshErrorMessage != nil)
 
-        let newer = EpisodeSnapshot(episodes: [.make(id: 2)], refreshedAt: fixedDate.addingTimeInterval(60))
-        try await store.save(newer)
+        // The background task refreshes through the same repository while the app is away.
+        await api.setPage(1, .success(.make(ids: 2...2, hasNextPage: false, totalCount: 1)))
+        _ = try await repository.refreshFirstPage()
         await viewModel.refreshIfNeeded()
 
-        #expect(viewModel.episodes == newer.episodes)
-        #expect(viewModel.lastRefreshedAt == newer.refreshedAt)
+        #expect(viewModel.episodes.map(\.id) == [2])
+        #expect(viewModel.lastRefreshedAt == later)
         #expect(viewModel.refreshErrorMessage == nil)
-        #expect(await api.requestedPages == [1])
+        #expect(await api.requestedPages == [1, 1])
     }
 
     @Test("A cache write failure does not disable future foreground refreshes")

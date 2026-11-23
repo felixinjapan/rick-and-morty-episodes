@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		64A7CCDD30AF4E660025D509 /* ui-map.png in Resources */ = {isa = PBXBuildFile; fileRef = 64A7CCDA30AF4E660025D509 /* ui-map.png */; };
+		64A7CCDE30AF4E660025D509 /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 64A7CCD930AF4E660025D509 /* architecture.md */; };
+		64A7CCDF30AF4E660025D509 /* ui-map-full.png in Resources */ = {isa = PBXBuildFile; fileRef = 64A7CCDB30AF4E660025D509 /* ui-map-full.png */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		AA0000000000000000000041 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +30,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		64A7CCD930AF4E660025D509 /* architecture.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = architecture.md; sourceTree = "<group>"; };
+		64A7CCDA30AF4E660025D509 /* ui-map.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ui-map.png"; sourceTree = "<group>"; };
+		64A7CCDB30AF4E660025D509 /* ui-map-full.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ui-map-full.png"; sourceTree = "<group>"; };
 		AA0000000000000000000031 /* RickAndMortyEpisodes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RickAndMortyEpisodes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000032 /* RickAndMortyEpisodesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RickAndMortyEpisodesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000033 /* RickAndMortyEpisodesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RickAndMortyEpisodesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -73,9 +82,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		64A7CCDC30AF4E660025D509 /* docs */ = {
+			isa = PBXGroup;
+			children = (
+				64A7CCD930AF4E660025D509 /* architecture.md */,
+				64A7CCDA30AF4E660025D509 /* ui-map.png */,
+				64A7CCDB30AF4E660025D509 /* ui-map-full.png */,
+			);
+			path = docs;
+			sourceTree = "<group>";
+		};
 		AA0000000000000000000002 = {
 			isa = PBXGroup;
 			children = (
+				64A7CCDC30AF4E660025D509 /* docs */,
 				AA0000000000000000000024 /* Config */,
 				AA0000000000000000000021 /* RickAndMortyEpisodes */,
 				AA0000000000000000000022 /* RickAndMortyEpisodesTests */,
@@ -216,6 +236,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				64A7CCDD30AF4E660025D509 /* ui-map.png in Resources */,
+				64A7CCDE30AF4E660025D509 /* architecture.md in Resources */,
+				64A7CCDF30AF4E660025D509 /* ui-map-full.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -22,25 +22,26 @@ actor DefaultEpisodeRepository: EpisodeRepository, EpisodeCatalogue {
         self.now = now
     }
 
+    /// Every save goes through this actor, so once the list is in memory the file can't be newer
+    /// and isn't read again.
     func loadCurrentSnapshot() async -> EpisodeSnapshot? {
+        if let latest { return latest }
         do {
-            if let saved = try await store.load(), saved.refreshedAt > (latest?.refreshedAt ?? .distantPast) {
-                latest = saved
-            }
+            let saved = try await store.load()
+            // A refresh or page load may have finished while the file was read; keep its newer list.
+            if latest == nil { latest = saved }
         } catch {
             logger.error("Failed to read episode cache: \(error.localizedDescription, privacy: .public)")
         }
         return latest
     }
 
-    /// Every save goes through this actor, so once the list is in memory the file isn't read again
-    /// for each character request.
     func knownEpisodeCount() async -> Int? {
-        if let latest { return latest.totalCount }
-        return await loadCurrentSnapshot()?.totalCount
+        await loadCurrentSnapshot()?.totalCount
     }
 
-    func loadNextPage(after current: EpisodeSnapshot?) async throws -> EpisodeSnapshot {
+    func loadNextPage() async throws -> EpisodeSnapshot {
+        let current = await loadCurrentSnapshot()
         if let current, current.nextPage == nil { return current }
         let page = current?.nextPage ?? 1
 

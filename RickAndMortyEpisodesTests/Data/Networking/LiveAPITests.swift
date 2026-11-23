@@ -166,6 +166,22 @@ struct LiveAPITests {
         }
     }
 
+    @Test("A host that can't be found or reached reads as offline", arguments: [
+        URLError.Code.cannotFindHost, .cannotConnectToHost, .dnsLookupFailed, .internationalRoamingOff
+    ])
+    func unreachableHostIsOffline(code: URLError.Code) async {
+        await #expect(throws: APIError.offline) {
+            try await makeFailingAPI(code).episodes(page: 1)
+        }
+    }
+
+    @Test("Other transport failures keep their code")
+    func otherTransportErrors() async {
+        await #expect(throws: APIError.transport(.secureConnectionFailed)) {
+            try await makeFailingAPI(.secureConnectionFailed).episodes(page: 1)
+        }
+    }
+
     @Test("A cancelled request surfaces as CancellationError, not as a user-facing error")
     func cancellation() async {
         await #expect(throws: CancellationError.self) {

@@ -21,40 +21,44 @@ struct AppRootTests {
         )
     }
 
-    @Test("Foreground events update the root's existing view model from the cache")
+    /// The background task and the screens share one repository, as in the app; the task refreshes
+    /// with `refreshFirstPage()`.
+    private func makeRepository(initial: EpisodeSnapshot) async throws -> (DefaultEpisodeRepository, StubAPI) {
+        let store = try await FileEpisodeStore.makeTemporary(containing: initial)
+        let api = StubAPI(pages: [1: .success(.make(ids: 2...2, hasNextPage: false, totalCount: 1))])
+        let repository = DefaultEpisodeRepository(
+            api: api, store: store, now: { initial.refreshedAt.addingTimeInterval(60) }
+        )
+        return (repository, api)
+    }
+
+    @Test("Returning to the app shows a background refresh in the root's existing view model")
     func foregroundUpdatesOwnedViewModel() async throws {
         let initial = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: .now)
-        let store = try await FileEpisodeStore.makeTemporary(containing: initial)
-        let api = StubAPI()
-        let repository = DefaultEpisodeRepository(api: api, store: store)
+        let (repository, api) = try await makeRepository(initial: initial)
         var schedules = 0
         let root = makeRoot(repository: repository, schedule: { schedules += 1 })
         let viewModel = root.episodeListViewModel
         await viewModel.start()
         #expect(viewModel.episodes == initial.episodes)
 
-        let newer = EpisodeSnapshot(episodes: [.make(id: 2)], refreshedAt: initial.refreshedAt.addingTimeInterval(60))
-        try await store.save(newer)
+        _ = try await repository.refreshFirstPage()
         await root.appBecameActive()
 
         #expect(root.episodeListViewModel === viewModel)
-        #expect(viewModel.episodes == newer.episodes)
+        #expect(viewModel.episodes.map(\.id) == [2])
         #expect(schedules == 0)
-        #expect(await api.requestedPages.isEmpty)
+        // Only the background task's request: returning to the app reads the repository.
+        #expect(await api.requestedPages == [1])
     }
 
     @Test("Entering the background schedules once and doesn't refresh the list")
     func backgroundSchedulesWithoutRefreshing() async throws {
         let initial = EpisodeSnapshot(episodes: [.make(id: 1)], refreshedAt: .now)
-        let store = try await FileEpisodeStore.makeTemporary(containing: initial)
-        let api = StubAPI()
-        let repository = DefaultEpisodeRepository(api: api, store: store)
+        let (repository, api) = try await makeRepository(initial: initial)
         var schedules = 0
         let root = makeRoot(repository: repository, schedule: { schedules += 1 })
         await root.episodeListViewModel.start()
-        try await store.save(EpisodeSnapshot(
-            episodes: [.make(id: 2)], refreshedAt: initial.refreshedAt.addingTimeInterval(60)
-        ))
 
         root.appEnteredBackground()
 
@@ -62,6 +66,7 @@ struct AppRootTests {
         #expect(root.episodeListViewModel.episodes == initial.episodes)
         #expect(await api.requestedPages.isEmpty)
 
+        _ = try await repository.refreshFirstPage()
         await root.appBecameActive()
         #expect(root.episodeListViewModel.episodes.map(\.id) == [2])
     }

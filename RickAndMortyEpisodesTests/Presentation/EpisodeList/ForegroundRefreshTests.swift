@@ -25,7 +25,7 @@ private actor GatedRepository: EpisodeRepository {
         return snapshot
     }
 
-    func loadNextPage(after current: EpisodeSnapshot?) async throws -> EpisodeSnapshot { snapshot }
+    func loadNextPage() async throws -> EpisodeSnapshot { snapshot }
 
     func refreshFirstPage() async throws -> EpisodeSnapshot {
         refreshCalls += 1

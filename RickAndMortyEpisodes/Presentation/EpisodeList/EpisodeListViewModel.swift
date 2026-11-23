@@ -121,12 +121,11 @@ final class EpisodeListViewModel {
         isLoadingPage = true
         loadFailure = nil
         let generation = listGeneration
-        let current = snapshot
         let repository = self.repository
 
         // Its own task, so scrolling the footer away (which cancels the view's `.task`) doesn't
         // cancel the request. The result belongs to the view model, not the view.
-        let result = await Task { try await repository.loadNextPage(after: current) }.result
+        let result = await Task { try await repository.loadNextPage() }.result
 
         guard generation == listGeneration else { return }
 
